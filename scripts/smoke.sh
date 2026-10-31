@@ -3,7 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-make ci
+# In GitHub Actions the quality job already ran `make ci`.
+if [ "${SMOKE_SKIP_CI:-0}" != "1" ]; then
+	make ci
+fi
 
 find_free_port() {
 	local port
