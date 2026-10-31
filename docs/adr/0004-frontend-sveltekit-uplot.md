@@ -1,9 +1,9 @@
 # ADR-0004 — Frontend: SvelteKit + uPlot
 
-- **Status:** proposto
+- **Status:** aceito
 - **Data:** 2026-10-31
 - **Decisores:** Fundador + Frontend
-- **Revisores:** pendente
+- **Revisores:** kaikeventura (Fundador)
 - **Consultados:** Produto + Design
 - **Relacionados:** AD-8, AD-14, AD-34; D-04, D-06, P-04; S0.5; Stories 6.1–6.4
 - **Substitui:** —
@@ -109,17 +109,20 @@ informação e fluxos (EXPERIENCE.md), biblioteca exata de componentes
 
 ## Status
 
-`proposto`. Para `aceito`, faltam:
+`aceito` em 2026-10-31, com revisão registrada abaixo. SvelteKit + uPlot é a
+escolha default; S0.5 prova o orçamento de bundle e de 100k pontos. O fallback
+React 19 continua documentado caso o time contratado seja React-heavy (P-04).
+
+**Evidência pendente para o G1 (não bloqueia a decisão):**
 
 1. S0.5 provar 100k pontos < 100 ms e bundle < 180 KB gzip;
-2. P-04 confirmar SvelteKit com o time real (ou acionar o fallback React);
-3. revisão humana registrada (AC3 da Story 1.4).
+2. P-04 confirmar o time ou acionar o fallback React.
 
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
 |---|---|---|---|---|
-| pendente | — | — | pendente | — |
+| kaikeventura | Fundador | 2026-10-31 | aprovado | Revisão da sessão de 2026-10-31 |
 
 ## Questões abertas
 

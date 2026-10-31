@@ -24,20 +24,20 @@
 | P-05 | Compliance: SOC 2/HIPAA/FedRAMP | Fundador | Antes da Fase 3 | Se um contrato exigir, antecipar trilha |
 | P-06 | Time/prazo: 5-6 engenheiros, ~14 meses | Fundador | Semana 1 | Se o time for menor, cortar Fase 4 e/ou adiar GA |
 
-**ADRs relacionadas:** P-02 é detalhada em [ADR-0005](../../docs/adr/0005-tenancy-e-retencao.md); P-04 em [ADR-0004](../../docs/adr/0004-frontend-sveltekit-uplot.md); P-03 em [`docs/governance/open-core.md`](../../docs/governance/open-core.md).
+**ADRs relacionadas:** P-02 é detalhada em [ADR-0005](../../docs/adr/0005-tenancy-e-retencao.md) (mecanismo aprovado; o default 7/15/30 continua pendente); P-04 em [ADR-0004](../../docs/adr/0004-frontend-sveltekit-uplot.md) (SvelteKit é o default; o fallback React 19 permanece como critério de reversão se o time contratado for React-heavy); P-03 em [`docs/governance/open-core.md`](../../docs/governance/open-core.md) (fronteira ainda pendente).
 
 ## ADRs da Fase 0
 
-As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Todas nascem `proposto`: a aprovação exige spike concluído, revisão humana e entrada no Gate G1.
+As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.
 
 | ADR | Tema | Status | Spike | Invariantes |
 |---|---|---|---|---|
-| [0001](../../docs/adr/0001-storage-clickhouse-victoriametrics.md) | Storage (ClickHouse + VictoriaMetrics) | `proposto` | S0.1, S0.4, S0.8 | AD-5, AD-9, AD-21, AD-29 |
-| [0002](../../docs/adr/0002-gateway-go.md) | Gateway (Go) | `proposto` | S0.2, S0.7 | AD-1, AD-4, AD-6, AD-17, AD-21 |
-| [0003](../../docs/adr/0003-fila-nats-jetstream.md) | Fila/WAL (NATS JetStream) | `proposto` | S0.3 | AD-4, AD-18, AD-19, AD-22 |
-| [0004](../../docs/adr/0004-frontend-sveltekit-uplot.md) | Frontend (SvelteKit + uPlot) | `proposto` | S0.5 | AD-8, AD-14, AD-34 |
-| [0005](../../docs/adr/0005-tenancy-e-retencao.md) | Tenancy e retenção | `proposto` | S0.8, S0.4 | AD-2, AD-3, AD-20, AD-28, AD-29, AD-35 |
-| [0006](../../docs/adr/0006-metodologia-de-benchmark.md) | Metodologia de benchmark | `proposto` | S0.1–S0.6 | AD-14, AD-16, AD-29 |
+| [0001](../../docs/adr/0001-storage-clickhouse-victoriametrics.md) | Storage (ClickHouse + VictoriaMetrics) | `aceito` | S0.1, S0.4, S0.8 | AD-5, AD-9, AD-21, AD-29 |
+| [0002](../../docs/adr/0002-gateway-go.md) | Gateway (Go) | `aceito` | S0.2, S0.7 | AD-1, AD-4, AD-6, AD-17, AD-21 |
+| [0003](../../docs/adr/0003-fila-nats-jetstream.md) | Fila/WAL (NATS JetStream) | `aceito` | S0.3 | AD-4, AD-18, AD-19, AD-22 |
+| [0004](../../docs/adr/0004-frontend-sveltekit-uplot.md) | Frontend (SvelteKit + uPlot) | `aceito` | S0.5 | AD-8, AD-14, AD-34 |
+| [0005](../../docs/adr/0005-tenancy-e-retencao.md) | Tenancy e retenção | `aceito` | S0.8, S0.4 | AD-2, AD-3, AD-20, AD-28, AD-29, AD-35 |
+| [0006](../../docs/adr/0006-metodologia-de-benchmark.md) | Metodologia de benchmark | `aceito` | S0.1–S0.6 | AD-14, AD-16, AD-29 |
 
 ## Índice de ADs
 

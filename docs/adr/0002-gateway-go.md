@@ -1,9 +1,9 @@
 # ADR-0002 — Gateway de ingestão em Go
 
-- **Status:** proposto
+- **Status:** aceito
 - **Data:** 2026-10-31
 - **Decisores:** Fundador + Arquitetura
-- **Revisores:** pendente
+- **Revisores:** kaikeventura (Fundador)
 - **Consultados:** —
 - **Relacionados:** AD-1, AD-4, AD-6, AD-17, AD-21, AD-31; D-04; S0.2, S0.7; Stories 4.1–4.5
 - **Substitui:** —
@@ -103,18 +103,21 @@ pipeline (Stories 4.1–4.3).
 
 ## Status
 
-`proposto`. Para `aceito`, faltam:
+`aceito` em 2026-10-31, com revisão registrada abaixo. A escolha é Go, com
+fallback Rust/Rotel documentado. S0.2 e S0.7 provam o número e o cache de
+auth; se falharem, o fallback é acionado sem mudar o contrato OTLP.
+
+**Evidência pendente para o G1 (não bloqueia a decisão):**
 
 1. S0.2 provar 15–20k eventos/s por vCPU e 1M/s com 4–6 gateways;
 2. S0.7 provar que o cache de auth/JWKS não adiciona dependência do
-   PostgreSQL no hot path;
-3. revisão humana registrada (AC3 da Story 1.4).
+   PostgreSQL no hot path.
 
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
 |---|---|---|---|---|
-| pendente | — | — | pendente | — |
+| kaikeventura | Fundador | 2026-10-31 | aprovado | Revisão da sessão de 2026-10-31 |
 
 ## Questões abertas
 

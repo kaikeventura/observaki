@@ -1,9 +1,9 @@
 # ADR-0005 — Tenancy e retenção
 
-- **Status:** proposto
+- **Status:** aceito
 - **Data:** 2026-10-31
 - **Decisores:** Fundador + Arquitetura
-- **Revisores:** pendente
+- **Revisores:** kaikeventura (Fundador)
 - **Consultados:** Produto + Segurança
 - **Relacionados:** AD-2, AD-3, AD-17, AD-19, AD-20, AD-28, AD-29, AD-33, AD-35; P-02, P-03; S0.4, S0.8; Stories 3.5, 4.2
 - **Substitui:** —
@@ -135,18 +135,22 @@ As restrições que governam a decisão:
 
 ## Status
 
-`proposto`. Para `aceito`, faltam:
+`aceito` em 2026-10-31, com revisão registrada abaixo. A decisão fixa
+identidade, isolamento em profundidade e o mecanismo de retenção. S0.8 e S0.4
+provam row policies, TTL por projeto e isolamento no VM; P-02 define o default
+de retenção e P-03 decide a retenção de métricas por projeto.
+
+**Evidência pendente para o G1 (não bloqueia a decisão):**
 
 1. S0.8 provar row policies, TTL por projeto e isolamento no ClickHouse/VM;
 2. P-02 decidir o default de retenção (7/15/30);
-3. definir o escopo de move/delete no MVP e o SLA da Fase 3;
-4. revisão humana registrada (AC3 da Story 1.4).
+3. definir o escopo de move/delete no MVP e o SLA da Fase 3.
 
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
 |---|---|---|---|---|
-| pendente | — | — | pendente | — |
+| kaikeventura | Fundador | 2026-10-31 | aprovado | Revisão da sessão de 2026-10-31 |
 
 ## Questões abertas
 

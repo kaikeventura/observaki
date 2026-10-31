@@ -1,9 +1,9 @@
 # ADR-0001 — Armazenamento: ClickHouse + VictoriaMetrics
 
-- **Status:** proposto
+- **Status:** aceito
 - **Data:** 2026-10-31
 - **Decisores:** Fundador + Arquitetura
-- **Revisores:** pendente
+- **Revisores:** kaikeventura (Fundador)
 - **Consultados:** —
 - **Relacionados:** AD-5, AD-9, AD-21, AD-29; D-04; P-02; S0.1, S0.4, S0.8; Stories 3.1–3.5
 - **Substitui:** —
@@ -119,19 +119,23 @@ archive search e federação. Eles ficam para o fim da Fase 0 ou para as Fases
 
 ## Status
 
-`proposto`. A decisão está registrada e sustenta os spikes, mas não pode ser
-promovida para `aceito` antes de:
+`aceito` em 2026-10-31, com revisão registrada abaixo. A decisão sustenta os
+spikes e o desenho da Fase 0; a evidência de S0.1, S0.4 e S0.8 continua
+obrigatória para o Gate G1. Se um spike falhar, este ADR é emendado ou
+substituído — o split por forma de acesso e o RED no gateway não mudam por
+conveniência.
+
+**Evidência pendente para o G1 (não bloqueia a decisão):**
 
 1. S0.1 provar ingestão, consulta e compressão do ClickHouse;
 2. S0.4 provar cardinalidade e compatibilidade do VictoriaMetrics;
-3. S0.8 provar retenção por projeto e isolamento;
-4. revisão humana registrada na seção **Revisão** (AC3 da Story 1.4).
+3. S0.8 provar retenção por projeto e isolamento.
 
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
 |---|---|---|---|---|
-| pendente | — | — | pendente | — |
+| kaikeventura | Fundador | 2026-10-31 | aprovado | Revisão da sessão de 2026-10-31 |
 
 ## Questões abertas
 

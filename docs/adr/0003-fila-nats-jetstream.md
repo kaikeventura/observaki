@@ -1,9 +1,9 @@
 # ADR-0003 — Fila/WAL: NATS JetStream
 
-- **Status:** proposto
+- **Status:** aceito
 - **Data:** 2026-10-31
 - **Decisores:** Fundador + Arquitetura
-- **Revisores:** pendente
+- **Revisores:** kaikeventura (Fundador)
 - **Consultados:** —
 - **Relacionados:** AD-4, AD-18, AD-19, AD-20, AD-22, AD-31; D-04; S0.3; Stories 4.3–4.5
 - **Substitui:** —
@@ -110,17 +110,20 @@ S0.3.
 
 ## Status
 
-`proposto`. Para `aceito`, faltam:
+`aceito` em 2026-10-31, com revisão registrada abaixo. NATS JetStream é o WAL
+default; S0.3 prova o throughput e a durabilidade. Se falhar, o fallback é WAL
+local + Kafka opcional, sem mudar o contrato de envelope.
+
+**Evidência pendente para o G1 (não bloqueia a decisão):**
 
 1. S0.3 provar 1M/s com zero perda em 15 minutos de falha do ClickHouse;
-2. definir retenção do stream, replicação e DLQ na Story 4.3;
-3. revisão humana registrada (AC3 da Story 1.4).
+2. definir retenção do stream, replicação e DLQ na Story 4.3.
 
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
 |---|---|---|---|---|
-| pendente | — | — | pendente | — |
+| kaikeventura | Fundador | 2026-10-31 | aprovado | Revisão da sessão de 2026-10-31 |
 
 ## Questões abertas
 

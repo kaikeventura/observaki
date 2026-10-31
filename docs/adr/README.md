@@ -52,8 +52,10 @@ Regras:
    para uma spike (`S0.x`) ou story da Fase 0, com dono, prazo e fallback.
 5. **Português-BR.** Produto e documentação em português; código, API e UI em
    inglês.
-6. **Evidência.** Decisão que depende de benchmark cita o cenário, o commit e o
-   relatório; enquanto o benchmark não existir, o status fica `proposto`.
+6. **Evidência.** Decisão que depende de benchmark cita o cenário e o
+   relatório esperado. A revisão pode aceitar a decisão com questões abertas;
+   o Gate G1 só fecha quando as questões estiverem resolvidas ou o fallback
+   estiver registrado.
 7. **Mudança de decisão confirmada:** atualize o ADR (emenda) ou crie um
    substituto e atualize `DECISIONS.md`. Não renumere.
 
@@ -95,17 +97,18 @@ explícito.
 
 ## Índice
 
-Os seis ADRs obrigatórios da Fase 0 (AR-12) estão abaixo. Todos nascem
-`proposto`; a aprovação é item do Gate G1.
+Os seis ADRs obrigatórios da Fase 0 (AR-12) estão abaixo. Foram **aprovados em
+2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais
+itens do Gate G1.
 
 | ADR | Título | Status | Invariantes | Spike da Fase 0 |
 |---|---|---|---|---|
-| [0001](0001-storage-clickhouse-victoriametrics.md) | Armazenamento: ClickHouse + VictoriaMetrics | `proposto` | AD-5, AD-9, AD-21, AD-29 | S0.1, S0.4, S0.8 |
-| [0002](0002-gateway-go.md) | Gateway de ingestão em Go | `proposto` | AD-1, AD-4, AD-6, AD-17, AD-21 | S0.2, S0.7 |
-| [0003](0003-fila-nats-jetstream.md) | Fila/WAL: NATS JetStream | `proposto` | AD-4, AD-18, AD-19, AD-22 | S0.3 |
-| [0004](0004-frontend-sveltekit-uplot.md) | Frontend: SvelteKit + uPlot | `proposto` | AD-8, AD-14, AD-34 | S0.5 |
-| [0005](0005-tenancy-e-retencao.md) | Tenancy e retenção | `proposto` | AD-2, AD-3, AD-20, AD-28, AD-29, AD-35 | S0.8, S0.4 |
-| [0006](0006-metodologia-de-benchmark.md) | Metodologia de benchmark | `proposto` | AD-14, AD-16, AD-29 | S0.1–S0.6 |
+| [0001](0001-storage-clickhouse-victoriametrics.md) | Armazenamento: ClickHouse + VictoriaMetrics | `aceito` | AD-5, AD-9, AD-21, AD-29 | S0.1, S0.4, S0.8 |
+| [0002](0002-gateway-go.md) | Gateway de ingestão em Go | `aceito` | AD-1, AD-4, AD-6, AD-17, AD-21 | S0.2, S0.7 |
+| [0003](0003-fila-nats-jetstream.md) | Fila/WAL: NATS JetStream | `aceito` | AD-4, AD-18, AD-19, AD-22 | S0.3 |
+| [0004](0004-frontend-sveltekit-uplot.md) | Frontend: SvelteKit + uPlot | `aceito` | AD-8, AD-14, AD-34 | S0.5 |
+| [0005](0005-tenancy-e-retencao.md) | Tenancy e retenção | `aceito` | AD-2, AD-3, AD-20, AD-28, AD-29, AD-35 | S0.8, S0.4 |
+| [0006](0006-metodologia-de-benchmark.md) | Metodologia de benchmark | `aceito` | AD-14, AD-16, AD-29 | S0.1–S0.6 |
 
 ### ADRs futuros
 
@@ -123,15 +126,21 @@ fases, sem pressa e sem renumerar:
 
 ## Aprovação no Gate G1
 
-O Gate G1 exige as seis ADRs **aprovadas** (ver `STATUS.md`). Enquanto o status
-for `proposto` ou `em revisão`:
+O Gate G1 exige as seis ADRs **aprovadas** (ver `STATUS.md`). As seis foram
+aprovadas em **2026-10-31** por `kaikeventura`; o item de ADRs do gate está
+fechado. A evidência de performance, retenção e frontend continua nos demais
+itens do gate (spikes S0.1–S0.8 e `BENCHMARKS.md`).
 
-- o item do gate permanece aberto;
-- a Fase 1 não começa;
-- um spike pode concluir e propor emenda, mas não pode promover o ADR sozinho.
+Depois de aceito:
+
+- o ADR só muda por emenda registrada ou por um ADR substituto;
+- um spike que falhe aciona o fallback documentado ou um novo ADR, nunca um
+  override silencioso;
+- a Fase 1 ainda depende dos demais critérios do G1.
 
 ## Histórico
 
 | Data | Mudança | Autor |
 |---|---|---|
 | 2026-10-31 | Criação do template, processo e seis ADRs obrigatórios (Story 1.4) | OpenCode |
+| 2026-10-31 | Seis ADRs aprovadas por `kaikeventura` (AC3) | OpenCode |

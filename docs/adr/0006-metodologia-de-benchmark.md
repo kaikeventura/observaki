@@ -1,9 +1,9 @@
 # ADR-0006 — Metodologia de benchmark
 
-- **Status:** proposto
+- **Status:** aceito
 - **Data:** 2026-10-31
 - **Decisores:** Fundador + Benchmark
-- **Revisores:** pendente
+- **Revisores:** kaikeventura (Fundador)
 - **Consultados:** Arquitetura + Produto
 - **Relacionados:** AD-14, AD-16, AD-29; NFR-1, NFR-2, NFR-13; AR-2, AR-3; S0.1–S0.6; Stories 2.1–2.4
 - **Substitui:** —
@@ -133,17 +133,20 @@ tentativa; não se arredonda número para “quase passou”.
 
 ## Status
 
-`proposto`. Para `aceito`, faltam:
+`aceito` em 2026-10-31, com revisão registrada abaixo. A metodologia é
+obrigatória para qualquer número publicado; Stories 2.1–2.4 implementam o
+harness e a primeira execução de referência.
+
+**Evidência pendente para o G1 (não bloqueia a decisão):**
 
 1. Stories 2.1–2.4 implementarem o harness, os cenários e o relatório;
-2. uma execução completa de referência (baseline) com hardware documentado;
-3. revisão humana registrada (AC3 da Story 1.4).
+2. uma execução completa de referência (baseline) com hardware documentado.
 
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
 |---|---|---|---|---|
-| pendente | — | — | pendente | — |
+| kaikeventura | Fundador | 2026-10-31 | aprovado | Revisão da sessão de 2026-10-31 |
 
 ## Questões abertas
 
