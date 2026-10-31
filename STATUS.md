@@ -6,16 +6,16 @@ epic: P0-E1
 epic_name: Fundação do repositório e governança
 story: "1.4"
 story_name: ADRs e registro de decisões de arquitetura
-task: "—"
-task_name: Aguardando início
-status: not_started        # not_started | in_progress | blocked | done
+task: "T1.4.1–T1.4.3"
+task_name: Template de ADR, seis ADRs e validação mecânica
+status: blocked        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "8746351"
-next_action: "Iniciar Story 1.4 — template de ADR e as seis ADRs obrigatórias (storage, gateway, fila, frontend, tenancy, benchmark)"
-blocked_by: []
-last_session: "Story 1.3 concluída: LICENSE Apache 2.0, DCO na CI, CONTRIBUTING/CoC/SECURITY, templates e fronteira open-core documentada; P-03 segue pendente."
+last_commit: "fa73372"
+next_action: "Revisão humana (AC3): revisar as seis ADRs em docs/adr/, registrar revisor/resultado e promover para 'aceito'; depois fechar a Story 1.4"
+blocked_by: ["AC3 — revisão humana de pelo menos um engenheiro nas seis ADRs; nenhuma pode ir para 'aceito' sem revisor registrado"]
+last_session: "Story 1.4 implementada: template, processo, seis ADRs propostas e check-adr no lint; falta a revisão humana (AC3). Push não realizado a pedido do dono."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -59,16 +59,16 @@ Atalho no OpenCode: `/continue`.
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
 | Story | **1.4 — ADRs e registro de decisões de arquitetura** |
-| Task | **— (aguardando início)** |
-| Status | `not_started` |
+| Task | **T1.4.1–T1.4.3 — template, seis ADRs e validação** |
+| Status | `blocked` (AC3: revisão humana) |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `8746351` |
-| Próxima ação | Iniciar a Story 1.4 — template de ADR e as seis ADRs obrigatórias |
-| Bloqueios | Nenhum; pendência operacional: habilitar branch protection no GitHub (AC1 da 1.2) |
-| Última sessão | Story 1.3 concluída (governança open source e DCO) |
+| Último commit | `fa73372` |
+| Próxima ação | Revisar e aprovar as seis ADRs; registrar revisor/resultado e promover para `aceito` |
+| Bloqueios | AC3 — revisão humana de pelo menos um engenheiro (não é possível autoaprovar) |
+| Última sessão | Story 1.4 implementada; falta a revisão humana |
 
-**Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
+**Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
 **Nota de stack:** SvelteKit 3 removeu `svelte.config.js`; a configuração (adapter, preprocess) agora vai no plugin `sveltekit()` do `vite.config.ts`. O arquivo listado na story não existe mais.
 
@@ -81,7 +81,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E1 | 1.1 | Bootstrap do mono-repo | `done` | T1.1.1–T1.1.9 done; revisão dispensada pelo dono; evidência em `docs/dev/story-1.1-handoff.md` |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `done` | CI/CodeQL verdes; `v0.0.1-alpha` com binários, SBOMs, checksums, bundles cosign e imagem assinada; falta habilitar branch protection (manual) |
 | P0-E1 | 1.3 | Governança open source | `done` | LICENSE Apache 2.0, DCO workflow + script testado (sem sign-off e e-mail divergente falham), CONTRIBUTING/CoC/SECURITY, templates e `docs/governance/open-core.md`; `make ci`/`make smoke` e CI/CodeQL verdes em `24a16be` |
-| P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
+| P0-E1 | 1.4 | ADRs | `blocked` | Template + processo, seis ADRs (storage, gateway, fila, frontend, tenancy/retention, benchmark) e `scripts/check-adr.sh` no `make lint`; `make ci`/`make smoke` verdes; falta revisão humana (AC3) |
 | P0-E2 | 2.1 | Gerador de carga OTLP | `todo` | Depende de 1.1 |
 | P0-E2 | 2.2 | Cenários de benchmark | `todo` | Depende de 2.1 |
 | P0-E2 | 2.3 | Relatório de benchmark | `todo` | Depende de 2.1/2.2 |
@@ -148,6 +148,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.2 / T1.2.1–T1.2.4 | P0 / 1.2 / T1.2.5 | Workflows `ci.yml`, `codeql.yml`, `release.yml`, job security/SBOM (Syft), release com cosign keyless, `Dockerfile` distroless, `docs/ci.md` e `SMOKE_SKIP_CI`; `actionlint` e imagem local ok | `42f09af` | Primeiro run no GitHub |
 | 2026-10-31 | Story 1.2 / T1.2.5 | P0 / 1.2 / T1.2.5 | CI e CodeQL verdes na `main`; `govulncheck` exigiu Go 1.27.2 (GO-2026-6613/6617) e `cargo audit` passou a rodar em `agent/`; tag `v0.0.1-alpha` publicou 4 binários, SBOMs, `SHA256SUMS`, bundles cosign e imagem multi-arch assinada | `925b534` + tag `v0.0.1-alpha` | Story 1.3 |
 | 2026-10-31 | Story 1.3 | P0 / 1.3 / — | `LICENSE` Apache 2.0, `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`, templates de issue/PR, `docs/governance/open-core.md` (P-03 explícita) e workflow `DCO sign-off`; `scripts/check-dco.sh` validado com sign-off ausente/divergente/malformado (exit 1) e caso válido (exit 0); `actionlint`, schema YAML dos issue forms, `make ci` e `make smoke` ok; CI e CodeQL verdes em `24a16be` | `8746351` | Story 1.4 |
+| 2026-10-31 | Story 1.4 | P0 / 1.4 / T1.4.1–T1.4.3 | Template e processo de ADR, seis ADRs (storage, gateway, fila, frontend, tenancy/retenção, benchmark), `scripts/check-adr.sh` (seções, status, revisão e índice) no `make lint`, `DECISIONS.md` atualizado; `make ci` e `make smoke` verdes; ADRs em `proposto` aguardando revisão humana (AC3); push não realizado a pedido do dono | `fa73372` | Revisão humana (AC3) |
 
 ## Regras de atualização
 
