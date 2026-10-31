@@ -6,16 +6,16 @@ epic: P0-E1
 epic_name: Fundação do repositório e governança
 story: "1.1"
 story_name: Bootstrap do mono-repo e ambiente de desenvolvimento
-task: T1.1.7
-task_name: Documentação de setup local
+task: T1.1.8
+task_name: Smoke test e validação final
 status: in_progress        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "d014d55"
-next_action: "T1.1.7 — escrever docs/dev/local-setup.md (pré-requisitos, comandos, portas, troubleshooting) e quickstart no README"
+last_commit: "1c80d46"
+next_action: "T1.1.8 — validar bootstrap/ci/smoke do zero, medir tempo, conferir binário, healthz e web/build, e registrar evidência"
 blocked_by: []
-last_session: "T1.1.6 concluída: config validada por ambiente, .env.example, testes e carga de .env no dev."
+last_session: "T1.1.7 concluída: guia de setup local, quickstart no README e ajuste de .env/URLs no dev.sh."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -59,14 +59,14 @@ Atalho no OpenCode: `/continue`.
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
-| Task | **T1.1.7 — Documentação de setup local** |
+| Task | **T1.1.8 — Smoke test e validação final** |
 | Status | `in_progress` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `d014d55` |
-| Próxima ação | Escrever `docs/dev/local-setup.md` (pré-requisitos, comandos, portas, troubleshooting) e quickstart de 5 comandos no README |
+| Último commit | `1c80d46` |
+| Próxima ação | Validar `make bootstrap && make ci && make smoke` em ambiente limpo, medir o tempo e registrar evidência no PR |
 | Bloqueios | Nenhum |
-| Última sessão | T1.1.6 concluída (configuração por ambiente) |
+| Última sessão | T1.1.7 concluída (guia de setup local) |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.0`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
 
@@ -78,7 +78,7 @@ Atalho no OpenCode: `/continue`.
 
 | Epic | Story | Título | Status | Evidência / próximo passo |
 |---|---|---|---|---|
-| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1–T1.1.6 done (`ea625ad`…`d014d55`); próximo: T1.1.7 |
+| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1–T1.1.7 done (`ea625ad`…`1c80d46`); próximo: T1.1.8 |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `todo` | Depende de 1.1 |
 | P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
@@ -140,6 +140,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.1 / T1.1.4 | P0 / 1.1 / T1.1.4 | Workspace Rust (`agent/`), `rust-toolchain.toml` stable, binário `observaki-agent --version`, 2 testes; `cargo build/test/fmt/clippy -D warnings` verdes | `1f748c3` | T1.1.5 |
 | 2026-10-31 | Story 1.1 / T1.1.5 | P0 / 1.1 / T1.1.5 | `Makefile` (bootstrap/fmt/lint/test/build/dev/smoke/clean/ci/tools), `check-toolchain.sh`, `dev.sh`, `smoke.sh`, `.golangci.yml`; todos os alvos validados, inclusive smoke e dev com proxy | `8fd0efb` | T1.1.6 |
 | 2026-10-31 | Story 1.1 / T1.1.6 | P0 / 1.1 / T1.1.6 | `internal/config` com defaults/validação (HTTP addr, log level, env, database URL, web dir), 5 testes, `.env.example`, `main` usando a config e `dev.sh` carregando `.env` | `d014d55` | T1.1.7 |
+| 2026-10-31 | Story 1.1 / T1.1.7 | P0 / 1.1 / T1.1.7 | `docs/dev/local-setup.md` completo (pré-requisitos, quickstart, comandos, portas, 8 troubleshootings, validado por), quickstart no README; dev.sh preserva overrides do shell | `1c80d46` | T1.1.8 |
 
 ## Regras de atualização
 
