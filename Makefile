@@ -21,7 +21,7 @@ LDFLAGS := -X github.com/observaki/observaki/internal/version.Version=$(VERSION)
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -47,7 +47,10 @@ fmt: ## format Go, web and Rust code
 	$(PNPM) --dir $(WEB_DIR) format
 	$(CARGO) fmt --manifest-path $(AGENT_MANIFEST)
 
-lint: ## run golangci-lint, prettier, svelte-check and clippy
+adr-check: ## validate ADR sections, status, review and index
+	./scripts/check-adr.sh
+
+lint: adr-check ## run golangci-lint, prettier, svelte-check, clippy and ADR checks
 	$(GOLANGCI_LINT) run ./...
 	$(PNPM) --dir $(WEB_DIR) lint
 	$(PNPM) --dir $(WEB_DIR) check

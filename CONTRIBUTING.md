@@ -38,6 +38,7 @@ Pré-requisitos e troubleshooting: [docs/dev/local-setup.md](docs/dev/local-setu
 make bootstrap   # valida toolchain e instala dependências
 make ci          # bootstrap + lint + test + build
 make smoke       # valida o binário e o build web
+make adr-check   # valida o template e as ADRs em docs/adr/
 ```
 
 O CI roda os mesmos alvos, além de análise de segurança, CodeQL e DCO.

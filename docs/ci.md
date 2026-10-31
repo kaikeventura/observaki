@@ -22,7 +22,8 @@ make ci      # bootstrap + lint + test + build
 make smoke   # com SMOKE_SKIP_CI=1, só valida o binário e o web/build
 ```
 
-O `web/build` fica disponível como artefato `web-build`.
+O `make lint` também roda `scripts/check-adr.sh` (estrutura, status, revisão e
+índice das ADRs). O `web/build` fica disponível como artefato `web-build`.
 
 ### `security`
 
