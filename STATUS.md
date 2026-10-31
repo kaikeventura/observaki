@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E1
 epic_name: Fundação do repositório e governança
-story: "1.3"
-story_name: Governança open source e fronteira open-core
+story: "1.4"
+story_name: ADRs e registro de decisões de arquitetura
 task: "—"
 task_name: Aguardando início
 status: not_started        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "925b534"
-next_action: "Iniciar Story 1.3 — LICENSE Apache 2.0, DCO, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, templates e fronteira open-core"
+last_commit: "8746351"
+next_action: "Iniciar Story 1.4 — template de ADR e as seis ADRs obrigatórias (storage, gateway, fila, frontend, tenancy, benchmark)"
 blocked_by: []
-last_session: "Story 1.2 concluída: CI e CodeQL verdes, release v0.0.1-alpha assinada e publicada; branch protection segue como ajuste manual."
+last_session: "Story 1.3 concluída: LICENSE Apache 2.0, DCO na CI, CONTRIBUTING/CoC/SECURITY, templates e fronteira open-core documentada; P-03 segue pendente."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
-| Story | **1.3 — Governança open source e fronteira open-core** |
+| Story | **1.4 — ADRs e registro de decisões de arquitetura** |
 | Task | **— (aguardando início)** |
 | Status | `not_started` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `925b534` |
-| Próxima ação | Iniciar a Story 1.3 — licença, DCO, CONTRIBUTING, CoC, SECURITY, templates e fronteira open-core |
+| Último commit | `8746351` |
+| Próxima ação | Iniciar a Story 1.4 — template de ADR e as seis ADRs obrigatórias |
 | Bloqueios | Nenhum; pendência operacional: habilitar branch protection no GitHub (AC1 da 1.2) |
-| Última sessão | Story 1.2 concluída (release `v0.0.1-alpha` assinada) |
+| Última sessão | Story 1.3 concluída (governança open source e DCO) |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
 
@@ -80,7 +80,7 @@ Atalho no OpenCode: `/continue`.
 |---|---|---|---|---|
 | P0-E1 | 1.1 | Bootstrap do mono-repo | `done` | T1.1.1–T1.1.9 done; revisão dispensada pelo dono; evidência em `docs/dev/story-1.1-handoff.md` |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `done` | CI/CodeQL verdes; `v0.0.1-alpha` com binários, SBOMs, checksums, bundles cosign e imagem assinada; falta habilitar branch protection (manual) |
-| P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
+| P0-E1 | 1.3 | Governança open source | `done` | LICENSE Apache 2.0, DCO workflow + script testado (sem sign-off e e-mail divergente falham), CONTRIBUTING/CoC/SECURITY, templates e `docs/governance/open-core.md`; `make ci`/`make smoke` ok |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
 | P0-E2 | 2.1 | Gerador de carga OTLP | `todo` | Depende de 1.1 |
 | P0-E2 | 2.2 | Cenários de benchmark | `todo` | Depende de 2.1 |
@@ -147,6 +147,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.1 / T1.1.9 | P0 / 1.1 / T1.1.9 | **Story 1.1 concluída**: revisão dispensada explicitamente pelo dono; handoff e checklist em `docs/dev/story-1.1-handoff.md`; próxima é a Story 1.2 | `8957f4b` | Story 1.2 |
 | 2026-10-31 | Story 1.2 / T1.2.1–T1.2.4 | P0 / 1.2 / T1.2.5 | Workflows `ci.yml`, `codeql.yml`, `release.yml`, job security/SBOM (Syft), release com cosign keyless, `Dockerfile` distroless, `docs/ci.md` e `SMOKE_SKIP_CI`; `actionlint` e imagem local ok | `42f09af` | Primeiro run no GitHub |
 | 2026-10-31 | Story 1.2 / T1.2.5 | P0 / 1.2 / T1.2.5 | CI e CodeQL verdes na `main`; `govulncheck` exigiu Go 1.27.2 (GO-2026-6613/6617) e `cargo audit` passou a rodar em `agent/`; tag `v0.0.1-alpha` publicou 4 binários, SBOMs, `SHA256SUMS`, bundles cosign e imagem multi-arch assinada | `925b534` + tag `v0.0.1-alpha` | Story 1.3 |
+| 2026-10-31 | Story 1.3 | P0 / 1.3 / — | `LICENSE` Apache 2.0, `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`, templates de issue/PR, `docs/governance/open-core.md` (P-03 explícita) e workflow `DCO sign-off`; `scripts/check-dco.sh` validado com sign-off ausente/divergente/malformado (exit 1) e caso válido (exit 0); `actionlint`, schema YAML dos issue forms, `make ci` e `make smoke` ok | `8746351` | Story 1.4 |
 
 ## Regras de atualização
 
