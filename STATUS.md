@@ -10,9 +10,9 @@ task: T1.1.3
 task_name: Criar o app SvelteKit mínimo
 status: in_progress        # not_started | in_progress | blocked | done
 updated: 2026-10-31
-branch: feat/p0-s1.1-bootstrap
+branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "1924ae6"
+last_commit: "a1c8df2"
 next_action: "T1.1.3 — criar web/ com SvelteKit 3, Svelte 5, TypeScript, Vite e Tailwind; página inicial, proxy /api e teste de renderização"
 blocked_by: []
 last_session: "T1.1.2 concluída: binário Go com version/serve, /healthz, /api/v1/health, shutdown gracioso e testes."
@@ -61,9 +61,9 @@ Atalho no OpenCode: `/continue`.
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
 | Task | **T1.1.3 — Criar o app SvelteKit mínimo** |
 | Status | `in_progress` |
-| Branch | `feat/p0-s1.1-bootstrap` |
+| Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `1924ae6` |
+| Último commit | `a1c8df2` |
 | Próxima ação | Criar `web/` (SvelteKit 3 + Svelte 5 + TypeScript + Vite + Tailwind), página inicial com status da API, proxy `/api` e teste |
 | Bloqueios | Nenhum |
 | Última sessão | T1.1.2 concluída (binário Go com `version` e `serve`) |
@@ -133,6 +133,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.1 / T1.1.1 | P0 / 1.1 / T1.1.1 | Esqueleto do mono-repo, `.editorconfig`, `.gitignore`, `go.mod` (Go 1.27.0), README + placeholders; `go mod tidy` ok | `ea625ad` | T1.1.2 |
 | 2026-10-31 | Merge (ordem humana) | P0 / 1.1 / T1.1.1 | `feat/p0-s1.1-bootstrap` mergeada em `main` com `--no-ff`; branch preservada | `2ca771d` | T1.1.2 |
 | 2026-10-31 | Story 1.1 / T1.1.2 | P0 / 1.1 / T1.1.2 | Binário Go (`version`, `serve`), `/healthz`, `/api/v1/health`, shutdown gracioso, testes; `go test ./...`, `go vet`, smoke com curl | `1924ae6` | T1.1.3 |
+| 2026-10-31 | Merge (preferência do dono) | P0 / 1.1 / T1.1.2 | `feat/p0-s1.1-bootstrap` mergeada em `main` com `--no-ff`; branch preservada. Regra: toda sessão termina com merge na `main` | `a1c8df2` | T1.1.3 |
 
 ## Regras de atualização
 

@@ -130,13 +130,17 @@ git add STATUS.md
 git commit -s -m "docs(status): record p0-s1.1 session"
 ```
 
-5. Push da branch:
+5. Merge da branch na `main` (preferência do dono: a `main` é sempre o destino final da sessão) e push:
 
 ```bash
-git push -u origin HEAD
+git switch main
+git pull --rebase origin main
+git merge --no-ff --no-commit <branch-da-story>
+git commit -s -m "merge: <fase>-<story> <resumo>"
+git push origin main
 ```
 
-6. Abra o PR (GitHub web, já que `gh` não está instalado):
+6. Abra o PR (opcional quando o merge é local direto; GitHub web, já que `gh` não está instalado):
 
 ```text
 https://github.com/kaikeventura/observaki/compare/main...<branch>
@@ -225,7 +229,7 @@ No fim de cada sessão, o agente deve:
 1. Rodar os checks.
 2. Atualizar `STATUS.md`.
 3. Commitar com Conventional Commits + `-s`.
-4. Fazer push da branch.
+4. Fazer merge da branch na `main` (`--no-ff`, com `-s`) e push da `main`.
 5. Registrar o SHA/PR no `STATUS.md`.
 6. Parar e reportar.
 
