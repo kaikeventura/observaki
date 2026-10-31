@@ -6,16 +6,16 @@ epic: P0-E1
 epic_name: Fundação do repositório e governança
 story: "1.1"
 story_name: Bootstrap do mono-repo e ambiente de desenvolvimento
-task: T1.1.5
-task_name: Criar Makefile e scripts de toolchain
+task: T1.1.6
+task_name: Configuração por ambiente
 status: in_progress        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "1f748c3"
-next_action: "T1.1.5 — criar Makefile (bootstrap/fmt/lint/test/build/dev/smoke/clean/ci) e scripts/check-toolchain.sh, dev.sh, smoke.sh"
+last_commit: "8fd0efb"
+next_action: "T1.1.6 — criar internal/config com OBSERVAKI_HTTP_ADDR/LOG_LEVEL/ENV/DATABASE_URL/WEB_DIR, validação, testes e .env.example"
 blocked_by: []
-last_session: "T1.1.4 concluída: workspace Rust do agente com --version, testes, fmt e clippy verdes."
+last_session: "T1.1.5 concluída: Makefile e scripts de toolchain; make bootstrap/lint/test/build/dev/smoke/clean validados."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -59,16 +59,16 @@ Atalho no OpenCode: `/continue`.
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
-| Task | **T1.1.5 — Criar Makefile e scripts de toolchain** |
+| Task | **T1.1.6 — Configuração por ambiente** |
 | Status | `in_progress` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `1f748c3` |
-| Próxima ação | Criar `Makefile` (bootstrap/fmt/lint/test/build/dev/smoke/clean/ci) e `scripts/check-toolchain.sh`, `scripts/dev.sh`, `scripts/smoke.sh` |
+| Último commit | `8fd0efb` |
+| Próxima ação | Criar `internal/config` (address, log level, env, database URL, web dir) com validação, testes e `.env.example` |
 | Bloqueios | Nenhum |
-| Última sessão | T1.1.4 concluída (workspace Rust do agente) |
+| Última sessão | T1.1.5 concluída (Makefile e scripts de toolchain) |
 
-**Ambiente local (gaps para as próximas tarefas):** Node é v22 (alvo 26 LTS); pnpm 12.16.1 via `corepack`; Rust 1.93 estável com `rustfmt`/`clippy`. A T1.1.5 exige Node ≥ 26 no `check-toolchain.sh` — decidir se o script bloqueia ou avisa. Go 1.22.2 instalado, toolchain 1.27.0 baixado via `go.mod`.
+**Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.0`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
 
 **Nota de stack:** SvelteKit 3 removeu `svelte.config.js`; a configuração (adapter, preprocess) agora vai no plugin `sveltekit()` do `vite.config.ts`. O arquivo listado na story não existe mais.
 
@@ -78,7 +78,7 @@ Atalho no OpenCode: `/continue`.
 
 | Epic | Story | Título | Status | Evidência / próximo passo |
 |---|---|---|---|---|
-| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1–T1.1.4 done (`ea625ad`, `1924ae6`, `99a024f`, `1f748c3`); próximo: T1.1.5 |
+| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1–T1.1.5 done (`ea625ad`, `1924ae6`, `99a024f`, `1f748c3`, `8fd0efb`); próximo: T1.1.6 |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `todo` | Depende de 1.1 |
 | P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
@@ -138,6 +138,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Merge (preferência do dono) | P0 / 1.1 / T1.1.2 | `feat/p0-s1.1-bootstrap` mergeada em `main` com `--no-ff`; branch preservada. Regra: toda sessão termina com merge na `main` | `a1c8df2` | T1.1.3 |
 | 2026-10-31 | Story 1.1 / T1.1.3 | P0 / 1.1 / T1.1.3 | App SvelteKit 3 + Svelte 5 + TS + Vite 8 + Tailwind 4, tokens do DESIGN, cartão de status da API, proxy `/api`, Vitest/Testing Library (3 testes), `check` e build estático em `web/build/` | `99a024f` | T1.1.4 |
 | 2026-10-31 | Story 1.1 / T1.1.4 | P0 / 1.1 / T1.1.4 | Workspace Rust (`agent/`), `rust-toolchain.toml` stable, binário `observaki-agent --version`, 2 testes; `cargo build/test/fmt/clippy -D warnings` verdes | `1f748c3` | T1.1.5 |
+| 2026-10-31 | Story 1.1 / T1.1.5 | P0 / 1.1 / T1.1.5 | `Makefile` (bootstrap/fmt/lint/test/build/dev/smoke/clean/ci/tools), `check-toolchain.sh`, `dev.sh`, `smoke.sh`, `.golangci.yml`; todos os alvos validados, inclusive smoke e dev com proxy | `8fd0efb` | T1.1.6 |
 
 ## Regras de atualização
 
