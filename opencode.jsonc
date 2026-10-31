@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    "project-context.md",
+    "STATUS.md",
+    "_bmad-output/planning-artifacts/README.md"
+  ],
+  "formatter": true,
+  "experimental": {
+    "todo": true
+  }
+}

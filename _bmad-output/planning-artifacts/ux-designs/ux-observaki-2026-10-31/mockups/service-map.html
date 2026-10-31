@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observaki — Service map</title>
+<style>
+  /* Governed by DESIGN.md: Colors, Typography, Layout & Spacing, Components (service-node, panel, status-pill) and EXPERIENCE.md: Services > Map, State Patterns, Flow 1. */
+  :root{
+    --bg:#080B10; --surface-1:#0E131B; --surface-2:#141B26; --surface-3:#1B2432;
+    --border:#2E3B4D; --border-strong:#50647D;
+    --fg:#E6EDF7; --muted:#93A1B5; --subtle:#8696AB;
+    --primary:#22D3EE; --primary-fg:#041014; --warning:#F5A524; --success:#34D399; --danger:#F87171; --info:#60A5FA;
+    --sans:Geist,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;height:100vh;min-width:1200px}
+  .topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--surface-1)}
+  .brand{display:flex;align-items:center;gap:10px;width:208px;font-weight:650;letter-spacing:-.01em}
+  .mark{width:26px;height:26px;border:1px solid var(--border-strong);border-radius:7px;display:grid;place-items:center;background:var(--surface-2);color:var(--primary);font-family:var(--mono);font-size:12px}
+  .project{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--muted);font-size:13px}
+  .project strong{color:var(--fg);font-weight:600}
+  .search{flex:1;max-width:520px;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--subtle);font-size:13px}
+  .kbd{font-family:var(--mono);font-size:11px;padding:2px 5px;border:1px solid var(--border-strong);border-radius:4px;color:var(--muted)}
+  .spacer{flex:1}.icon-btn{width:32px;height:32px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--muted);display:grid;place-items:center;font-size:13px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--surface-3);border:1px solid var(--border-strong);display:grid;place-items:center;font-size:11px;color:var(--primary)}
+  .nav{border-right:1px solid var(--border);background:var(--surface-1);padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13px;border-left:2px solid transparent}
+  .nav a.active{background:var(--surface-3);color:var(--primary);border-left-color:var(--primary)}
+  .nav .label{margin:16px 10px 6px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--subtle);font-weight:650}
+  .nav .foot{margin-top:auto;padding:12px 10px 4px;border-top:1px solid var(--border);color:var(--subtle);font-size:11px}
+  .main{overflow:auto;padding:18px 22px 28px}
+  .crumb{display:flex;align-items:center;gap:8px;color:var(--subtle);font-size:12px;margin-bottom:12px}
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+  h1{font-size:24px;line-height:1.2;letter-spacing:-.015em;margin:0 0 4px;font-weight:650}
+  .sub{color:var(--muted);font-size:13px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:550}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0}
+  .seg{display:flex;border:1px solid var(--border-strong);border-radius:6px;overflow:hidden;background:var(--surface-2)}
+  .seg span{padding:8px 12px;font-size:12px;color:var(--muted);border-right:1px solid var(--border)}
+  .seg span:last-child{border-right:0}.seg .on{color:var(--fg);background:var(--surface-3);box-shadow:inset 0 -2px 0 var(--primary)}
+  .banner{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.08);border-radius:10px;margin-bottom:14px;font-size:12px}
+  .banner strong{color:var(--danger)} .banner .spacer{flex:1}
+  .layout{display:grid;grid-template-columns:1fr 360px;gap:14px}
+  .panel{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .panel-h{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-bottom:1px solid var(--border)}
+  .panel-h h2{font-size:13px;margin:0;font-weight:600}.panel-h .meta{margin-left:auto;color:var(--subtle);font-size:11px;font-family:var(--mono)}
+  .map-wrap{background:radial-gradient(circle at 1px 1px, rgba(147,161,181,.12) 1px, transparent 0) 0 0/24px 24px, linear-gradient(180deg, rgba(20,27,38,.35), rgba(8,11,16,.2))}
+  svg.map{display:block;width:100%;height:auto;min-height:420px}
+  .node-box{fill:var(--surface-2);stroke:var(--border);stroke-width:1;rx:6}
+  .node-box.warning{stroke:rgba(245,165,36,.65)}
+  .node-box.critical{stroke:rgba(248,113,113,.8)}
+  .node-box.healthy{stroke:rgba(52,211,153,.55)}
+  .node-box.selected{stroke:var(--primary);stroke-width:2}
+  .node-name{fill:var(--fg);font-family:var(--sans);font-size:11px;font-weight:650}
+  .node-kind{fill:var(--subtle);font-family:var(--sans);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase}
+  .node-metric{fill:var(--muted);font-family:var(--mono);font-size:9.5px}
+  .node-status{font-family:var(--sans);font-size:8.5px;font-weight:650}
+  .edge{stroke:var(--border-strong);stroke-width:1.5;fill:none}
+  .edge.critical{stroke:var(--danger);stroke-width:2.5}
+  .edge-label{fill:var(--subtle);font-family:var(--mono);font-size:9px}
+  .edge-label.critical{fill:var(--danger)}
+  .legend{display:flex;gap:16px;color:var(--subtle);font-size:10.5px;padding:10px 14px;border-top:1px solid var(--border);flex-wrap:wrap}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .zoom{display:flex;gap:4px;margin-left:auto}
+  .zoom span{width:26px;height:26px;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;color:var(--muted);font-size:12px;background:var(--surface-2)}
+  .side .body{padding:12px 14px 14px}
+  .side h3{margin:0 0 4px;font-size:15px;font-weight:650}
+  .side .muted{color:var(--muted);font-size:12px}
+  .side .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+  .stat{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:9px 10px}
+  .stat .k{font-size:9.5px;color:var(--subtle);text-transform:uppercase;letter-spacing:.07em}
+  .stat .v{font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums;margin-top:3px}
+  .stat .v.err{color:var(--danger)} .stat .v.warn{color:var(--warning)}
+  .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(46,59,77,.7);font-size:11.5px}
+  .kv .k{color:var(--subtle)} .kv .v{font-family:var(--mono);color:var(--muted);text-align:right}
+  .side .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .footnote{color:var(--subtle);font-size:10.5px;margin-top:10px}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:1279px){.app{min-width:1024px}.layout{grid-template-columns:1fr 320px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="mark">ob</span><span>Observaki</span></div>
+    <div class="project"><span class="muted">Project</span><strong>checkout-prod</strong><span class="subtle">▾</span></div>
+    <div class="search"><span>⌕</span><span>Search services, dashboards, queries…</span><span class="spacer"></span><span class="kbd">⌘K</span></div>
+    <div class="spacer"></div><div class="icon-btn">◔</div><div class="icon-btn">?</div><div class="avatar">MR</div>
+  </header>
+
+  <nav class="nav">
+    <a href="#">◈ Overview</a>
+    <a href="#">⌁ Explore</a>
+    <a href="#">▤ Dashboards</a>
+    <a class="active" href="#">◇ Services</a>
+    <a href="#">◉ Alerts <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--danger)">2</span></a>
+    <div class="label">Workspace</div>
+    <a href="#">⚙ Settings</a>
+    <div class="foot">Ingestion healthy<br><span style="color:var(--success)">●</span> 1.2M events/s · lag 3.4s</div>
+  </nav>
+
+  <main class="main">
+    <div class="crumb"><b>Services</b><span>/</span><span>Map</span><span>/</span><span>checkout-prod</span></div>
+    <div class="page-head">
+      <div><h1>Service map</h1><div class="sub">Last 15 minutes · showing 6 of 38 services · 1 critical path</div></div>
+      <div style="display:flex;gap:8px"><button class="btn">Filter</button><button class="btn primary">Open Explore</button></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="seg"><span class="on">Latency</span><span>Errors</span><span>Throughput</span></div>
+      <div class="seg"><span class="on">15m</span><span>1h</span><span>6h</span><span>24h</span></div>
+      <div class="btn">env = prod</div>
+      <div class="btn">namespace = checkout</div>
+      <div class="spacer"></div>
+      <div class="muted" style="font-size:11px">Stable layout · <span style="color:var(--subtle)">positions do not change on refresh</span></div>
+    </div>
+
+    <div class="banner"><span>▲</span><div><strong>Critical path</strong> · checkout → payment-authorizer → db.pool → postgres · p99 2.8s · started 06:12 UTC</div><div class="spacer"></div><button class="btn primary">Investigate</button><button class="btn">Ack</button><button class="btn">Silence</button></div>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="panel-h"><h2>checkout-prod</h2><span class="meta">latency · p99</span><div class="zoom"><span aria-label="Zoom in">+</span><span aria-label="Zoom out">−</span><span aria-label="Reset zoom">⌂</span></div></div>
+        <div class="map-wrap">
+          <svg class="map" viewBox="0 0 900 560" role="img" aria-label="Service map for checkout-prod. Six of 38 services shown. Critical path: checkout to payment-authorizer to db.pool to postgres.">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#50647D"/></marker>
+              <marker id="arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#F87171"/></marker>
+            </defs>
+
+            <path class="edge" d="M 240 122 C 290 122 300 272 340 272" marker-end="url(#arrow)"/>
+            <path class="edge" d="M 240 122 C 290 122 290 122 340 122" marker-end="url(#arrow)"/>
+            <path class="edge critical" d="M 520 272 C 560 272 570 272 620 272" marker-end="url(#arrow-hot)"/>
+            <path class="edge critical" d="M 800 304 C 800 340 800 360 800 400" marker-end="url(#arrow-hot)"/>
+            <path class="edge" d="M 520 304 C 520 340 520 360 520 400" marker-end="url(#arrow)"/>
+            <path class="edge" d="M 520 122 C 560 122 580 122 620 122" marker-end="url(#arrow)"/>
+
+            <text class="edge-label" x="270" y="190">POST /authorize · 2.5s</text>
+            <text class="edge-label critical" x="555" y="258">db.pool · 1.8s</text>
+            <text class="edge-label critical" x="812" y="358">postgres · 1.2s</text>
+            <text class="edge-label" x="275" y="108">GET /cart · 42ms</text>
+            <text class="edge-label" x="545" y="108">GET /stock · 310ms</text>
+
+            <g tabindex="0" role="button" aria-label="checkout, slow, p99 2.8 seconds, error rate 3.8 percent">
+              <rect class="node-box warning" x="60" y="90" width="180" height="64" rx="6"/>
+              <text class="node-name" x="74" y="112">checkout</text>
+              <text class="node-kind" x="74" y="126">Go · deployment</text>
+              <text class="node-metric" x="74" y="143">p99 2.8s · err 3.8%</text>
+              <text class="node-status" x="196" y="112" fill="#F5A524">SLOW</text>
+            </g>
+
+            <g tabindex="0" role="button" aria-label="payment-authorizer, critical, p99 2.5 seconds, error rate 6.1 percent">
+              <rect class="node-box critical selected" x="340" y="240" width="180" height="64" rx="6"/>
+              <text class="node-name" x="354" y="262">payment-authorizer</text>
+              <text class="node-kind" x="354" y="276">Java · deployment</text>
+              <text class="node-metric" x="354" y="293">p99 2.5s · err 6.1%</text>
+              <text class="node-status" x="470" y="262" fill="#F87171">CRITICAL</text>
+            </g>
+
+            <g tabindex="0" role="button" aria-label="cart, healthy, p99 441 milliseconds, error rate 0.2 percent">
+              <rect class="node-box healthy" x="340" y="90" width="180" height="64" rx="6"/>
+              <text class="node-name" x="354" y="112">cart</text>
+              <text class="node-kind" x="354" y="126">Go · deployment</text>
+              <text class="node-metric" x="354" y="143">p99 441ms · err 0.2%</text>
+              <text class="node-status" x="466" y="112" fill="#34D399">HEALTHY</text>
+            </g>
+
+            <g tabindex="0" role="button" aria-label="inventory, healthy, p99 310 milliseconds, error rate 0.1 percent">
+              <rect class="node-box healthy" x="620" y="90" width="180" height="64" rx="6"/>
+              <text class="node-name" x="634" y="112">inventory</text>
+              <text class="node-kind" x="634" y="126">Rust · deployment</text>
+              <text class="node-metric" x="634" y="143">p99 310ms · err 0.1%</text>
+              <text class="node-status" x="744" y="112" fill="#34D399">HEALTHY</text>
+            </g>
+
+            <g tabindex="0" role="button" aria-label="db.pool, critical, p99 1.8 seconds, 14 waiters">
+              <rect class="node-box critical" x="620" y="240" width="180" height="64" rx="6"/>
+              <text class="node-name" x="634" y="262">db.pool</text>
+              <text class="node-kind" x="634" y="276">PostgreSQL · external</text>
+              <text class="node-metric" x="634" y="293">p99 1.8s · wait 14</text>
+              <text class="node-status" x="744" y="262" fill="#F87171">CRITICAL</text>
+            </g>
+
+            <g tabindex="0" role="button" aria-label="postgres, critical, p99 1.2 seconds">
+              <rect class="node-box critical" x="620" y="400" width="180" height="64" rx="6"/>
+              <text class="node-name" x="634" y="422">postgres</text>
+              <text class="node-kind" x="634" y="436">PostgreSQL · primary</text>
+              <text class="node-metric" x="634" y="453">p99 1.2s · conn 20/20</text>
+              <text class="node-status" x="744" y="422" fill="#F87171">CRITICAL</text>
+            </g>
+
+            <g tabindex="0" role="button" aria-label="redis, healthy, p99 2 milliseconds, hit rate 98 percent">
+              <rect class="node-box healthy" x="340" y="400" width="180" height="64" rx="6"/>
+              <text class="node-name" x="354" y="422">redis</text>
+              <text class="node-kind" x="354" y="436">Redis · external</text>
+              <text class="node-metric" x="354" y="453">p99 2ms · hit 98%</text>
+              <text class="node-status" x="466" y="422" fill="#34D399">HEALTHY</text>
+            </g>
+          </svg>
+        </div>
+        <div class="legend"><span><i style="background:var(--success)"></i>Healthy</span><span><i style="background:var(--warning)"></i>Degraded</span><span><i style="background:var(--danger)"></i>Critical</span><span><i style="background:var(--primary)"></i>Selected path</span><span class="muted">Showing 6 of 38 services · filter: namespace=checkout</span></div>
+      </section>
+
+      <aside class="panel side">
+        <div class="panel-h"><h2>payment-authorizer</h2><span class="meta">selected</span></div>
+        <div class="body">
+          <h3>Critical path</h3>
+          <div class="muted">Java 21 · 3 replicas · namespace checkout</div>
+          <div class="stats">
+            <div class="stat"><div class="k">p99</div><div class="v warn">2.5s</div></div>
+            <div class="stat"><div class="k">Error rate</div><div class="v err">6.1%</div></div>
+            <div class="stat"><div class="k">Req/s</div><div class="v">2.39k</div></div>
+            <div class="stat"><div class="k">Spans/min</div><div class="v">143k</div></div>
+          </div>
+          <div class="kv"><span class="k">Instance</span><span class="v">payment-7f9c2</span></div>
+          <div class="kv"><span class="k">Trace sample</span><span class="v">1.2% · errors 100%</span></div>
+          <div class="kv"><span class="k">Logs</span><span class="v">connection pool exhausted</span></div>
+          <div class="kv"><span class="k">Last deploy</span><span class="v">not in MVP</span></div>
+          <div class="actions"><button class="btn primary">Open traces</button><button class="btn">Logs</button><button class="btn">Metrics</button></div>
+          <div class="footnote">Node position is stable across refreshes. Click an edge to filter traces by dependency. Health is border + icon + label, never color alone. Missing telemetry would show “no data”.</div>
+        </div>
+      </aside>
+    </div>
+    <div class="footnote">Map derived from OTel spans. Zoom/pan/reset are available; layout is explicit and stable. In this static mock, 6 of 38 services are visible; use “Filter” to change the subset.</div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observaki — First run</title>
+<style>
+  /* Governed by DESIGN.md and EXPERIENCE.md: Onboarding surface, Flow 2, State Patterns, Accessibility Floor. */
+  :root{
+    --bg:#080B10; --surface-1:#0E131B; --surface-2:#141B26; --surface-3:#1B2432;
+    --border:#2E3B4D; --border-strong:#4A5D75; --fg:#E6EDF7; --muted:#93A1B5; --subtle:#8696AB;
+    --primary:#22D3EE; --primary-fg:#041014; --warning:#F5A524; --success:#34D399; --danger:#F87171;
+    --sans:Geist,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0;height:100%} body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;height:100vh;min-width:1200px}
+  .topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--surface-1)}
+  .brand{display:flex;align-items:center;gap:10px;width:208px;font-weight:650}.mark{width:26px;height:26px;border:1px solid var(--border-strong);border-radius:7px;display:grid;place-items:center;background:var(--surface-2);color:var(--primary);font-family:var(--mono);font-size:12px}
+  .project{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--muted);font-size:13px}.project strong{color:var(--fg)}
+  .search{flex:1;max-width:520px;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--subtle);font-size:13px}
+  .spacer{flex:1}.kbd{font-family:var(--mono);font-size:11px;padding:2px 5px;border:1px solid var(--border-strong);border-radius:4px;color:var(--muted)}.avatar{width:28px;height:28px;border-radius:50%;background:var(--surface-3);border:1px solid var(--border-strong);display:grid;place-items:center;font-size:11px;color:var(--primary)}
+  .nav{border-right:1px solid var(--border);background:var(--surface-1);padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13px;border-left:2px solid transparent}.nav a.active{background:var(--surface-3);color:var(--primary);border-left-color:var(--primary)}
+  .nav .label{margin:16px 10px 6px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--subtle);font-weight:650}.nav .foot{margin-top:auto;padding:12px 10px 4px;border-top:1px solid var(--border);color:var(--subtle);font-size:11px}
+  .main{overflow:auto;padding:22px 26px 30px}
+  h1{font-size:26px;line-height:1.15;letter-spacing:-.02em;margin:0 0 6px;font-weight:650}.sub{color:var(--muted);font-size:13px;max-width:70ch}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:18px}
+  .panel{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .panel-h{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-bottom:1px solid var(--border)}.panel-h h2{font-size:13px;margin:0;font-weight:600}.panel-h .meta{margin-left:auto;color:var(--subtle);font-size:11px;font-family:var(--mono)}
+  .body{padding:14px}
+  .step{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid rgba(46,59,77,.7)}
+  .step:last-child{border-bottom:0}.step .num{width:22px;height:22px;border-radius:50%;border:1px solid var(--border-strong);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .step.done .num{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.45);color:var(--success)}.step.active .num{background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.5);color:var(--primary)}
+  .step h3{margin:0 0 2px;font-size:13px;font-weight:600}.step p{margin:0;color:var(--muted);font-size:12px}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;font-size:10.5px;font-weight:600}.pill.ok{background:rgba(52,211,153,.12);color:var(--success)}.pill.wait{background:rgba(245,165,36,.14);color:var(--warning)}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:550}.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+  .code{border:1px solid var(--border);border-radius:8px;background:var(--surface-2);padding:12px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--muted);overflow:auto}
+  .code .key{color:var(--info)}.code .str{color:var(--warning)}.code .ok{color:var(--success)}
+  .tabs{display:flex;gap:14px;border-bottom:1px solid var(--border);margin-bottom:10px;font-size:12px;color:var(--muted)}.tabs span{padding:8px 0;border-bottom:2px solid transparent}.tabs .on{color:var(--fg);border-bottom-color:var(--primary)}
+  .warn{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(245,165,36,.35);background:rgba(245,165,36,.08);border-radius:8px;color:var(--warning);font-size:12px;margin-top:10px}
+  .diag{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .diag div{border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11.5px;color:var(--muted)}
+  .diag b{display:block;color:var(--fg);font-size:12px;margin-bottom:2px}
+  .template{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .template div{border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--surface-2);font-size:12px;color:var(--muted)}
+  .template b{display:block;color:var(--fg);font-size:12px;margin-bottom:3px}
+  .footnote{color:var(--subtle);font-size:10.5px;margin-top:10px}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:1279px){.app{min-width:1024px}.grid{grid-template-columns:1fr}.template{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="mark">ob</span><span>Observaki</span></div>
+    <div class="project"><span class="muted">Project</span><strong>checkout-prod</strong><span class="subtle">▾</span></div>
+    <div class="search"><span>⌕</span><span>Search services, dashboards, queries…</span><span class="spacer"></span><span class="kbd">⌘K</span></div>
+    <div class="spacer"></div><div class="avatar">RV</div>
+  </header>
+  <nav class="nav">
+    <a class="active" href="#">◈ Overview</a><a href="#">⌁ Explore</a><a href="#">▤ Dashboards</a><a href="#">◇ Services</a><a href="#">◉ Alerts</a>
+    <div class="label">Workspace</div><a href="#">⚙ Settings</a>
+    <div class="foot">First run<br><span style="color:var(--warning)">●</span> waiting for first signal</div>
+  </nav>
+  <main class="main">
+    <h1>Get your first signal in five minutes</h1>
+    <p class="sub">Observaki is running. Send telemetry from one service, open the first dashboard, and create an alert. You can pause and come back; the checklist is saved on the server.</p>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-h"><h2>Setup checklist</h2><span class="meta">4 steps · ~5 min</span></div>
+        <div class="body">
+          <div class="step done"><div class="num">1</div><div><h3>Observaki is running</h3><p>Docker Compose stack healthy on localhost:8080.</p></div><span class="pill ok">Done</span></div>
+          <div class="step active"><div class="num">2</div><div><h3>Send your first signal</h3><p>Copy the endpoint and ingest-only token, then add the OTel exporter.</p></div><span class="pill wait">In progress</span></div>
+          <div class="step"><div class="num">3</div><div><h3>Open your first dashboard</h3><p>Start from a template or create a blank dashboard.</p></div><span class="muted" style="font-size:11px">Next</span></div>
+          <div class="step"><div class="num">4</div><div><h3>Create your first alert</h3><p>p99, error rate or a log pattern; route to Slack or webhook.</p></div><span class="muted" style="font-size:11px">Later</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h"><h2>Waiting for first signal</h2><span class="meta">0 events · 0 traces</span></div>
+        <div class="body">
+          <div class="tabs"><span class="on">Go</span><span>Python</span><span>Node</span><span>Collector</span></div>
+          <div class="code"><span class="key">export</span> OTEL_EXPORTER_OTLP_ENDPOINT=<span class="str">"http://localhost:4318"</span><br><span class="key">export</span> OTEL_EXPORTER_OTLP_HEADERS=<span class="str">"Authorization=Bearer $OBSERVAKI_TOKEN"</span><br><span class="key">export</span> OTEL_SERVICE_NAME=<span class="str">"checkout"</span><br><span class="ok">go run ./cmd/checkout</span></div>
+          <div class="warn"><span>▲</span><div><b>Never commit the token.</b> Use an env var or secret manager. The token is ingest-only and can be rotated in Settings → Tokens.</div></div>
+          <div class="diag">
+            <div><b>Endpoint</b>localhost:4318 · reachable</div>
+            <div><b>Token</b>valid · ingest scope</div>
+            <div><b>Clock skew</b>not detected</div>
+            <div><b>Sampling</b>100% until first trace</div>
+          </div>
+          <div class="footnote">If no data arrives in 60s, check endpoint, token, clock skew, sampling and firewall. Each item links to the exact troubleshooting step.</div>
+        </div>
+      </section>
+
+      <section class="panel" style="grid-column:1/-1">
+        <div class="panel-h"><h2>Start from a template</h2><span class="meta">optional · after first signal</span></div>
+        <div class="body">
+          <div class="template">
+            <div><b>Go service</b>latency, errors, throughput, runtime</div>
+            <div><b>Kubernetes</b>nodes, pods, restarts, saturation</div>
+            <div><b>PostgreSQL</b>connections, slow queries, locks</div>
+          </div>
+          <div class="actions" style="display:flex;gap:8px;margin-top:12px"><button class="btn primary">Create dashboard</button><button class="btn">Skip for now</button></div>
+          <div class="footnote">Templates are dashboards you can edit; they do not create hidden queries. The first signal must arrive before the dashboard is populated.</div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>

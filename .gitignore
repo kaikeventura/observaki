@@ -1,0 +1,46 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!**/testdata/**/*.key
+
+# Go
+bin/
+dist/
+coverage.out
+*.test
+*.prof
+
+# Node / SvelteKit
+node_modules/
+.svelte-kit/
+web/build/
+web/.svelte-kit/
+pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+
+# Rust
+target/
+agent/target/
+
+# Local data / logs
+data/
+tmp/
+*.log
+
+# Bench artifacts
+bench/results/
+bench/.tmp/
+
+# OS generated
+.fuse_hidden*

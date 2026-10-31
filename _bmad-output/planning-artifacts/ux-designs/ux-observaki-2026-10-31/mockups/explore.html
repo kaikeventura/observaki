@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observaki — Explore / Traces</title>
+<style>
+  /* Governed by DESIGN.md: Colors, Typography, Layout & Spacing, Components (query-bar, signal-tab, data-table, trace-waterfall, status-pill) and EXPERIENCE.md: Explore, Component Patterns, State Patterns, Flow 1. */
+  :root{
+    --bg:#080B10; --surface-1:#0E131B; --surface-2:#141B26; --surface-3:#1B2432;
+    --border:#2E3B4D; --border-strong:#50647D;
+    --fg:#E6EDF7; --muted:#93A1B5; --subtle:#8696AB;
+    --primary:#22D3EE; --primary-fg:#041014; --warning:#F5A524; --success:#34D399; --danger:#F87171; --info:#60A5FA;
+    --radius-sm:4px; --radius-md:6px; --radius-lg:10px;
+    --sans:Geist,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;height:100vh;min-width:1200px}
+  .topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--surface-1)}
+  .brand{display:flex;align-items:center;gap:10px;width:208px;font-weight:650;letter-spacing:-.01em}
+  .mark{width:26px;height:26px;border:1px solid var(--border-strong);border-radius:7px;display:grid;place-items:center;background:var(--surface-2);color:var(--primary);font-family:var(--mono);font-size:12px}
+  .project{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-2);color:var(--muted);font-size:13px}
+  .project strong{color:var(--fg);font-weight:600}
+  .search{flex:1;max-width:520px;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-2);color:var(--subtle);font-size:13px}
+  .kbd{font-family:var(--mono);font-size:11px;padding:2px 5px;border:1px solid var(--border-strong);border-radius:4px;color:var(--muted)}
+  .spacer{flex:1}
+  .icon-btn{width:32px;height:32px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-2);color:var(--muted);display:grid;place-items:center;font-size:13px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--surface-3);border:1px solid var(--border-strong);display:grid;place-items:center;font-size:11px;color:var(--primary)}
+  .nav{border-right:1px solid var(--border);background:var(--surface-1);padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-md);color:var(--muted);text-decoration:none;font-size:13px;border-left:2px solid transparent}
+  .nav a.active{background:var(--surface-3);color:var(--primary);border-left-color:var(--primary)}
+  .nav .label{margin:16px 10px 6px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--subtle);font-weight:650}
+  .nav .foot{margin-top:auto;padding:12px 10px 4px;border-top:1px solid var(--border);color:var(--subtle);font-size:11px}
+  .main{overflow:auto;padding:18px 22px 28px}
+  .crumb{display:flex;align-items:center;gap:8px;color:var(--subtle);font-size:12px;margin-bottom:12px}
+  .crumb b{color:var(--muted);font-weight:500}
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+  h1{font-size:24px;line-height:1.2;letter-spacing:-.015em;margin:0 0 4px;font-weight:650}
+  .sub{color:var(--muted);font-size:13px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:550}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0}
+  .seg{display:flex;border:1px solid var(--border-strong);border-radius:var(--radius-md);overflow:hidden;background:var(--surface-2)}
+  .seg span{padding:8px 12px;font-size:12px;color:var(--muted);border-right:1px solid var(--border)}
+  .seg span:last-child{border-right:0}
+  .seg .on{color:var(--fg);background:var(--surface-3);box-shadow:inset 0 -2px 0 var(--primary)}
+  .query{display:flex;align-items:center;gap:10px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-2);padding:10px 12px;margin-bottom:12px;box-shadow:0 0 0 1px rgba(34,211,238,.08)}
+  .query .prompt{color:var(--primary);font-family:var(--mono);font-size:13px}
+  .query code{font-family:var(--mono);font-size:13px;color:var(--fg);white-space:nowrap}
+  .query .muted{color:var(--subtle)}
+  .query .run{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--primary);font-size:11px;font-weight:600}
+  .layout{display:grid;grid-template-columns:1fr 420px;gap:14px;min-height:0}
+  .panel{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+  .panel-h{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-bottom:1px solid var(--border)}
+  .panel-h h2{font-size:13px;margin:0;font-weight:600}
+  .panel-h .meta{margin-left:auto;color:var(--subtle);font-size:11px;font-family:var(--mono)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--subtle);font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:650;background:var(--surface-2);padding:9px 12px;border-bottom:1px solid var(--border);position:sticky;top:0}
+  td{padding:9px 12px;border-bottom:1px solid rgba(37,49,65,.7);vertical-align:middle}
+  tr.sel td{background:var(--surface-3)}
+  tr.sel td:first-child{box-shadow:inset 2px 0 0 var(--primary)}
+  .mono{font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)} .subtle{color:var(--subtle)}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;font-size:10.5px;font-weight:600;line-height:1.4}
+  .pill.err{background:rgba(248,113,113,.14);color:var(--danger)}
+  .pill.warn{background:rgba(245,165,36,.14);color:var(--warning)}
+  .pill.ok{background:rgba(52,211,153,.12);color:var(--success)}
+  .svc{display:flex;align-items:center;gap:7px}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--danger)}
+  .drawer{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column}
+  .drawer-h{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .drawer-h h3{margin:0;font-size:13px;font-weight:650}
+  .drawer-h .close{margin-left:auto;color:var(--subtle);font-size:14px}
+  .trace-meta{display:flex;gap:16px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--muted);font-size:11px}
+  .trace-meta b{color:var(--fg);font-family:var(--mono);font-weight:500}
+  .waterfall{padding:10px 14px 14px}
+  .axis{display:flex;justify-content:space-between;color:var(--subtle);font-size:9.5px;font-family:var(--mono);margin-bottom:6px}
+  .span{display:grid;grid-template-columns:110px 1fr 44px;gap:8px;align-items:center;margin:4px 0;font-size:11px}
+  .span .name{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track{height:12px;background:var(--surface-2);border-radius:2px;position:relative;overflow:hidden}
+  .bar{position:absolute;top:0;bottom:0;background:var(--primary);border-radius:2px}
+  .bar.err{background:var(--danger)}
+  .bar.muted{background:var(--subtle)}
+  .span .dur{text-align:right;color:var(--subtle);font-family:var(--mono);font-size:10px}
+  .critical{outline:1px solid rgba(34,211,238,.55);outline-offset:1px;border-radius:2px}
+  .logbox{margin:0 14px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);padding:10px;font-family:var(--mono);font-size:11px;line-height:1.65;color:var(--muted)}
+  .logbox .err{color:var(--danger)} .logbox .key{color:var(--info)}
+  .drawer-foot{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
+  .tabs{display:flex;gap:16px;padding:0 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+  .tabs span{padding:9px 0;border-bottom:2px solid transparent}
+  .tabs .on{color:var(--fg);border-bottom-color:var(--primary)}
+  .footnote{color:var(--subtle);font-size:10.5px;margin-top:10px}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:1279px){.app{min-width:1024px}.layout{grid-template-columns:1fr 360px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="mark">ob</span><span>Observaki</span></div>
+    <div class="project"><span class="muted">Project</span><strong>checkout-prod</strong><span class="subtle">▾</span></div>
+    <div class="search"><span>⌕</span><span>Search services, dashboards, queries…</span><span class="spacer"></span><span class="kbd">⌘K</span></div>
+    <div class="spacer"></div>
+    <div class="icon-btn">◔</div><div class="icon-btn">?</div><div class="avatar">MR</div>
+  </header>
+
+  <nav class="nav">
+    <a href="#">◈ Overview</a>
+    <a class="active" href="#">⌁ Explore</a>
+    <a href="#">▤ Dashboards</a>
+    <a href="#">◇ Services</a>
+    <a href="#">◉ Alerts <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--danger)">2</span></a>
+    <div class="label">Workspace</div>
+    <a href="#">⚙ Settings</a>
+    <div class="foot">Ingestion healthy<br><span style="color:var(--success)">●</span> 1.2M events/s · lag 3.4s</div>
+  </nav>
+
+  <main class="main">
+    <div class="crumb"><b>Explore</b><span>/</span><span>Traces</span><span>/</span><span>checkout</span></div>
+    <div class="page-head">
+      <div>
+        <h1>Checkout latency investigation</h1>
+        <div class="sub">Last 15 minutes · p99 above 2s · alert from 06:12 UTC</div>
+      </div>
+      <div style="display:flex;gap:8px"><button class="btn">Save view</button><button class="btn">Create alert</button></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="seg"><span>Metrics</span><span>Logs</span><span class="on">Traces</span></div>
+      <div class="seg"><span class="on">Last 15m</span><span>1h</span><span>6h</span><span>24h</span><span>Custom</span></div>
+      <div class="btn">service.name = checkout</div>
+      <div class="btn">duration &gt; 2000ms</div>
+      <div class="btn">+ Filter</div>
+      <div class="spacer"></div>
+      <div class="muted" style="font-size:11px">1,284 traces match · 428 slow · 1.2% sampled · <span style="color:var(--warning)">partial trace data</span></div>
+    </div>
+
+    <div class="query">
+      <span class="prompt">›</span>
+      <code>SELECT * FROM traces WHERE service.name = <span style="color:var(--warning)">"checkout"</span> AND duration &gt; <span style="color:var(--warning)">2000ms</span></code>
+      <span class="run"><span class="kbd">⌘↵</span> Run · <span style="color:var(--subtle)">2.4s</span></span>
+    </div>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="panel-h"><h2>Traces</h2><span class="meta">sorted by duration ↓</span></div>
+        <table>
+          <thead><tr><th>Trace</th><th>Root service</th><th>Operation</th><th>Status</th><th>Duration</th><th>Spans</th><th>Time</th></tr></thead>
+          <tbody>
+            <tr class="sel"><td class="mono">7f3a9c2e…41b8</td><td><div class="svc"><span class="dot"></span> checkout</div></td><td class="mono">POST /checkout</td><td><span class="pill err">ERROR</span></td><td class="mono">2,846 ms</td><td class="mono">18</td><td class="mono muted">06:17:42</td></tr>
+            <tr><td class="mono">e91b0a77…c03d</td><td><div class="svc"><span class="dot"></span> checkout</div></td><td class="mono">POST /checkout</td><td><span class="pill err">ERROR</span></td><td class="mono">2,711 ms</td><td class="mono">22</td><td class="mono muted">06:17:39</td></tr>
+            <tr><td class="mono">c2d48f10…9a44</td><td><div class="svc"><span class="dot"></span> checkout</div></td><td class="mono">POST /checkout/confirm</td><td><span class="pill warn">SLOW</span></td><td class="mono">2,509 ms</td><td class="mono">17</td><td class="mono muted">06:16:58</td></tr>
+            <tr><td class="mono">9a01e6bd…72f1</td><td><div class="svc"><span class="dot"></span> checkout</div></td><td class="mono">POST /checkout</td><td><span class="pill warn">SLOW</span></td><td class="mono">2,384 ms</td><td class="mono">19</td><td class="mono muted">06:16:51</td></tr>
+            <tr><td class="mono">4f8c21aa…b6e0</td><td><div class="svc"><span class="dot"></span> checkout</div></td><td class="mono">GET /checkout/summary</td><td><span class="pill warn">SLOW</span></td><td class="mono">2,202 ms</td><td class="mono">14</td><td class="mono muted">06:16:44</td></tr>
+            <tr><td class="mono">1b7d09ce…5c21</td><td><div class="svc"><span class="dot"></span> checkout</div></td><td class="mono">POST /checkout/confirm</td><td><span class="pill warn">SLOW</span></td><td class="mono">2,041 ms</td><td class="mono">12</td><td class="mono muted">06:16:31</td></tr>
+          </tbody>
+        </table>
+        <div class="footnote">Showing 6 of 1,284 traces · sorted by duration ↓ · cursor pagination. Every row satisfies <span class="mono">service.name = checkout</span> and <span class="mono">duration &gt; 2000ms</span>. Traces are 1.2% sampled; errors are preserved at 100%.</div>
+      </section>
+
+      <aside class="drawer">
+        <div class="drawer-h"><h3>Trace 7f3a9c2e…41b8</h3><span class="pill err">ERROR</span><span class="close">✕</span></div>
+        <div class="trace-meta"><span>Duration <b>2,846ms</b></span><span>Spans <b>6 of 18</b></span><span>Service <b>checkout</b></span></div>
+        <div class="tabs"><span class="on">Waterfall</span><span>Logs (4)</span><span>Attributes</span></div>
+        <div style="margin:10px 14px 0;padding:8px 10px;border:1px solid rgba(245,165,36,.35);background:rgba(245,165,36,.08);border-radius:6px;color:var(--warning);font-size:11px">Partial trace: 6 of 18 spans retained (12 sampled out). Errors are preserved at 100%. <span style="color:var(--muted)">Why?</span></div>
+        <div class="waterfall">
+          <div class="axis"><span>0ms</span><span>711</span><span>1,422</span><span>2,133</span><span>2,846</span></div>
+          <div class="span"><div class="name">checkout</div><div class="track"><div class="bar critical" style="left:0%;width:100%"></div></div><div class="dur">2,846</div></div>
+          <div class="span"><div class="name">payment-authorizer</div><div class="track"><div class="bar critical" style="left:6%;width:88%"></div></div><div class="dur">2,510</div></div>
+          <div class="span"><div class="name">db.pool.acquire</div><div class="track"><div class="bar err" style="left:10%;width:64%"></div></div><div class="dur">1,821</div></div>
+          <div class="span"><div class="name">db.query</div><div class="track"><div class="bar err" style="left:18%;width:42%"></div></div><div class="dur">1,196</div></div>
+          <div class="span"><div class="name">redis.get</div><div class="track"><div class="bar muted" style="left:8%;width:9%"></div></div><div class="dur">256</div></div>
+          <div class="span"><div class="name">http.client</div><div class="track"><div class="bar" style="left:74%;width:12%"></div></div><div class="dur">341</div></div>
+        </div>
+        <div class="logbox"><span class="key">06:17:42.118</span> <span class="err">ERROR</span> payment-authorizer · <span class="err">connection pool exhausted</span> (pool=20, active=20, waiting=14)<br><span class="key">trace_id</span>=7f3a9c2e…41b8 <span class="key">span_id</span>=a91c…0e2</div>
+        <div class="drawer-foot"><button class="btn">Open logs</button><button class="btn">Open metric: db.pool.active</button><button class="btn primary">Create alert</button></div>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

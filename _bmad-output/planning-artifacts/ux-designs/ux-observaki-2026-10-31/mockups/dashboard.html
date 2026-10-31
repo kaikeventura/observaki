@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observaki — Checkout dashboard</title>
+<style>
+  /* Governed by DESIGN.md: Colors, Typography, Layout & Spacing, Components (panel, metric-value, status-pill) and EXPERIENCE.md: Dashboards, State Patterns, Flow 1. */
+  :root{
+    --bg:#080B10; --surface-1:#0E131B; --surface-2:#141B26; --surface-3:#1B2432;
+    --border:#2E3B4D; --border-strong:#50647D;
+    --fg:#E6EDF7; --muted:#93A1B5; --subtle:#8696AB;
+    --primary:#22D3EE; --primary-fg:#041014; --warning:#F5A524; --success:#34D399; --danger:#F87171; --info:#60A5FA;
+    --sans:Geist,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;height:100vh;min-width:1200px}
+  .topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--surface-1)}
+  .brand{display:flex;align-items:center;gap:10px;width:208px;font-weight:650;letter-spacing:-.01em}
+  .mark{width:26px;height:26px;border:1px solid var(--border-strong);border-radius:7px;display:grid;place-items:center;background:var(--surface-2);color:var(--primary);font-family:var(--mono);font-size:12px}
+  .project{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--muted);font-size:13px}
+  .project strong{color:var(--fg);font-weight:600}
+  .search{flex:1;max-width:520px;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-2);color:var(--subtle);font-size:13px}
+  .kbd{font-family:var(--mono);font-size:11px;padding:2px 5px;border:1px solid var(--border-strong);border-radius:4px;color:var(--muted)}
+  .spacer{flex:1}.icon-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--muted);display:grid;place-items:center;font-size:13px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--surface-3);border:1px solid var(--border-strong);display:grid;place-items:center;font-size:11px;color:var(--primary)}
+  .nav{border-right:1px solid var(--border);background:var(--surface-1);padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:13px;border-left:2px solid transparent}
+  .nav a.active{background:var(--surface-3);color:var(--primary);border-left-color:var(--primary)}
+  .nav .label{margin:16px 10px 6px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--subtle);font-weight:650}
+  .nav .foot{margin-top:auto;padding:12px 10px 4px;border-top:1px solid var(--border);color:var(--subtle);font-size:11px}
+  .main{overflow:auto;padding:18px 22px 28px}
+  .crumb{display:flex;align-items:center;gap:8px;color:var(--subtle);font-size:12px;margin-bottom:12px}
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+  h1{font-size:24px;line-height:1.2;letter-spacing:-.015em;margin:0 0 4px;font-weight:650}
+  .sub{color:var(--muted);font-size:13px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:550}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .seg{display:flex;border:1px solid var(--border-strong);border-radius:6px;overflow:hidden;background:var(--surface-2)}
+  .seg span{padding:8px 12px;font-size:12px;color:var(--muted);border-right:1px solid var(--border)}
+  .seg span:last-child{border-right:0}.seg .on{color:var(--fg);background:var(--surface-3);box-shadow:inset 0 -2px 0 var(--primary)}
+  .banner{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.08);border-radius:10px;margin-bottom:14px;font-size:12px}
+  .banner strong{color:var(--danger)} .banner .spacer{flex:1}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+  .panel{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;overflow:hidden;grid-column:span 6}
+  .panel.third{grid-column:span 4}.panel.full{grid-column:1/-1}
+  .panel-h{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;border-bottom:1px solid var(--border)}
+  .panel-h h2{font-size:13px;margin:0;font-weight:600}
+  .panel-h .meta{margin-left:auto;color:var(--subtle);font-size:11px;font-family:var(--mono)}
+  .body{padding:12px 14px 14px}
+  .stat{display:flex;align-items:flex-end;gap:10px}
+  .value{font-family:var(--mono);font-size:26px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .delta{font-size:11px;color:var(--danger);font-family:var(--mono);margin-bottom:4px}
+  .delta.ok{color:var(--success)}
+  .unit{color:var(--subtle);font-size:12px;margin-bottom:4px}
+  .spark{width:100%;height:78px;display:block;margin-top:10px}
+  .legend{display:flex;gap:14px;color:var(--subtle);font-size:10.5px;margin-top:6px}
+  .legend i{display:inline-block;width:8px;height:2px;background:var(--primary);margin-right:5px;vertical-align:middle}
+  .legend .warn{background:var(--warning)} .legend .err{background:var(--danger)}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;font-size:10.5px;font-weight:600}
+  .pill.ok{background:rgba(52,211,153,.12);color:var(--success)}
+  .pill.warn{background:rgba(245,165,36,.14);color:var(--warning)}
+  .pill.err{background:rgba(248,113,113,.14);color:var(--danger)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--subtle);font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:650;background:var(--surface-2);padding:8px 10px;border-bottom:1px solid var(--border)}
+  td{padding:8px 10px;border-bottom:1px solid rgba(37,49,65,.7)}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)} .subtle{color:var(--subtle)}
+  .deploy{position:relative;height:18px;margin-top:2px}
+  .deploy .line{position:absolute;left:62%;top:0;bottom:0;width:1px;background:var(--info)}
+  .deploy .tag{position:absolute;left:62%;top:1px;transform:translateX(6px);font-size:9.5px;color:var(--info);font-family:var(--mono);white-space:nowrap}
+  .footnote{color:var(--subtle);font-size:10.5px;margin-top:10px}
+  .health .stat{display:block}
+  .health .stat .k{font-size:9.5px;color:var(--subtle);text-transform:uppercase;letter-spacing:.07em}
+  .health .stat .v{font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums;margin-top:3px}
+  .toolbar{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:1279px){.app{min-width:1024px}.grid{grid-template-columns:repeat(8,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="mark">ob</span><span>Observaki</span></div>
+    <div class="project"><span class="muted">Project</span><strong>checkout-prod</strong><span class="subtle">▾</span></div>
+    <div class="search"><span>⌕</span><span>Search services, dashboards, queries…</span><span class="spacer"></span><span class="kbd">⌘K</span></div>
+    <div class="spacer"></div><div class="icon-btn">◔</div><div class="icon-btn">?</div><div class="avatar">MR</div>
+  </header>
+
+  <nav class="nav">
+    <a href="#">◈ Overview</a>
+    <a href="#">⌁ Explore</a>
+    <a class="active" href="#">▤ Dashboards</a>
+    <a href="#">◇ Services</a>
+    <a href="#">◉ Alerts <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--danger)">2</span></a>
+    <div class="label">Workspace</div>
+    <a href="#">⚙ Settings</a>
+    <div class="foot">Ingestion healthy<br><span style="color:var(--success)">●</span> 1.2M events/s · lag 3.4s</div>
+  </nav>
+
+  <main class="main">
+    <div class="crumb"><b>Dashboards</b><span>/</span><span>checkout</span><span>/</span><span>Golden signals</span></div>
+    <div class="page-head">
+      <div><h1>Checkout — Golden Signals</h1><div class="sub">Service dashboard · service: checkout · last edited 2h ago</div></div>
+      <div style="display:flex;gap:8px"><button class="btn">Edit</button><button class="btn">Share</button><button class="btn">Add panel</button></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="seg"><span class="on">Last 6h</span><span>24h</span><span>7d</span><span>Custom</span></div>
+      <div class="btn">service = checkout</div>
+      <div class="btn">env = prod</div>
+      <div class="spacer"></div>
+      <div class="muted" style="font-size:11px"><span style="color:var(--subtle)">●</span> paused · last refresh 8s ago · <span style="color:var(--primary)">resume</span></div>
+    </div>
+
+    <div class="banner"><span>▲</span><div><strong>Active alert</strong> · checkout p99 above 2s for 12m · <span class="muted">started 06:12 UTC</span></div><div class="spacer"></div><button class="btn primary">Investigate</button><button class="btn">Ack</button><button class="btn">Silence</button></div>
+
+    <div class="grid">
+      <section class="panel third">
+        <div class="panel-h"><h2>Request rate</h2><span class="meta">req/s</span></div>
+        <div class="body">
+          <div class="stat"><div class="value">2,418</div><div class="delta" style="color:var(--muted)">+4.2%</div><div class="unit">req/s</div></div>
+          <svg class="spark" viewBox="0 0 300 78" preserveAspectRatio="none" aria-label="Request rate trend">
+            <path d="M0,58 L20,54 L40,57 L60,49 L80,52 L100,44 L120,47 L140,40 L160,42 L180,35 L200,39 L220,31 L240,34 L260,28 L280,30 L300,26" fill="none" stroke="var(--primary)" stroke-width="2"/>
+            <path d="M0,58 L20,54 L40,57 L60,49 L80,52 L100,44 L120,47 L140,40 L160,42 L180,35 L200,39 L220,31 L240,34 L260,28 L280,30 L300,26 L300,78 L0,78 Z" fill="rgba(34,211,238,.08)"/>
+          </svg>
+          <div class="legend"><span><i></i>2.4k req/s</span><span class="muted">peak 3.1k</span></div>
+        </div>
+      </section>
+
+      <section class="panel third">
+        <div class="panel-h"><h2>Error rate</h2><span class="meta">%</span></div>
+        <div class="body">
+          <div class="stat"><div class="value" style="color:var(--danger)">3.8%</div><div class="delta">+2.1pp</div><div class="unit">5xx / total</div></div>
+          <svg class="spark" viewBox="0 0 300 78" preserveAspectRatio="none" aria-label="Error rate trend">
+            <path d="M0,70 L20,68 L40,69 L60,66 L80,67 L100,63 L120,64 L140,58 L160,60 L180,52 L200,49 L220,38 L240,34 L260,28 L280,25 L300,22" fill="none" stroke="var(--danger)" stroke-width="2"/>
+            <path d="M0,70 L20,68 L40,69 L60,66 L80,67 L100,63 L120,64 L140,58 L160,60 L180,52 L200,49 L220,38 L240,34 L260,28 L280,25 L300,22 L300,78 L0,78 Z" fill="rgba(248,113,113,.08)"/>
+          </svg>
+          <div class="legend"><span><i class="err"></i>3.8% now</span><span class="muted">SLO 1.0%</span></div>
+        </div>
+      </section>
+
+      <section class="panel third">
+        <div class="panel-h"><h2>p99 latency</h2><span class="meta">ms</span></div>
+        <div class="body">
+          <div class="stat"><div class="value" style="color:var(--warning)">2,846</div><div class="delta">+1,402ms</div><div class="unit">p99</div></div>
+          <svg class="spark" viewBox="0 0 300 78" preserveAspectRatio="none" aria-label="p99 latency trend">
+            <path d="M0,60 L20,58 L40,59 L60,55 L80,56 L100,52 L120,50 L140,48 L160,46 L180,43 L200,38 L220,32 L240,26 L260,18 L280,12 L300,10" fill="none" stroke="var(--warning)" stroke-width="2"/>
+            <path d="M0,60 L20,58 L40,59 L60,55 L80,56 L100,52 L120,50 L140,48 L160,46 L180,43 L200,38 L220,32 L240,26 L260,18 L280,12 L300,10 L300,78 L0,78 Z" fill="rgba(245,165,36,.08)"/>
+          </svg>
+          <div class="legend"><span><i class="warn"></i>p99 2.8s</span><span class="muted">p50 180ms · p95 940ms</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h"><h2>Latency by operation</h2><span class="meta">p99 · last 6h</span></div>
+        <div class="body">
+          <table>
+            <thead><tr><th>Operation</th><th class="num">p50</th><th class="num">p95</th><th class="num">p99</th><th class="num">req/s</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">POST /checkout</td><td class="num">180ms</td><td class="num">940ms</td><td class="num">2,846ms</td><td class="num">2,418</td><td><span class="pill warn">DEGRADED</span></td></tr>
+              <tr><td class="mono">POST /authorize</td><td class="num">210ms</td><td class="num">1,120ms</td><td class="num">2,510ms</td><td class="num">2,390</td><td><span class="pill warn">SLOW</span></td></tr>
+              <tr><td class="mono">GET /cart</td><td class="num">42ms</td><td class="num">180ms</td><td class="num">441ms</td><td class="num">3,102</td><td><span class="pill ok">HEALTHY</span></td></tr>
+              <tr><td class="mono">GET /stock</td><td class="num">31ms</td><td class="num">120ms</td><td class="num">310ms</td><td class="num">1,844</td><td><span class="pill ok">HEALTHY</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-h"><h2>Recent traces</h2><span class="meta">checkout · last 15m</span></div>
+        <div class="body">
+          <table>
+            <thead><tr><th>Trace</th><th>Operation</th><th class="num">Duration</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">7f3a9c2e…41b8</td><td class="mono">POST /checkout</td><td class="num">2,846ms</td><td><span class="pill err">ERROR</span></td></tr>
+              <tr><td class="mono">e91b0a77…c03d</td><td class="mono">POST /checkout</td><td class="num">2,711ms</td><td><span class="pill err">ERROR</span></td></tr>
+              <tr><td class="mono">c2d48f10…9a44</td><td class="mono">POST /checkout/confirm</td><td class="num">2,509ms</td><td><span class="pill warn">SLOW</span></td></tr>
+              <tr><td class="mono">9a01e6bd…72f1</td><td class="mono">POST /checkout</td><td class="num">2,384ms</td><td><span class="pill warn">SLOW</span></td></tr>
+            </tbody>
+          </table>
+          <div class="footnote">Traces are 1.2% sampled; errors preserved at 100%. Showing 4 of 1,284.</div>
+        </div>
+      </section>
+
+      <section class="panel full">
+        <div class="panel-h"><h2>Pipeline health</h2><span class="meta">self-observability · Phase 1</span></div>
+        <div class="body">
+          <div class="health" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <div class="stat"><div class="k">Ingestion</div><div class="v">1.2M/s</div></div>
+            <div class="stat"><div class="k">Lag p95</div><div class="v">3.4s</div></div>
+            <div class="stat"><div class="k">Write errors</div><div class="v">0.01%</div></div>
+            <div class="stat"><div class="k">Retention</div><div class="v">15d</div></div>
+          </div>
+          <div class="footnote">This panel reads from the self-observability path, not from the customer pipeline. A dead-man's switch alerts if the scheduler or ingestion stops reporting.</div>
+        </div>
+      </section>
+    </div>
+    <div class="footnote">Dashboard variables: <span class="mono">service=checkout</span>, <span class="mono">env=prod</span>. URL preserves range and variables. Panels load independently; a failed panel shows its own retry state.</div>
+  </main>
+</div>
+</body>
+</html>

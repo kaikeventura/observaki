@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Observaki — State gallery</title>
+<style>
+  /* Governed by EXPERIENCE.md: State Patterns; DESIGN.md: Colors, Typography, Components (empty-state, status-pill). */
+  :root{
+    --bg:#080B10; --surface-1:#0E131B; --surface-2:#141B26; --surface-3:#1B2432;
+    --border:#2E3B4D; --border-strong:#4A5D75; --fg:#E6EDF7; --muted:#93A1B5; --subtle:#8696AB;
+    --primary:#22D3EE; --warning:#F5A524; --success:#34D399; --danger:#F87171; --info:#60A5FA;
+    --sans:Geist,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .page{max-width:1280px;margin:0 auto;padding:28px 24px 40px}
+  h1{font-size:26px;line-height:1.15;letter-spacing:-.02em;margin:0 0 6px;font-weight:650}.sub{color:var(--muted);font-size:13px;max-width:75ch}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}
+  .card{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .card h2{font-size:13px;margin:0 0 4px;font-weight:650}.card p{margin:0 0 10px;color:var(--muted);font-size:12px}
+  .state{border:1px solid var(--border);border-radius:8px;background:var(--surface-2);padding:14px;min-height:120px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+  .state .title{font-size:13px;font-weight:600}.state .body{font-size:12px;color:var(--muted);max-width:52ch}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-1);color:var(--fg);font-size:11.5px;font-weight:550}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#041014}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;font-size:10.5px;font-weight:600;width:fit-content}
+  .pill.warn{background:rgba(245,165,36,.14);color:var(--warning)}.pill.err{background:rgba(248,113,113,.14);color:var(--danger)}.pill.info{background:rgba(96,165,250,.14);color:var(--info)}
+  .mono{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .bar{height:8px;background:var(--surface-3);border-radius:99px;overflow:hidden}.bar span{display:block;height:100%;width:62%;background:var(--warning)}
+  .footnote{color:var(--subtle);font-size:10.5px;margin-top:10px}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>State gallery — Phase 1</h1>
+  <p class="sub">The states that decide whether a responder trusts the screen. Each card shows copy, primary action and secondary action; production adds focus, ARIA announcements and the same visual language. Spines win on conflict.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Empty result</h2>
+      <p>Explore > Logs, no matches for the current filter.</p>
+      <div class="state">
+        <div class="title">No logs match this filter.</div>
+        <div class="body">Try widening the time range or removing the status filter. The query is still in the bar; nothing was lost.</div>
+        <div class="actions"><button class="btn primary">Clear filters</button><button class="btn">Widen to 1h</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Query error</h2>
+      <p>Invalid MetricsQL; the previous result stays visible.</p>
+      <div class="state">
+        <div class="title">Unexpected token “)” at position 42.</div>
+        <div class="body">The previous result is marked stale. Fix the query and run again; the error does not clear the screen.</div>
+        <div class="actions"><button class="btn primary">Fix query</button><button class="btn">Copy error</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Query timeout</h2>
+      <p>30s timeout on a 30-day range.</p>
+      <div class="state">
+        <span class="pill warn">TIMEOUT</span>
+        <div class="title">Query timed out after 30s.</div>
+        <div class="body">Narrow the time range or add a service filter. You can also run it as a background job and keep investigating.</div>
+        <div class="actions"><button class="btn primary">Narrow to 24h</button><button class="btn">Run in background</button><button class="btn">Cancel</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Partial trace</h2>
+      <p>6 of 18 spans retained; errors preserved.</p>
+      <div class="state">
+        <span class="pill warn">PARTIAL</span>
+        <div class="title">Showing 6 of 18 spans.</div>
+        <div class="body">Traces are sampled at 1.2%; error traces are preserved at 100%. Metrics RED come from all spans, not only retained traces.</div>
+        <div class="actions"><button class="btn primary">Show retained spans</button><button class="btn">Open metrics</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Sampled trace</h2>
+      <p>The trace was not retained, but logs/metrics exist.</p>
+      <div class="state">
+        <span class="pill info">SAMPLED</span>
+        <div class="title">This trace was sampled out.</div>
+        <div class="body">Logs for the service in this window are available, and the RED metrics cover all spans. The trace itself was not retained.</div>
+        <div class="actions"><button class="btn primary">Open service logs</button><button class="btn">Open metrics</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>No permission</h2>
+      <p>Direct link to a project the user cannot access.</p>
+      <div class="state">
+        <span class="pill err">403</span>
+        <div class="title">You don’t have permission to view this project.</div>
+        <div class="body">Ask an admin for the viewer role, or switch to a project you can access. The request ID is <span class="mono">req_01J8…</span>.</div>
+        <div class="actions"><button class="btn primary">Request access</button><button class="btn">Switch project</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Rate limited</h2>
+      <p>Too many queries or ingestion above quota.</p>
+      <div class="state">
+        <span class="pill warn">429</span>
+        <div class="title">Too many requests. Retry in 30s.</div>
+        <div class="body">The project’s query quota is 20 concurrent requests. The countdown is live; the action is disabled until it reaches zero.</div>
+        <div class="actions"><button class="btn" disabled>Retry in 30s</button><button class="btn">View quota</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Degraded platform</h2>
+      <p>Ingestion delayed; queries may be incomplete.</p>
+      <div class="state">
+        <span class="pill warn">DEGRADED</span>
+        <div class="title">Ingestion is delayed by 42s.</div>
+        <div class="body">Queries may be missing the most recent data. The health page shows the last known value and timestamp; the banner returns if the state persists.</div>
+        <div class="actions"><button class="btn primary">Open health</button><button class="btn">Dismiss</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Offline</h2>
+      <p>Browser lost connectivity; cached view only.</p>
+      <div class="state">
+        <span class="pill info">OFFLINE</span>
+        <div class="title">You’re offline.</div>
+        <div class="body">The last view is cached; actions are disabled. Changes will not be queued or replayed.</div>
+        <div class="actions"><button class="btn" disabled>Retry</button><button class="btn">Copy current URL</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Failed panel</h2>
+      <p>One dashboard panel fails; the rest stay usable.</p>
+      <div class="state">
+        <span class="pill err">PANEL ERROR</span>
+        <div class="title">This panel couldn’t load.</div>
+        <div class="body">The query failed after 2 retries. Other panels are unaffected. Request ID <span class="mono">req_01J8…</span>.</div>
+        <div class="actions"><button class="btn primary">Retry panel</button><button class="btn">Inspect query</button></div>
+      </div>
+    </section>
+  </div>
+  <div class="footnote">Checklist before dev: every state has copy, primary/secondary action, focus order, ARIA announcement and a fixture. The state is never a toast that disappears; it lives in the surface.</div>
+</div>
+</body>
+</html>
