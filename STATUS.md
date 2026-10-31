@@ -80,7 +80,7 @@ Atalho no OpenCode: `/continue`.
 |---|---|---|---|---|
 | P0-E1 | 1.1 | Bootstrap do mono-repo | `done` | T1.1.1–T1.1.9 done; revisão dispensada pelo dono; evidência em `docs/dev/story-1.1-handoff.md` |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `done` | CI/CodeQL verdes; `v0.0.1-alpha` com binários, SBOMs, checksums, bundles cosign e imagem assinada; falta habilitar branch protection (manual) |
-| P0-E1 | 1.3 | Governança open source | `done` | LICENSE Apache 2.0, DCO workflow + script testado (sem sign-off e e-mail divergente falham), CONTRIBUTING/CoC/SECURITY, templates e `docs/governance/open-core.md`; `make ci`/`make smoke` ok |
+| P0-E1 | 1.3 | Governança open source | `done` | LICENSE Apache 2.0, DCO workflow + script testado (sem sign-off e e-mail divergente falham), CONTRIBUTING/CoC/SECURITY, templates e `docs/governance/open-core.md`; `make ci`/`make smoke` e CI/CodeQL verdes em `24a16be` |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
 | P0-E2 | 2.1 | Gerador de carga OTLP | `todo` | Depende de 1.1 |
 | P0-E2 | 2.2 | Cenários de benchmark | `todo` | Depende de 2.1 |
@@ -147,7 +147,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.1 / T1.1.9 | P0 / 1.1 / T1.1.9 | **Story 1.1 concluída**: revisão dispensada explicitamente pelo dono; handoff e checklist em `docs/dev/story-1.1-handoff.md`; próxima é a Story 1.2 | `8957f4b` | Story 1.2 |
 | 2026-10-31 | Story 1.2 / T1.2.1–T1.2.4 | P0 / 1.2 / T1.2.5 | Workflows `ci.yml`, `codeql.yml`, `release.yml`, job security/SBOM (Syft), release com cosign keyless, `Dockerfile` distroless, `docs/ci.md` e `SMOKE_SKIP_CI`; `actionlint` e imagem local ok | `42f09af` | Primeiro run no GitHub |
 | 2026-10-31 | Story 1.2 / T1.2.5 | P0 / 1.2 / T1.2.5 | CI e CodeQL verdes na `main`; `govulncheck` exigiu Go 1.27.2 (GO-2026-6613/6617) e `cargo audit` passou a rodar em `agent/`; tag `v0.0.1-alpha` publicou 4 binários, SBOMs, `SHA256SUMS`, bundles cosign e imagem multi-arch assinada | `925b534` + tag `v0.0.1-alpha` | Story 1.3 |
-| 2026-10-31 | Story 1.3 | P0 / 1.3 / — | `LICENSE` Apache 2.0, `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`, templates de issue/PR, `docs/governance/open-core.md` (P-03 explícita) e workflow `DCO sign-off`; `scripts/check-dco.sh` validado com sign-off ausente/divergente/malformado (exit 1) e caso válido (exit 0); `actionlint`, schema YAML dos issue forms, `make ci` e `make smoke` ok | `8746351` | Story 1.4 |
+| 2026-10-31 | Story 1.3 | P0 / 1.3 / — | `LICENSE` Apache 2.0, `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`, templates de issue/PR, `docs/governance/open-core.md` (P-03 explícita) e workflow `DCO sign-off`; `scripts/check-dco.sh` validado com sign-off ausente/divergente/malformado (exit 1) e caso válido (exit 0); `actionlint`, schema YAML dos issue forms, `make ci` e `make smoke` ok; CI e CodeQL verdes em `24a16be` | `8746351` | Story 1.4 |
 
 ## Regras de atualização
 
