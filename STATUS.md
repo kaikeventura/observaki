@@ -8,14 +8,14 @@ story: "1.1"
 story_name: Bootstrap do mono-repo e ambiente de desenvolvimento
 task: T1.1.9
 task_name: PR, revisão e handoff
-status: blocked        # not_started | in_progress | blocked | done
+status: done        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "ae4c081"
-next_action: "Aguardar revisão (ou dispensa explícita) humana da Story 1.1; depois marcar a story como done e iniciar a Story 1.2"
-blocked_by: ["Revisão humana da Story 1.1 (T1.1.9): aprovar ou dispensar explicitamente"]
-last_session: "T1.1.9 parcial: handoff em docs/dev/story-1.1-handoff.md; revisão humana pendente."
+last_commit: "b22bb2b"
+next_action: "Iniciar Story 1.2 — CI de qualidade e release alpha assinada"
+blocked_by: []
+last_session: "Story 1.1 concluída: T1.1.9 fechada com revisão dispensada explicitamente pelo dono."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -59,14 +59,14 @@ Atalho no OpenCode: `/continue`.
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
-| Task | **T1.1.9 — PR, revisão e handoff** |
-| Status | `blocked` |
+| Task | **T1.1.9 — PR, revisão e handoff (concluída)** |
+| Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `ae4c081` |
-| Próxima ação | Aguardar revisão (ou dispensa explícita); depois marcar a Story 1.1 como `done` e iniciar a Story 1.2 |
-| Bloqueios | **Revisão humana da Story 1.1** — aprovar (ou dispensar por escrito) |
-| Última sessão | T1.1.9 parcial (handoff pronto) |
+| Último commit | `b22bb2b` |
+| Próxima ação | Iniciar a Story 1.2 — CI de qualidade e release alpha assinada |
+| Bloqueios | Nenhum |
+| Última sessão | Story 1.1 fechada (revisão dispensada pelo dono) |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.0`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
 
@@ -78,7 +78,7 @@ Atalho no OpenCode: `/continue`.
 
 | Epic | Story | Título | Status | Evidência / próximo passo |
 |---|---|---|---|---|
-| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1–T1.1.8 done; T1.1.9 handoff pronto (`ae4c081`); **revisão humana pendente** |
+| P0-E1 | 1.1 | Bootstrap do mono-repo | `done` | T1.1.1–T1.1.9 done; revisão dispensada pelo dono; evidência em `docs/dev/story-1.1-handoff.md` |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `todo` | Depende de 1.1 |
 | P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
@@ -144,6 +144,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.1 / T1.1.8 | P0 / 1.1 / T1.1.8 | Clone limpo em `/tmp` no commit `74bdc22`: bootstrap 1,5 s, `make ci` 13,1 s, `make smoke` 10,3 s; versão, healthz, health e `web/build/index.html` conferidos; evidência em `docs/dev/local-setup.md` | `8654bd6` | T1.1.9 |
 | 2026-10-31 | Story 1.1 / T1.1.9 | P0 / 1.1 / T1.1.9 | Handoff, decisões, escopo e contrato de CI da Story 1.2 em `docs/dev/story-1.1-handoff.md`; **revisão humana pendente** (status `blocked`) | `ae4c081` | Revisão humana |
 | 2026-10-31 | Workflow (pedido do dono) | — | Fluxo passa a ser **main-only**: `PROMPT.md`, `AGENTS.md`, `GIT-WORKFLOW.md` e comandos do OpenCode sem branch por story e sem PR; commit direto na `main` | `50f3180` | Revisão humana |
+| 2026-10-31 | Story 1.1 / T1.1.9 | P0 / 1.1 / T1.1.9 | **Story 1.1 concluída**: revisão dispensada explicitamente pelo dono; handoff e checklist em `docs/dev/story-1.1-handoff.md`; próxima é a Story 1.2 | `pendente` | Story 1.2 |
 
 ## Regras de atualização
 

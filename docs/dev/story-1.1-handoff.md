@@ -1,6 +1,7 @@
 # Story 1.1 — Handoff e revisão
 
-**Status:** implementação concluída; revisão humana pendente (T1.1.9).
+**Status:** implementação concluída; revisão dispensada explicitamente pelo dono
+em 2026-10-31 (fluxo main-only). Story 1.1 marcada `done`.
 **Branch:** `main` (fluxo do dono: merge `--no-ff` ao fim de cada sessão).
 **Último commit de código:** `8654bd6` (evidência da T1.1.8).
 
