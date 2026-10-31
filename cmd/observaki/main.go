@@ -28,21 +28,20 @@ func main() {
 
 func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		usage(stderr)
+		_ = usage(stderr)
 		return errors.New("missing command")
 	}
 
 	switch args[0] {
 	case "version":
-		fmt.Fprintln(stdout, version.String())
-		return nil
+		_, err := fmt.Fprintln(stdout, version.String())
+		return err
 	case "serve":
 		return serve()
 	case "help", "-h", "--help":
-		usage(stdout)
-		return nil
+		return usage(stdout)
 	default:
-		usage(stderr)
+		_ = usage(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
 }
@@ -62,8 +61,8 @@ func serve() error {
 	return srv.Run(ctx)
 }
 
-func usage(w io.Writer) {
-	fmt.Fprintf(w, `observaki — OTel-native observability platform
+func usage(w io.Writer) error {
+	_, err := fmt.Fprintf(w, `observaki — OTel-native observability platform
 
 Usage:
   observaki <command>
@@ -73,4 +72,5 @@ Commands:
   serve     start the HTTP API (env %s, default %s)
   help      show this help
 `, envHTTPAddr, defaultHTTPAddr)
+	return err
 }
