@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E1
 epic_name: Fundação do repositório e governança
-story: "1.2"
-story_name: CI de qualidade e release alpha assinada
-task: T1.2.5
-task_name: Validação e evidência
-status: in_progress        # not_started | in_progress | blocked | done
+story: "1.3"
+story_name: Governança open source e fronteira open-core
+task: "—"
+task_name: Aguardando início
+status: not_started        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "8957f4b"
-next_action: "Empurrar o CI para a main, acompanhar o primeiro run no GitHub Actions e, se verde, criar a tag v0.0.1-alpha"
+last_commit: "925b534"
+next_action: "Iniciar Story 1.3 — LICENSE Apache 2.0, DCO, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, templates e fronteira open-core"
 blocked_by: []
-last_session: "Story 1.2 implementada (CI, CodeQL, security/SBOM, release assinada e Dockerfile); validação local ok; falta o run real no GitHub e a branch protection."
+last_session: "Story 1.2 concluída: CI e CodeQL verdes, release v0.0.1-alpha assinada e publicada; branch protection segue como ajuste manual."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
-| Story | **1.2 — CI de qualidade e release alpha assinada** |
-| Task | **T1.2.5 — Validação e evidência** |
-| Status | `in_progress` |
+| Story | **1.3 — Governança open source e fronteira open-core** |
+| Task | **— (aguardando início)** |
+| Status | `not_started` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `8957f4b` |
-| Próxima ação | Push da `main`, acompanhar o primeiro run do GitHub Actions e, se verde, criar a tag `v0.0.1-alpha` |
-| Bloqueios | Branch protection é configuração manual no GitHub (documentada em `docs/ci.md`) |
-| Última sessão | Story 1.2 implementada; validação local ok; falta run real |
+| Último commit | `925b534` |
+| Próxima ação | Iniciar a Story 1.3 — licença, DCO, CONTRIBUTING, CoC, SECURITY, templates e fronteira open-core |
+| Bloqueios | Nenhum; pendência operacional: habilitar branch protection no GitHub (AC1 da 1.2) |
+| Última sessão | Story 1.2 concluída (release `v0.0.1-alpha` assinada) |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
 
@@ -79,7 +79,7 @@ Atalho no OpenCode: `/continue`.
 | Epic | Story | Título | Status | Evidência / próximo passo |
 |---|---|---|---|---|
 | P0-E1 | 1.1 | Bootstrap do mono-repo | `done` | T1.1.1–T1.1.9 done; revisão dispensada pelo dono; evidência em `docs/dev/story-1.1-handoff.md` |
-| P0-E1 | 1.2 | CI de qualidade e release alpha | `doing` | T1.2.1–T1.2.4 implementadas; T1.2.5: primeiro run no GitHub e tag `v0.0.1-alpha` |
+| P0-E1 | 1.2 | CI de qualidade e release alpha | `done` | CI/CodeQL verdes; `v0.0.1-alpha` com binários, SBOMs, checksums, bundles cosign e imagem assinada; falta habilitar branch protection (manual) |
 | P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
 | P0-E2 | 2.1 | Gerador de carga OTLP | `todo` | Depende de 1.1 |
@@ -146,6 +146,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Workflow (pedido do dono) | — | Fluxo passa a ser **main-only**: `PROMPT.md`, `AGENTS.md`, `GIT-WORKFLOW.md` e comandos do OpenCode sem branch por story e sem PR; commit direto na `main` | `50f3180` | Revisão humana |
 | 2026-10-31 | Story 1.1 / T1.1.9 | P0 / 1.1 / T1.1.9 | **Story 1.1 concluída**: revisão dispensada explicitamente pelo dono; handoff e checklist em `docs/dev/story-1.1-handoff.md`; próxima é a Story 1.2 | `8957f4b` | Story 1.2 |
 | 2026-10-31 | Story 1.2 / T1.2.1–T1.2.4 | P0 / 1.2 / T1.2.5 | Workflows `ci.yml`, `codeql.yml`, `release.yml`, job security/SBOM (Syft), release com cosign keyless, `Dockerfile` distroless, `docs/ci.md` e `SMOKE_SKIP_CI`; `actionlint` e imagem local ok | `42f09af` | Primeiro run no GitHub |
+| 2026-10-31 | Story 1.2 / T1.2.5 | P0 / 1.2 / T1.2.5 | CI e CodeQL verdes na `main`; `govulncheck` exigiu Go 1.27.2 (GO-2026-6613/6617) e `cargo audit` passou a rodar em `agent/`; tag `v0.0.1-alpha` publicou 4 binários, SBOMs, `SHA256SUMS`, bundles cosign e imagem multi-arch assinada | `925b534` + tag `v0.0.1-alpha` | Story 1.3 |
 
 ## Regras de atualização
 

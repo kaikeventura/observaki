@@ -107,7 +107,15 @@ cosign verify \
 
 - **Keyless** exige repositório público e OIDC do GitHub; se o repositório virar
   privado, trocar para chave gerenciada (`cosign generate-key-pair` + secret).
-- O build arm64 do agente usa `cross`; ainda não foi exercitado em uma tag real.
+- O build arm64 do agente usa `cross` e foi exercitado com sucesso na
+  `v0.0.1-alpha`.
 - CodeQL não falha o job por si só; o bloqueio depende da branch protection.
+- Sem chave GPG no ambiente, a tag foi anotada (`git tag -a`) e não assinada;
+  os artefatos são assinados pelo cosign.
 - Não há runner GitHub local: a validação de PR é feita por `actionlint`, pelos
-  testes locais e pela primeira execução na `main`.
+  testes locais e pela execução na `main`.
+
+## Estado
+
+- `v0.0.1-alpha` (2026-10-31): CI e CodeQL verdes; release com 4 binários,
+  SBOMs, `SHA256SUMS`, bundles cosign e imagem multi-arch assinada.
