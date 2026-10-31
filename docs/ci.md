@@ -58,7 +58,7 @@ make smoke
 # equivalentes pontuais
 "$(go env GOPATH)/bin/govulncheck" ./...
 pnpm --dir web audit --audit-level critical
-cargo audit --manifest-path agent/Cargo.toml
+(cd agent && cargo audit)
 ```
 
 SBOM local (requer Syft):

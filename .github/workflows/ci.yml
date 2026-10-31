@@ -118,7 +118,8 @@ jobs:
           tool: cargo-audit
 
       - name: Audit Rust dependencies
-        run: cargo audit --manifest-path agent/Cargo.toml
+        working-directory: agent
+        run: cargo audit
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
