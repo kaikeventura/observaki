@@ -3,13 +3,26 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Load .env so both processes see the same configuration; values from the
-# file are exported and override the current shell.
+# Load .env without overriding variables already exported in the shell, so
+# one-off overrides like `OBSERVAKI_HTTP_ADDR=:18080 make dev` still work.
+load_env_file() {
+	local line key value
+	while IFS= read -r line || [ -n "$line" ]; do
+		case "$line" in
+		'' | '#'*) continue ;;
+		esac
+		key="${line%%=*}"
+		value="${line#*=}"
+		key="${key//[[:space:]]/}"
+		[ -n "$key" ] || continue
+		if [ -z "${!key+x}" ]; then
+			export "$key=$value"
+		fi
+	done <"$1"
+}
+
 if [ -f .env ]; then
-	set -a
-	# shellcheck disable=SC1091
-	. ./.env
-	set +a
+	load_env_file .env
 fi
 
 : "${OBSERVAKI_HTTP_ADDR:=:8080}"
@@ -29,8 +42,14 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "API: http://localhost${OBSERVAKI_HTTP_ADDR}"
-echo "Web: http://localhost${WEB_PORT}"
+api_url="http://localhost${OBSERVAKI_HTTP_ADDR}"
+case "$OBSERVAKI_HTTP_ADDR" in
+:* ) ;;
+* ) api_url="http://${OBSERVAKI_HTTP_ADDR}" ;;
+esac
+
+echo "API: ${api_url}"
+echo "Web: http://localhost:${WEB_PORT}"
 
 go run ./cmd/observaki serve &
 pids+=("$!")
