@@ -12,7 +12,7 @@ status: not_started        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "https://github.com/kaikeventura/observaki.git"
-last_commit: ""
+last_commit: "6be6c2d"
 next_action: "T1.1.1 — criar o esqueleto do mono-repo e o módulo Go"
 blocked_by: []
 last_session: "Planejamento concluído; nenhum código de produto escrito."
@@ -127,7 +127,7 @@ Atalho no OpenCode: `/continue`.
 
 | Data | Sessão | Fase/Story/Task | Resultado | Commit/PR | Próximo |
 |---|---|---|---|---|---|
-| 2026-10-31 | Planejamento | — | PRD, arquitetura, UX, backlogs e OpenCode setup concluídos | — | T1.1.1 |
+| 2026-10-31 | Planejamento | — | PRD, arquitetura, UX, backlogs e OpenCode setup concluídos | `6be6c2d` | T1.1.1 |
 
 ## Regras de atualização
 
