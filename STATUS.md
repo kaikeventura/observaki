@@ -6,16 +6,16 @@ epic: P0-E1
 epic_name: Fundação do repositório e governança
 story: "1.1"
 story_name: Bootstrap do mono-repo e ambiente de desenvolvimento
-task: T1.1.2
-task_name: Criar o binário Go com version e serve
+task: T1.1.3
+task_name: Criar o app SvelteKit mínimo
 status: in_progress        # not_started | in_progress | blocked | done
 updated: 2026-10-31
-branch: main
+branch: feat/p0-s1.1-bootstrap
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "2ca771d"
-next_action: "T1.1.2 — criar cmd/observaki/main.go (version, serve), internal/version e internal/httpserver com testes"
+last_commit: "1924ae6"
+next_action: "T1.1.3 — criar web/ com SvelteKit 3, Svelte 5, TypeScript, Vite e Tailwind; página inicial, proxy /api e teste de renderização"
 blocked_by: []
-last_session: "T1.1.1 concluída: esqueleto do mono-repo, .editorconfig, .gitignore, go.mod e README mínimo."
+last_session: "T1.1.2 concluída: binário Go com version/serve, /healthz, /api/v1/health, shutdown gracioso e testes."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -59,16 +59,16 @@ Atalho no OpenCode: `/continue`.
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
-| Task | **T1.1.2 — Criar o binário Go com `version` e `serve`** |
+| Task | **T1.1.3 — Criar o app SvelteKit mínimo** |
 | Status | `in_progress` |
-| Branch | `main` (branch de trabalho: `feat/p0-s1.1-bootstrap`) |
+| Branch | `feat/p0-s1.1-bootstrap` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `2ca771d` |
-| Próxima ação | Criar `cmd/observaki/main.go`, `internal/version` e `internal/httpserver` com testes |
+| Último commit | `1924ae6` |
+| Próxima ação | Criar `web/` (SvelteKit 3 + Svelte 5 + TypeScript + Vite + Tailwind), página inicial com status da API, proxy `/api` e teste |
 | Bloqueios | Nenhum |
-| Última sessão | T1.1.1 concluída (esqueleto do mono-repo) |
+| Última sessão | T1.1.2 concluída (binário Go com `version` e `serve`) |
 
-**Ambiente local (gaps para as próximas tarefas):** Go instalado é 1.22.2, mas o `go.mod` exige 1.27.0 e o toolchain é baixado automaticamente (validado); Node é v22 (alvo 26 LTS) e **pnpm não está instalado** — a T1.1.3 precisa de pnpm ≥ 10 e a T1.1.5 valida Node ≥ 26.
+**Ambiente local (gaps para as próximas tarefas):** Node é v22 (alvo 26 LTS) e **pnpm não está instalado** — instalar via `corepack` antes da T1.1.3; a T1.1.5 valida Node ≥ 26. Go 1.22.2 instalado, mas o toolchain 1.27.0 é baixado automaticamente pelo `go.mod` (validado).
 
 ## Fase 0 — checklist de stories
 
@@ -76,7 +76,7 @@ Atalho no OpenCode: `/continue`.
 
 | Epic | Story | Título | Status | Evidência / próximo passo |
 |---|---|---|---|---|
-| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1 done (`ea625ad`); próximo: T1.1.2 |
+| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1 done (`ea625ad`); T1.1.2 done (`1924ae6`); próximo: T1.1.3 |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `todo` | Depende de 1.1 |
 | P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
@@ -132,6 +132,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Planejamento | — | PRD, arquitetura, UX, backlogs e OpenCode setup concluídos | `6be6c2d` | T1.1.1 |
 | 2026-10-31 | Story 1.1 / T1.1.1 | P0 / 1.1 / T1.1.1 | Esqueleto do mono-repo, `.editorconfig`, `.gitignore`, `go.mod` (Go 1.27.0), README + placeholders; `go mod tidy` ok | `ea625ad` | T1.1.2 |
 | 2026-10-31 | Merge (ordem humana) | P0 / 1.1 / T1.1.1 | `feat/p0-s1.1-bootstrap` mergeada em `main` com `--no-ff`; branch preservada | `2ca771d` | T1.1.2 |
+| 2026-10-31 | Story 1.1 / T1.1.2 | P0 / 1.1 / T1.1.2 | Binário Go (`version`, `serve`), `/healthz`, `/api/v1/health`, shutdown gracioso, testes; `go test ./...`, `go vet`, smoke com curl | `1924ae6` | T1.1.3 |
 
 ## Regras de atualização
 
