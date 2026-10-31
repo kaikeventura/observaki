@@ -6,16 +6,16 @@ epic: P0-E1
 epic_name: Fundação do repositório e governança
 story: "1.1"
 story_name: Bootstrap do mono-repo e ambiente de desenvolvimento
-task: T1.1.1
-task_name: Criar o esqueleto do mono-repo
-status: not_started        # not_started | in_progress | blocked | done
+task: T1.1.2
+task_name: Criar o binário Go com version e serve
+status: in_progress        # not_started | in_progress | blocked | done
 updated: 2026-10-31
-branch: main
+branch: feat/p0-s1.1-bootstrap
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "6be6c2d"
-next_action: "T1.1.1 — criar o esqueleto do mono-repo e o módulo Go"
+last_commit: "ea625ad"
+next_action: "T1.1.2 — criar cmd/observaki/main.go (version, serve), internal/version e internal/httpserver com testes"
 blocked_by: []
-last_session: "Planejamento concluído; nenhum código de produto escrito."
+last_session: "T1.1.1 concluída: esqueleto do mono-repo, .editorconfig, .gitignore, go.mod e README mínimo."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -59,14 +59,16 @@ Atalho no OpenCode: `/continue`.
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
-| Task | **T1.1.1 — Criar o esqueleto do mono-repo** |
-| Status | `not_started` |
-| Branch | `main` (crie a branch da story antes de codar) |
+| Task | **T1.1.2 — Criar o binário Go com `version` e `serve`** |
+| Status | `in_progress` |
+| Branch | `feat/p0-s1.1-bootstrap` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | — |
-| Próxima ação | Criar a árvore de diretórios, `.editorconfig`, `.gitignore`, `go.mod` e README mínimo |
+| Último commit | `ea625ad` |
+| Próxima ação | Criar `cmd/observaki/main.go`, `internal/version` e `internal/httpserver` com testes |
 | Bloqueios | Nenhum |
-| Última sessão | Planejamento concluído; nenhum código de produto |
+| Última sessão | T1.1.1 concluída (esqueleto do mono-repo) |
+
+**Ambiente local (gaps para as próximas tarefas):** Go instalado é 1.22.2, mas o `go.mod` exige 1.27.0 e o toolchain é baixado automaticamente (validado); Node é v22 (alvo 26 LTS) e **pnpm não está instalado** — a T1.1.3 precisa de pnpm ≥ 10 e a T1.1.5 valida Node ≥ 26.
 
 ## Fase 0 — checklist de stories
 
@@ -74,7 +76,7 @@ Atalho no OpenCode: `/continue`.
 
 | Epic | Story | Título | Status | Evidência / próximo passo |
 |---|---|---|---|---|
-| P0-E1 | 1.1 | Bootstrap do mono-repo | `todo` | T1.1.1 |
+| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1 done (`ea625ad`); próximo: T1.1.2 |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `todo` | Depende de 1.1 |
 | P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
@@ -128,6 +130,7 @@ Atalho no OpenCode: `/continue`.
 | Data | Sessão | Fase/Story/Task | Resultado | Commit/PR | Próximo |
 |---|---|---|---|---|---|
 | 2026-10-31 | Planejamento | — | PRD, arquitetura, UX, backlogs e OpenCode setup concluídos | `6be6c2d` | T1.1.1 |
+| 2026-10-31 | Story 1.1 / T1.1.1 | P0 / 1.1 / T1.1.1 | Esqueleto do mono-repo, `.editorconfig`, `.gitignore`, `go.mod` (Go 1.27.0), README + placeholders; `go mod tidy` ok | `ea625ad` | T1.1.2 |
 
 ## Regras de atualização
 
