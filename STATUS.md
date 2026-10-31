@@ -11,7 +11,7 @@ task_name: Criar o esqueleto do mono-repo
 status: not_started        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
-remote: "https://github.com/kaikeventura/observaki.git"
+remote: "git@github.com:kaikeventura/observaki.git"
 last_commit: "6be6c2d"
 next_action: "T1.1.1 — criar o esqueleto do mono-repo e o módulo Go"
 blocked_by: []

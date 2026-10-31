@@ -1,6 +1,6 @@
 # Git Workflow — Observaki
 
-**Remoto:** `https://github.com/kaikeventura/observaki.git`
+**Remoto:** `git@github.com:kaikeventura/observaki.git` (SSH; HTTPS: `https://github.com/kaikeventura/observaki.git`)
 **Branch principal:** `main`
 **Regra:** uma story por branch/PR; commits pequenos; nada de segredo; nada de `force-push` em `main`.
 
@@ -26,10 +26,12 @@ git commit -s -m "chore: initialize Observaki planning workspace"
 # 5. Branch principal
 git branch -M main
 
-# 6. Remoto
-git remote add origin https://github.com/kaikeventura/observaki.git
+# 6. Remoto (SSH; use HTTPS se preferir)
+git remote add origin git@github.com:kaikeventura/observaki.git
+# Alternativa HTTPS:
+# git remote add origin https://github.com/kaikeventura/observaki.git
 # Se já existir:
-# git remote set-url origin https://github.com/kaikeventura/observaki.git
+# git remote set-url origin git@github.com:kaikeventura/observaki.git
 
 # 7. Envia
 git push -u origin main
