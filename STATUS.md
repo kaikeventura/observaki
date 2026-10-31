@@ -10,9 +10,9 @@ task: T1.1.2
 task_name: Criar o binário Go com version e serve
 status: in_progress        # not_started | in_progress | blocked | done
 updated: 2026-10-31
-branch: feat/p0-s1.1-bootstrap
+branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "ea625ad"
+last_commit: "2ca771d"
 next_action: "T1.1.2 — criar cmd/observaki/main.go (version, serve), internal/version e internal/httpserver com testes"
 blocked_by: []
 last_session: "T1.1.1 concluída: esqueleto do mono-repo, .editorconfig, .gitignore, go.mod e README mínimo."
@@ -61,9 +61,9 @@ Atalho no OpenCode: `/continue`.
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
 | Task | **T1.1.2 — Criar o binário Go com `version` e `serve`** |
 | Status | `in_progress` |
-| Branch | `feat/p0-s1.1-bootstrap` |
+| Branch | `main` (branch de trabalho: `feat/p0-s1.1-bootstrap`) |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `ea625ad` |
+| Último commit | `2ca771d` |
 | Próxima ação | Criar `cmd/observaki/main.go`, `internal/version` e `internal/httpserver` com testes |
 | Bloqueios | Nenhum |
 | Última sessão | T1.1.1 concluída (esqueleto do mono-repo) |
@@ -131,6 +131,7 @@ Atalho no OpenCode: `/continue`.
 |---|---|---|---|---|---|
 | 2026-10-31 | Planejamento | — | PRD, arquitetura, UX, backlogs e OpenCode setup concluídos | `6be6c2d` | T1.1.1 |
 | 2026-10-31 | Story 1.1 / T1.1.1 | P0 / 1.1 / T1.1.1 | Esqueleto do mono-repo, `.editorconfig`, `.gitignore`, `go.mod` (Go 1.27.0), README + placeholders; `go mod tidy` ok | `ea625ad` | T1.1.2 |
+| 2026-10-31 | Merge (ordem humana) | P0 / 1.1 / T1.1.1 | `feat/p0-s1.1-bootstrap` mergeada em `main` com `--no-ff`; branch preservada | `2ca771d` | T1.1.2 |
 
 ## Regras de atualização
 
