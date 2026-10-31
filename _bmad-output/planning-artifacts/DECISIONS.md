@@ -19,7 +19,7 @@
 |---|---|---|---|---|
 | P-01 | Design partners: 3 nomes e compromisso mínimo | Fundador | Semana 4 | Se não houver 3, usar dados sintéticos e adiar o gate de produto |
 | P-02 | Retenção default: 7, 15 ou 30 dias | Produto | Semana 2 | Se o custo do design partner exigir, reduzir para 7 |
-| P-03 | Fronteira open-core exata | Fundador | Antes da Fase 1 | Se a comunidade reagir mal, manter segurança básica e observabilidade no OSS |
+| P-03 | Fronteira open-core exata (princípios e candidatos em [`docs/governance/open-core.md`](../../docs/governance/open-core.md)) | Fundador | Antes da Fase 1 | Se a comunidade reagir mal, manter segurança básica e observabilidade no OSS |
 | P-04 | Frontend: SvelteKit 3 vs React | Fundador + Frontend | Semana 1 | Se o time for React-heavy, React 19 + uPlot |
 | P-05 | Compliance: SOC 2/HIPAA/FedRAMP | Fundador | Antes da Fase 3 | Se um contrato exigir, antecipar trilha |
 | P-06 | Time/prazo: 5-6 engenheiros, ~14 meses | Fundador | Semana 1 | Se o time for menor, cortar Fase 4 e/ou adiar GA |

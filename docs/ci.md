@@ -8,6 +8,7 @@ mas os workflows também respondem a `pull_request` para contribuições externa
 | Arquivo | Quando roda | Jobs |
 |---|---|---|
 | `.github/workflows/ci.yml` | push na `main`, PR, manual | `quality` (lint, test, build, smoke) e `security` (govulncheck, audits, SBOM) |
+| `.github/workflows/dco.yml` | PR | `DCO sign-off` (trailer `Signed-off-by` em todo commit) |
 | `.github/workflows/codeql.yml` | push na `main`, PR, semanal, manual | `Analyze go` e `Analyze javascript-typescript` |
 | `.github/workflows/release.yml` | tag `v*.*.*` | `binaries`, `image`, `release` |
 
@@ -35,13 +36,33 @@ SAST para Go e JavaScript/TypeScript em push, PR e semanalmente. Os resultados
 aparecem em **Security → Code scanning**. Para bloquear o merge, marque o check
 `Analyze <linguagem>` como obrigatório na branch protection.
 
+### `DCO sign-off`
+
+Todo commit de um PR precisa do trailer `Signed-off-by` (DCO, sem CLA). O job
+roda `scripts/check-dco.sh` com `fetch-depth: 0`, ignora merge commits e exige
+que o e-mail do sign-off corresponda ao autor ou ao committer. Falhas aparecem
+como anotação e no step summary, com o comando de correção.
+
+Valide localmente antes de abrir o PR:
+
+```bash
+# commits da sua branch em relação à main
+./scripts/check-dco.sh origin/main HEAD
+
+# reescrever com sign-off
+git rebase --signoff origin/main
+```
+
+O fluxo interno continua *main-only*; o check existe para contribuições
+externas e é obrigatório na branch protection.
+
 ## Branch protection (necessário para o gate)
 
 A configuração não é versionável no repositório; faça uma vez em
 **Settings → Branches → Add branch ruleset** para `main`:
 
 1. Exija status checks: `Lint, test, build and smoke`, `Security and SBOM`,
-   `Analyze go`, `Analyze javascript-typescript`.
+   `DCO sign-off`, `Analyze go`, `Analyze javascript-typescript`.
 2. Bloqueie force-push e exigir resolução de conversas (se houver PRs).
 3. (Opcional) Exija o GitHub Actions como único caminho de merge.
 

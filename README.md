@@ -2,7 +2,7 @@
 
 **Observabilidade open source, self-hosted e OTel-native:** métricas, logs, traces, dashboards, alertas e correlação em uma única plataforma — com foco em performance, baixo footprint e operação por times pequenos.
 
-> **Status:** Fase 0 (fundação e benchmarks) em andamento. O scaffold do mono-repo nasce na Story 1.1; o estado corrente fica em [`STATUS.md`](STATUS.md).
+> **Status:** Fase 0 (fundação e benchmarks) em andamento. O estado corrente fica em [`STATUS.md`](STATUS.md).
 
 ## Pré-requisitos
 
@@ -91,6 +91,18 @@ estão documentados em [`.env.example`](.env.example):
 arquivo antes de subir a API e o SvelteKit. Valores inválidos falham com o nome
 da variável e o valor recusado.
 
+## Contribuindo
+
+Contribuições são bem-vindas. Leia [`CONTRIBUTING.md`](CONTRIBUTING.md) para
+setup, padrões, RFC e o **DCO** (todo commit precisa de `git commit -s`). Ao
+participar, você concorda com o [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
+Vulnerabilidades devem ser reportadas em privado, conforme o
+[`SECURITY.md`](SECURITY.md) — nunca em issue pública.
+
 ## Licença
 
-Apache 2.0 no núcleo + open-core para recursos enterprise. A fronteira exata é uma decisão pendente em [`DECISIONS.md`](_bmad-output/planning-artifacts/DECISIONS.md).
+O núcleo é [Apache 2.0](LICENSE). O modelo open-core e a lista de candidatos a
+recursos enterprise — ainda **pendente de decisão de negócio** (P-03) — estão em
+[`docs/governance/open-core.md`](docs/governance/open-core.md). A fronteira
+exata também é acompanhada em [`DECISIONS.md`](_bmad-output/planning-artifacts/DECISIONS.md).

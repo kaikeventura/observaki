@@ -1,0 +1,94 @@
+name: Bug report
+description: Reporte um bug reproduzível no Observaki
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar. Antes de continuar:
+
+        - Procure issues existentes para evitar duplicatas.
+        - **Não inclua segredos, tokens, dados de clientes ou PII.**
+        - Vulnerabilidades de segurança devem seguir o [SECURITY.md](https://github.com/kaikeventura/observaki/blob/main/SECURITY.md), nunca uma issue pública.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Resumo
+      description: O que aconteceu, em uma ou duas frases?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: Comandos, requisições ou cliques na ordem exata.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamento observado
+      description: Inclua a mensagem de erro e o `request_id`, se houver.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Versão do Observaki
+      description: Saída de `observaki version` ou a tag da release.
+      placeholder: v0.0.1-alpha
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Implantação
+      options:
+        - Single-node (Docker Compose)
+        - Kubernetes (Helm)
+        - Desenvolvimento local (make dev)
+        - Outra
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Ambiente
+      description: SO, arquitetura, versão do Go/Node/Rust e navegador, quando relevante.
+      placeholder: Ubuntu 24.04, amd64, Go 1.27.2, Chrome 140
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou capturas relevantes
+      description: Remova tokens, e-mails, IPs e payloads de telemetria.
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: Procurei issues existentes e não encontrei duplicata.
+          required: true
+        - label: Removi segredos, dados de clientes e PII.
+          required: true
+        - label: Consigo reproduzir o problema na versão informada.
+          required: true

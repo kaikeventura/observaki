@@ -1,0 +1,63 @@
+name: Feature request
+description: Proponha uma funcionalidade ou mudança de comportamento
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Descreva o **problema** antes da solução. Mudanças grandes precisam de
+        RFC e acordo dos mantenedores antes do código — veja o
+        [CONTRIBUTING.md](https://github.com/kaikeventura/observaki/blob/main/CONTRIBUTING.md).
+        O [PRD](https://github.com/kaikeventura/observaki/blob/main/_bmad-output/planning-artifacts/prds/prd-observaki-2026-10-31/prd.md)
+        define non-goals vinculantes.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Qual dor você tem hoje? Quem é afetado e com que frequência?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: Como você imagina a solução? Inclua a experiência desejada.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Workarounds, produtos comparáveis ou outra abordagem.
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Impacto e escopo
+      description: |
+        Marque o que a mudança toca e explique: API pública, tenancy,
+        storage, retenção, performance, licença/open-core, UI/acessibilidade.
+    validations:
+      required: true
+
+  - type: input
+    id: reference
+    attributes:
+      label: Referência
+      description: FR, story, AD ou issue relacionada, se houver.
+      placeholder: FR-23 / Story 6.2 / AD-11
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: Procurei issues existentes e não encontrei duplicata.
+          required: true
+        - label: Li o CONTRIBUTING.md e o escopo/non-goals do PRD.
+          required: true
+        - label: Entendo que mudanças grandes precisam de RFC antes do código.
+          required: true
