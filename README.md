@@ -22,7 +22,7 @@ Guia completo (portas, configuração e troubleshooting): [`docs/dev/local-setup
 ```bash
 make bootstrap   # valida a toolchain, instala dependências e cria .env
 make test        # go test + vitest + cargo test
-make build       # binário Go + build do SvelteKit + agente
+make build       # binário Go, load generator, build do SvelteKit + agente
 make dev         # API Go (:8080) + SvelteKit (:5173)
 make smoke       # em outro terminal: CI completo + smoke do binário
 ```
@@ -30,6 +30,16 @@ make smoke       # em outro terminal: CI completo + smoke do binário
 Abra <http://localhost:5173> — o cartão **API status** fica “Operational”
 quando a API responde. `make lint` exige o golangci-lint, instalável com
 `make tools`.
+
+Para validar o gerador de carga OTLP da Fase 0:
+
+```bash
+make build
+./bin/otlploadgen --check-payload
+```
+
+O workload de referência e as limitações de taxa estão em
+[`bench/README.md`](bench/README.md).
 
 ## Estrutura do repositório
 

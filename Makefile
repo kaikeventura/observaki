@@ -8,6 +8,7 @@ GIT ?= git
 
 BIN_DIR := bin
 BIN := $(BIN_DIR)/observaki
+LOADGEN := $(BIN_DIR)/otlploadgen
 WEB_DIR := web
 AGENT_MANIFEST := agent/Cargo.toml
 
@@ -61,9 +62,10 @@ test: ## run Go, web and Rust tests
 	$(PNPM) --dir $(WEB_DIR) test
 	$(CARGO) test --manifest-path $(AGENT_MANIFEST)
 
-build: ## build the Go binary, the web app and the agent
+build: ## build the Go binary, the load generator, the web app and the agent
 	@mkdir -p $(BIN_DIR)
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/observaki
+	$(GO) build -trimpath -o $(LOADGEN) ./bench/cmd/otlploadgen
 	$(PNPM) --dir $(WEB_DIR) build
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 

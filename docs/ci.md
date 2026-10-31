@@ -19,7 +19,7 @@ golangci-lint instalado por `make tools`. Sequência:
 
 ```bash
 make ci      # bootstrap + lint + test + build
-make smoke   # com SMOKE_SKIP_CI=1, só valida o binário e o web/build
+make smoke   # com SMOKE_SKIP_CI=1, só valida o binário, o web/build e o loadgen
 ```
 
 O `make lint` também roda `scripts/check-adr.sh` (estrutura, status, revisão e
