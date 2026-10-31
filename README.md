@@ -15,17 +15,21 @@
 | Docker Compose | v2 | opcional nesta fase (Story 5.1) |
 | make, curl | recente | orquestração e smoke test |
 
-## Desenvolvimento local
+## Quickstart (5 comandos)
 
-O guia completo (comandos, portas e troubleshooting) está em [`docs/dev/local-setup.md`](docs/dev/local-setup.md). O fluxo é:
+Guia completo (portas, configuração e troubleshooting): [`docs/dev/local-setup.md`](docs/dev/local-setup.md).
 
 ```bash
-make bootstrap   # valida a toolchain e instala dependências
+make bootstrap   # valida a toolchain, instala dependências e cria .env
 make test        # go test + vitest + cargo test
 make build       # binário Go + build do SvelteKit + agente
 make dev         # API Go (:8080) + SvelteKit (:5173)
-make smoke       # valida o binário e o build do web
+make smoke       # em outro terminal: CI completo + smoke do binário
 ```
+
+Abra <http://localhost:5173> — o cartão **API status** fica “Operational”
+quando a API responde. `make lint` exige o golangci-lint, instalável com
+`make tools`.
 
 ## Estrutura do repositório
 
