@@ -3,6 +3,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Load .env so both processes see the same configuration; values from the
+# file are exported and override the current shell.
+if [ -f .env ]; then
+	set -a
+	# shellcheck disable=SC1091
+	. ./.env
+	set +a
+fi
+
 : "${OBSERVAKI_HTTP_ADDR:=:8080}"
 : "${WEB_PORT:=5173}"
 export OBSERVAKI_HTTP_ADDR WEB_PORT

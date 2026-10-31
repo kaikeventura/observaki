@@ -70,6 +70,23 @@ Leia PROMPT.md e execute.
 
 Nenhuma fase começa sem o gate anterior. Detalhes em [`PROGRAM-PLAN.md`](_bmad-output/planning-artifacts/PROGRAM-PLAN.md).
 
+## Configuração
+
+O binário lê a configuração de variáveis de ambiente; os defaults seguros
+estão documentados em [`.env.example`](.env.example):
+
+| Variável | Default | Descrição |
+|---|---|---|
+| `OBSERVAKI_HTTP_ADDR` | `:8080` | endereço de escuta da API |
+| `OBSERVAKI_LOG_LEVEL` | `info` | `debug`, `info`, `warn` ou `error` |
+| `OBSERVAKI_ENV` | `development` | `development`, `test`, `staging` ou `production` |
+| `OBSERVAKI_DATABASE_URL` | — | PostgreSQL do control plane (opcional na Fase 0) |
+| `OBSERVAKI_WEB_DIR` | `web/build` | build estático servido pelo binário |
+
+`make bootstrap` cria `.env` a partir de `.env.example` e `make dev` carrega o
+arquivo antes de subir a API e o SvelteKit. Valores inválidos falham com o nome
+da variável e o valor recusado.
+
 ## Licença
 
 Apache 2.0 no núcleo + open-core para recursos enterprise. A fronteira exata é uma decisão pendente em [`DECISIONS.md`](_bmad-output/planning-artifacts/DECISIONS.md).
