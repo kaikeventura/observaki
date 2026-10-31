@@ -10,13 +10,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/observaki/observaki/internal/config"
 	"github.com/observaki/observaki/internal/httpserver"
 	"github.com/observaki/observaki/internal/version"
-)
-
-const (
-	defaultHTTPAddr = ":8080"
-	envHTTPAddr     = "OBSERVAKI_HTTP_ADDR"
 )
 
 func main() {
@@ -47,13 +43,17 @@ func run(args []string, stdout, stderr io.Writer) error {
 }
 
 func serve() error {
-	addr := os.Getenv(envHTTPAddr)
-	if addr == "" {
-		addr = defaultHTTPAddr
+	cfg, err := config.LoadFromEnv()
+	if err != nil {
+		return err
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	srv := httpserver.New(addr, version.Version, logger)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel.SlogLevel(),
+	}))
+	logger.Info("starting observaki", "env", cfg.Environment, "web_dir", cfg.WebDir)
+
+	srv := httpserver.New(cfg.HTTPAddr, version.Version, logger)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -71,6 +71,6 @@ Commands:
   version   print version, commit and build date
   serve     start the HTTP API (env %s, default %s)
   help      show this help
-`, envHTTPAddr, defaultHTTPAddr)
+`, config.EnvHTTPAddr, config.DefaultHTTPAddr)
 	return err
 }
