@@ -2,7 +2,7 @@
 
 **Remoto:** `git@github.com:kaikeventura/observaki.git` (SSH; HTTPS: `https://github.com/kaikeventura/observaki.git`)
 **Branch principal:** `main`
-**Regra:** uma story por branch/PR; commits pequenos; nada de segredo; nada de `force-push` em `main`.
+**Regra:** tudo direto na `main` (preferência do dono: sem branch por story e sem PR); commits pequenos; nada de segredo; nada de `force-push` em `main`.
 
 ---
 
@@ -49,16 +49,11 @@ git status --short --branch
 git pull --rebase origin main
 ```
 
-Se for começar uma story nova:
+Não crie branch por story: o trabalho vai direto na `main` (preferência do
+dono). Use branch apenas para um experimento descartável, com acordo explícito,
+e nunca deixe de mergear de volta no fim.
 
-```bash
-git switch -c feat/p0-s1.1-bootstrap
-# padrão: <tipo>/<fase>-<story>-<slug>
-```
-
-Tipos: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `perf`, `ci`.
-
-**Antes de codar**, leia `STATUS.md`. A branch deve refletir a story atual.
+**Antes de codar**, leia `STATUS.md`; a posição atual do trabalho está nele.
 
 ---
 
@@ -130,35 +125,16 @@ git add STATUS.md
 git commit -s -m "docs(status): record p0-s1.1 session"
 ```
 
-5. Merge da branch na `main` (preferência do dono: a `main` é sempre o destino final da sessão) e push:
+5. Push da `main` (sem branch de story e sem PR):
 
 ```bash
-git switch main
-git pull --rebase origin main
-git merge --no-ff --no-commit <branch-da-story>
-git commit -s -m "merge: <fase>-<story> <resumo>"
 git push origin main
 ```
 
-6. Abra o PR (opcional quando o merge é local direto; GitHub web, já que `gh` não está instalado):
+6. Registre a evidência no `STATUS.md`: comandos, resultados e screenshots
+   quando houver UI. Sem PR, o session log e o commit são o registro.
 
-```text
-https://github.com/kaikeventura/observaki/compare/main...<branch>
-```
-
-O PR deve conter:
-- story/task e link para `epics.md`;
-- o que mudou;
-- comandos/resultados de teste;
-- riscos e próximo passo;
-- screenshots se UI.
-
-7. Depois do merge, atualize `main`:
-
-```bash
-git switch main
-git pull --rebase origin main
-```
+7. Em outra máquina, atualize com `git pull --rebase origin main`.
 
 ---
 
@@ -166,24 +142,21 @@ git pull --rebase origin main
 
 - **Nunca** `git push --force` em `main`.
 - **Nunca** commite segredo. Se acontecer, revogue a credencial e limpe o histórico antes de push.
-- **Sempre** `git pull --rebase origin main` antes de abrir PR.
+- **Sempre** `git pull --rebase origin main` antes do push.
 - Se o push falhar por auth, mantenha o commit local, registre o bloqueio em `STATUS.md` e peça ao usuário para autenticar.
-- Se o push falhar por conflito, rebase; não faça merge de `main` dentro da branch sem necessidade.
+- Se o push falhar por conflito, rebase; não faça merge de `main` dentro de branch sem necessidade.
 - Se o repo remoto já tiver README/commit inicial, faça `git pull --rebase origin main` antes do primeiro push ou use `git push -u origin main` após reconciliar.
 
 ---
 
-## 6. Branches e PRs
+## 6. Branches
 
-| Tipo | Exemplo |
-|---|---|
-| Feature | `feat/p0-s1.1-bootstrap` |
-| Correção | `fix/p0-s3.3-dedupe-event-id` |
-| Documentação | `docs/adr-storage-decision` |
-| Benchmark | `bench/p0-1m-throughput` |
-| Infra | `chore/ci-release-alpha` |
+**Sem branches por story.** Todo trabalho (feature, fix, docs, benchmark, infra)
+é commitado direto na `main`, conforme a preferência do dono. Branch só para
+experimento descartável com acordo explícito, e o resultado volta para a `main`
+no fim da sessão.
 
-**Um PR = uma story.** Se a story for grande, quebre em PRs por task, mas mantenha a branch da story.
+PR não faz parte do fluxo atual; a revisão é registrada no `STATUS.md`.
 
 ---
 
@@ -229,8 +202,8 @@ No fim de cada sessão, o agente deve:
 1. Rodar os checks.
 2. Atualizar `STATUS.md`.
 3. Commitar com Conventional Commits + `-s`.
-4. Fazer merge da branch na `main` (`--no-ff`, com `-s`) e push da `main`.
-5. Registrar o SHA/PR no `STATUS.md`.
+4. Commitar com Conventional Commits + `-s` na `main` e dar push.
+5. Registrar o SHA no `STATUS.md`.
 6. Parar e reportar.
 
 Se não houver credencial de push, ele deve **não** tentar adivinhar; mantém o commit local, registra o bloqueio e pede autenticação.

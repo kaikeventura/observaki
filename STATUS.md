@@ -143,6 +143,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.1 / T1.1.7 | P0 / 1.1 / T1.1.7 | `docs/dev/local-setup.md` completo (pré-requisitos, quickstart, comandos, portas, 8 troubleshootings, validado por), quickstart no README; dev.sh preserva overrides do shell | `1c80d46` | T1.1.8 |
 | 2026-10-31 | Story 1.1 / T1.1.8 | P0 / 1.1 / T1.1.8 | Clone limpo em `/tmp` no commit `74bdc22`: bootstrap 1,5 s, `make ci` 13,1 s, `make smoke` 10,3 s; versão, healthz, health e `web/build/index.html` conferidos; evidência em `docs/dev/local-setup.md` | `8654bd6` | T1.1.9 |
 | 2026-10-31 | Story 1.1 / T1.1.9 | P0 / 1.1 / T1.1.9 | Handoff, decisões, escopo e contrato de CI da Story 1.2 em `docs/dev/story-1.1-handoff.md`; **revisão humana pendente** (status `blocked`) | `ae4c081` | Revisão humana |
+| 2026-10-31 | Workflow (pedido do dono) | — | Fluxo passa a ser **main-only**: `PROMPT.md`, `AGENTS.md`, `GIT-WORKFLOW.md` e comandos do OpenCode sem branch por story e sem PR; commit direto na `main` | `pendente` | Revisão humana |
 
 ## Regras de atualização
 

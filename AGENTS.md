@@ -65,19 +65,19 @@ Para cada story:
 4. Rode `make fmt`, `make lint`, `make test`, `make build` (quando o scaffold existir).
 5. Rode o smoke/benchmark aplicável.
 6. Atualize a documentação/ADR/memlog se a decisão mudou.
-7. Registre evidência no PR: comandos, resultados, screenshots quando UI.
+7. Registre evidência no commit e no `STATUS.md`: comandos, resultados, screenshots quando UI.
 8. Atualize `STATUS.md` com o resultado e o próximo passo.
-9. Faça commit com Conventional Commits + DCO (`git commit -s`) e push da branch. Se o push falhar por auth, mantenha o commit local e reporte.
+9. Faça commit com Conventional Commits + DCO (`git commit -s`) na `main` e push. Se o push falhar por auth, mantenha o commit local e reporte.
 10. Pare e reporte; não emende a próxima story sem confirmação.
 
 ## Git
 
 O fluxo completo está em `GIT-WORKFLOW.md`. Regras mínimas:
-- branch por story: `feat/p0-s1.1-bootstrap`;
+- trabalhe direto na `main` (preferência do dono): sem branch por story e sem PR;
 - commits pequenos, Conventional Commits, `-s` (DCO);
 - nunca `force-push` em `main`;
 - nunca commitar segredo, `.env`, build ou dados de benchmark;
-- ao fim da sessão: checks → `STATUS.md` → commit → push → registrar SHA/PR.
+- ao fim da sessão: checks → `STATUS.md` → commit → push da `main` → registrar SHA.
 
 ## Comandos (após o scaffold da Story 1.1)
 

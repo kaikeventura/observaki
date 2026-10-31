@@ -11,7 +11,7 @@ Não comece trabalho novo. Apenas consolide a sessão atual.
    - se a story terminou, avance para a próxima story pronta.
 4. Atualize a linha da story na tabela da Fase 0.
 5. Adicione uma linha no **Session log** com: data, sessão, fase/story/task, resultado, commit/PR, próximo.
-6. Se houver mudanças, faça commit com Conventional Commits + DCO (`git commit -s`) e push da branch; registre o SHA em `last_commit`.
+6. Se houver mudanças, faça commit com Conventional Commits + DCO (`git commit -s`) na `main` e push; registre o SHA em `last_commit`.
 7. Se houver bloqueio, registre a pergunta exata em `blocked_by` e pare.
 8. Responda com um handoff curto: o que foi feito, evidência, o que não foi feito, próximo passo.
 
