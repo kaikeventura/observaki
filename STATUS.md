@@ -6,16 +6,16 @@ epic: P0-E1
 epic_name: Fundação do repositório e governança
 story: "1.1"
 story_name: Bootstrap do mono-repo e ambiente de desenvolvimento
-task: T1.1.3
-task_name: Criar o app SvelteKit mínimo
+task: T1.1.4
+task_name: Criar o workspace Rust placeholder do agente
 status: in_progress        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "a1c8df2"
-next_action: "T1.1.3 — criar web/ com SvelteKit 3, Svelte 5, TypeScript, Vite e Tailwind; página inicial, proxy /api e teste de renderização"
+last_commit: "99a024f"
+next_action: "T1.1.4 — criar agent/ como workspace Rust (rust-toolchain.toml + crates/observaki-agent) com --version, build e testes"
 blocked_by: []
-last_session: "T1.1.2 concluída: binário Go com version/serve, /healthz, /api/v1/health, shutdown gracioso e testes."
+last_session: "T1.1.3 concluída: app SvelteKit 3 com cartão de status da API, proxy /api, testes e build estático."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -59,16 +59,18 @@ Atalho no OpenCode: `/continue`.
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E1 — Fundação do repositório e governança** |
 | Story | **1.1 — Bootstrap do mono-repo e ambiente de desenvolvimento** |
-| Task | **T1.1.3 — Criar o app SvelteKit mínimo** |
+| Task | **T1.1.4 — Criar o workspace Rust placeholder do agente** |
 | Status | `in_progress` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `a1c8df2` |
-| Próxima ação | Criar `web/` (SvelteKit 3 + Svelte 5 + TypeScript + Vite + Tailwind), página inicial com status da API, proxy `/api` e teste |
+| Último commit | `99a024f` |
+| Próxima ação | Criar `agent/` (workspace Rust + `rust-toolchain.toml` + binário `observaki-agent` com `--version`), build e testes |
 | Bloqueios | Nenhum |
-| Última sessão | T1.1.2 concluída (binário Go com `version` e `serve`) |
+| Última sessão | T1.1.3 concluída (app SvelteKit mínimo) |
 
-**Ambiente local (gaps para as próximas tarefas):** Node é v22 (alvo 26 LTS) e **pnpm não está instalado** — instalar via `corepack` antes da T1.1.3; a T1.1.5 valida Node ≥ 26. Go 1.22.2 instalado, mas o toolchain 1.27.0 é baixado automaticamente pelo `go.mod` (validado).
+**Ambiente local (gaps para as próximas tarefas):** Node é v22 (alvo 26 LTS); pnpm 12.16.1 via `corepack`; a T1.1.5 vai exigir Node ≥ 26 no `check-toolchain.sh`. Go 1.22.2 instalado, mas o toolchain 1.27.0 é baixado automaticamente pelo `go.mod` (validado).
+
+**Nota de stack:** SvelteKit 3 removeu `svelte.config.js`; a configuração (adapter, preprocess) agora vai no plugin `sveltekit()` do `vite.config.ts`. O arquivo listado na story não existe mais.
 
 ## Fase 0 — checklist de stories
 
@@ -76,7 +78,7 @@ Atalho no OpenCode: `/continue`.
 
 | Epic | Story | Título | Status | Evidência / próximo passo |
 |---|---|---|---|---|
-| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1 done (`ea625ad`); T1.1.2 done (`1924ae6`); próximo: T1.1.3 |
+| P0-E1 | 1.1 | Bootstrap do mono-repo | `doing` | T1.1.1 (`ea625ad`), T1.1.2 (`1924ae6`), T1.1.3 (`99a024f`) done; próximo: T1.1.4 |
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `todo` | Depende de 1.1 |
 | P0-E1 | 1.3 | Governança open source | `todo` | Depende de 1.1 |
 | P0-E1 | 1.4 | ADRs | `todo` | Depende de 1.1 |
@@ -134,6 +136,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Merge (ordem humana) | P0 / 1.1 / T1.1.1 | `feat/p0-s1.1-bootstrap` mergeada em `main` com `--no-ff`; branch preservada | `2ca771d` | T1.1.2 |
 | 2026-10-31 | Story 1.1 / T1.1.2 | P0 / 1.1 / T1.1.2 | Binário Go (`version`, `serve`), `/healthz`, `/api/v1/health`, shutdown gracioso, testes; `go test ./...`, `go vet`, smoke com curl | `1924ae6` | T1.1.3 |
 | 2026-10-31 | Merge (preferência do dono) | P0 / 1.1 / T1.1.2 | `feat/p0-s1.1-bootstrap` mergeada em `main` com `--no-ff`; branch preservada. Regra: toda sessão termina com merge na `main` | `a1c8df2` | T1.1.3 |
+| 2026-10-31 | Story 1.1 / T1.1.3 | P0 / 1.1 / T1.1.3 | App SvelteKit 3 + Svelte 5 + TS + Vite 8 + Tailwind 4, tokens do DESIGN, cartão de status da API, proxy `/api`, Vitest/Testing Library (3 testes), `check` e build estático em `web/build/` | `99a024f` | T1.1.4 |
 
 ## Regras de atualização
 
