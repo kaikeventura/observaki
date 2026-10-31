@@ -13,7 +13,7 @@ mas os workflows também respondem a `pull_request` para contribuições externa
 
 ### `quality`
 
-Toolchain: Go 1.27, Node 26, pnpm 12.16.1, Rust stable (rustfmt/clippy) e
+Toolchain: Go 1.27.2, Node 26, pnpm 12.16.1, Rust stable (rustfmt/clippy) e
 golangci-lint instalado por `make tools`. Sequência:
 
 ```bash

@@ -33,10 +33,10 @@ Evidência de clone limpo (bootstrap 1,5 s, ci 13,1 s, smoke 10,3 s) em
 
 - **Módulo Go:** `github.com/observaki/observaki` (premissa da story); o remoto
   atual é `kaikeventura/observaki` — confirmar antes de publicar releases.
-- **Go 1.27.0** no `go.mod`; `GOTOOLCHAIN=auto` resolve a toolchain.
+- **Go 1.27.2** no `go.mod`; `GOTOOLCHAIN=auto` resolve a toolchain.
 - **Node 26.13.0** e pnpm 12.16.1 (via `corepack`); `check-toolchain` exige Node ≥ 26.
 - **golangci-lint 2.15.0** precisa ser compilado com Go 1.27 (`make tools` fixa
-  `GOTOOLCHAIN=go1.27.0`).
+  `GOTOOLCHAIN=go1.27.2`).
 - **SvelteKit 3** não usa mais `svelte.config.js`: adapter e preprocess ficam no
   plugin `sveltekit()` do `vite.config.ts`.
 - **Adapter estático + prerender** da página inicial; fallback SPA será

@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -87,7 +87,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
       - name: govulncheck
         run: |

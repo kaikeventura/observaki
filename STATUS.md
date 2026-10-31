@@ -68,7 +68,7 @@ Atalho no OpenCode: `/continue`.
 | Bloqueios | Branch protection é configuração manual no GitHub (documentada em `docs/ci.md`) |
 | Última sessão | Story 1.2 implementada; validação local ok; falta run real |
 
-**Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.0`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
+**Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina.
 
 **Nota de stack:** SvelteKit 3 removeu `svelte.config.js`; a configuração (adapter, preprocess) agora vai no plugin `sveltekit()` do `vite.config.ts`. O arquivo listado na story não existe mais.
 

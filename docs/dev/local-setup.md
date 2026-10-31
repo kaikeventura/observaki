@@ -11,7 +11,7 @@ o dev server do SvelteKit.
 
 | Ferramenta | Versão testada | Mínimo | Como obter |
 |---|---|---|---|
-| Go | 1.27.0 | 1.24 (o `go.mod` exige 1.27) | [go.dev/dl](https://go.dev/dl/) ou `GOTOOLCHAIN=auto` com Go ≥ 1.21 |
+| Go | 1.27.2 | 1.27.2 (o `go.mod` exige 1.27.2) | [go.dev/dl](https://go.dev/dl/) ou `GOTOOLCHAIN=auto` com Go ≥ 1.21 |
 | Node.js | 26.13.0 LTS | 26 | `nvm install 26 && nvm use 26` |
 | pnpm | 12.16.1 | 10 | `corepack enable pnpm` |
 | Rust | 1.93.0 stable | 1.85 | `rustup update stable` |
@@ -99,7 +99,7 @@ node --version   # v26.x
 Se o `nvm use` reclamar de `prefix`/`globalconfig` no `~/.npmrc`, rode
 `nvm use --delete-prefix 26`.
 
-### 2. Go antigo ou `go.mod requires go >= 1.27.0`
+### 2. Go antigo ou `go.mod requires go >= 1.27.2`
 
 **Sintoma:** erro ao rodar `go build`/`go test` com Go local antigo.
 
@@ -139,7 +139,7 @@ OBSERVAKI_HTTP_ADDR=:18080 WEB_PORT=5174 make dev
 ### 5. `golangci-lint` recusa o projeto
 
 **Sintoma:** `the Go language version (go1.26) used to build golangci-lint is
-lower than the targeted Go version (1.27.0)`.
+lower than the targeted Go version (1.27.2)`.
 
 **Correção:** reinstale com a toolchain do projeto:
 
@@ -147,7 +147,7 @@ lower than the targeted Go version (1.27.0)`.
 make tools
 ```
 
-O alvo fixa `GOTOOLCHAIN=go1.27.0` de propósito.
+O alvo fixa `GOTOOLCHAIN=go1.27.2` de propósito.
 
 ### 6. `cargo`/`rustfmt`/`clippy` ausentes
 
@@ -200,7 +200,7 @@ Verificações pontuais:
 - `GET /api/v1/health` → `200` `{"status":"ok","version":"74bdc22"}`
 - `web/build/index.html` → 2,6 kB, com `<title>Observaki</title>` e o markup da página.
 
-**Ambiente:** Ubuntu 24.04.5 LTS (Linux 7.0.0-38-generic); Go 1.27.0,
+**Ambiente:** Ubuntu 24.04.5 LTS (Linux 7.0.0-38-generic); Go 1.27.2,
 Node 26.13.0, pnpm 12.16.1, Rust 1.93.0, golangci-lint 2.15.0,
 Docker Compose 5.6.0.
 
@@ -212,7 +212,7 @@ fria não foi medido. O limite de 10 minutos pressupõe rede razoável.
 
 | Data | Sistema | Ferramentas | Autor | Resultado |
 |---|---|---|---|---|
-| 2026-10-31 | Ubuntu 24.04.5 LTS (Linux 7.0) | Go 1.27.0, Node 26.13.0, pnpm 12.16.1, Rust 1.93.0, golangci-lint 2.15.0 | kaikeventura (autor do guia) | `make bootstrap/ci/smoke/dev/clean` ok |
+| 2026-10-31 | Ubuntu 24.04.5 LTS (Linux 7.0) | Go 1.27.2, Node 26.13.0, pnpm 12.16.1, Rust 1.93.0, golangci-lint 2.15.0 | kaikeventura (autor do guia) | `make bootstrap/ci/smoke/dev/clean` ok |
 | 2026-10-31 | Ubuntu 24.04.5 LTS, clone limpo em `/tmp` | mesmas versões | kaikeventura | `make bootstrap && make ci && make smoke` ok, `.env` criado automaticamente |
 
 A revisão independente do PR e o handoff para a Story 1.2 fazem parte da

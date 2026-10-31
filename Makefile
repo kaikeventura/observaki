@@ -40,7 +40,7 @@ check-toolchain: ## validate the required tool versions
 
 tools: ## install Go development tools (golangci-lint)
 	# Pin the toolchain: the go1.26 build of golangci-lint refuses go.mod 1.27.
-	GOTOOLCHAIN=go1.27.0 $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+	GOTOOLCHAIN=go1.27.2 $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 
 fmt: ## format Go, web and Rust code
 	$(GO) fmt ./...

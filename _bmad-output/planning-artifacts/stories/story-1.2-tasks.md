@@ -30,7 +30,7 @@ checksums e SBOM anexados. Falha crítica bloqueia o merge.
 
 **Arquivos:** `.github/workflows/ci.yml`, `scripts/smoke.sh`.
 
-- Job `quality` em push/PR/`workflow_dispatch`: Go 1.27, Node 26, pnpm 12,
+- Job `quality` em push/PR/`workflow_dispatch`: Go 1.27.2, Node 26, pnpm 12,
   Rust stable, `make tools`, `make ci`, `make smoke`.
 - `SMOKE_SKIP_CI=1` no smoke para não repetir o `make ci`.
 - Upload do `web/build` como artefato.
