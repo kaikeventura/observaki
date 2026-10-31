@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+/*
+ * Brand tokens from DESIGN.md (dark-first). Components must use these tokens
+ * instead of hardcoded colors.
+ */
+@theme {
+	--color-background: #080b10;
+	--color-surface-1: #0e131b;
+	--color-surface-2: #141b26;
+	--color-surface-3: #1b2432;
+	--color-border: #2e3b4d;
+	--color-border-strong: #50647d;
+	--color-foreground: #e6edf7;
+	--color-foreground-muted: #93a1b5;
+	--color-primary: #22d3ee;
+	--color-primary-foreground: #041014;
+	--color-success: #34d399;
+	--color-danger: #f87171;
+
+	--font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+}
+
+@layer base {
+	html {
+		color-scheme: dark;
+	}
+
+	body {
+		@apply bg-background text-foreground antialiased;
+		font-family: var(--font-sans);
+	}
+
+	:focus-visible {
+		@apply outline-primary outline-2 outline-offset-2;
+	}
+}
