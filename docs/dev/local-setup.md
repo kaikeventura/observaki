@@ -182,10 +182,38 @@ make clean
 Remove artefatos de build; dependências instaladas (`node_modules/`,
 `~/.cargo`, módulos Go) permanecem em cache para o próximo bootstrap.
 
+## Validação da Story 1.1 (T1.1.8)
+
+Clone limpo em `/tmp` no commit `74bdc22`, sem `.env`, `bin/`, `node_modules`
+ou builds. Todos os comandos rodaram sem intervenção manual:
+
+| Comando | Resultado | Tempo |
+|---|---|---|
+| `make bootstrap` | ok; `.env` criado a partir de `.env.example` | 1,5 s |
+| `make ci` | lint + test + build verdes | 13,1 s |
+| `make smoke` | `Smoke: OK (healthz, api health, web build, version)` | 10,3 s |
+
+Verificações pontuais:
+
+- `./bin/observaki version` → `observaki 74bdc22 (commit 74bdc22, built 2026-10-31T21:04:05Z)`
+- `GET /healthz` → `200` `{"status":"ok"}`
+- `GET /api/v1/health` → `200` `{"status":"ok","version":"74bdc22"}`
+- `web/build/index.html` → 2,6 kB, com `<title>Observaki</title>` e o markup da página.
+
+**Ambiente:** Ubuntu 24.04.5 LTS (Linux 7.0.0-38-generic); Go 1.27.0,
+Node 26.13.0, pnpm 12.16.1, Rust 1.93.0, golangci-lint 2.15.0,
+Docker Compose 5.6.0.
+
+**Ressalva:** o clone era limpo, mas os caches de toolchain (módulos Go,
+store do pnpm e registry do Cargo) estavam aquecidos; um bootstrap com rede
+fria não foi medido. O limite de 10 minutos pressupõe rede razoável.
+
 ## Validado por
 
-| Data | Sistema | Ferramenta | Autor | Resultado |
+| Data | Sistema | Ferramentas | Autor | Resultado |
 |---|---|---|---|---|
 | 2026-10-31 | Ubuntu 24.04.5 LTS (Linux 7.0) | Go 1.27.0, Node 26.13.0, pnpm 12.16.1, Rust 1.93.0, golangci-lint 2.15.0 | kaikeventura (autor do guia) | `make bootstrap/ci/smoke/dev/clean` ok |
+| 2026-10-31 | Ubuntu 24.04.5 LTS, clone limpo em `/tmp` | mesmas versões | kaikeventura | `make bootstrap && make ci && make smoke` ok, `.env` criado automaticamente |
 
-A validação por uma pessoa que não escreveu o guia faz parte da T1.1.8.
+A revisão independente do PR e o handoff para a Story 1.2 fazem parte da
+T1.1.9.
