@@ -128,9 +128,9 @@ A taxa alcançada é sempre calculada sobre os eventos realmente gerados.
 Em uma máquina de desenvolvimento (22 vCPU, 14 GB), o smoke test da Story 2.1
 mostrou:
 
-- 100k/s com gzip e sink HTTP local: ~99,7k/s, sem backpressure;
-- 1M/s sem compressão de transporte e sink HTTP local: ~999,6k/s, com
-  backpressure de ~0,5 s;
+- 100k/s com gzip e sink HTTP local: ~99,5k/s, sem backpressure;
+- 1M/s sem compressão de transporte e sink HTTP local: ~998,4k/s, com
+  backpressure de ~1,4 s;
 - 5M/s em um único processo não se sustenta com esse payload: a máquina
   satura serialização/HTTP antes da taxa. O alvo de 5M/s do benchmark usa
   **múltiplos processos** (e o cluster de referência da Story 2.4), não um
@@ -143,7 +143,7 @@ taxa entre processos com seeds diferentes:
 for seed in 1 2 3 4 5; do
   ./bin/otlploadgen --protocol http --endpoint http://127.0.0.1:4318 \
     --compression none --rate 1000000 --duration 5m --seed "$seed" \
-    > "shard-${seed}.json" 2> "shard-${seed}.log" &
+    --metrics-addr "" > "/tmp/shard-${seed}.json" 2> "/tmp/shard-${seed}.log" &
 done
 wait
 ```

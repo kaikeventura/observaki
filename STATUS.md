@@ -2,20 +2,20 @@
 project: Observaki
 phase: 0
 phase_name: Fundação e Benchmarks
-epic: P0-E1
-epic_name: Fundação do repositório e governança
-story: "1.4"
-story_name: ADRs e registro de decisões de arquitetura
-task: "T1.4.1–T1.4.3"
-task_name: Template de ADR, seis ADRs e validação mecânica
+epic: P0-E2
+epic_name: Benchmark reproduzível do workload de referência
+story: "2.1"
+story_name: Gerador de carga OTLP no workload de referência
+task: "T2.1.1–T2.1.3"
+task_name: Gerador determinístico, taxa/backpressure e métricas
 status: done        # not_started | in_progress | blocked | done
 updated: 2026-10-31
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "fae7e73"
-next_action: "Iniciar Story 2.1 — gerador de carga OTLP no workload de referência"
+last_commit: "eaae22c"
+next_action: "Iniciar Story 2.2 — cenários de benchmark e datasets de consulta"
 blocked_by: []
-last_session: "Story 1.4 concluída: seis ADRs aprovadas por kaikeventura em 2026-10-31 (AC3), check-adr no lint; push não realizado a pedido do dono."
+last_session: "Story 2.1 concluída: gerador OTLP determinístico, payload 132,3 B/evento, 100k/1M 5 min e 5M sharded 5 min dentro de ±5%, métricas/backpressure; evidência em docs/dev/story-2.1-handoff.md."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -57,16 +57,16 @@ Atalho no OpenCode: `/continue`.
 | Campo | Valor |
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
-| Epic | **P0-E1 — Fundação do repositório e governança** |
-| Story | **1.4 — ADRs e registro de decisões de arquitetura** |
-| Task | **T1.4.1–T1.4.3 — concluídas** |
+| Epic | **P0-E2 — Benchmark reproduzível do workload de referência** |
+| Story | **2.1 — Gerador de carga OTLP no workload de referência** |
+| Task | **T2.1.1–T2.1.3 — concluídas** |
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `fae7e73` |
-| Próxima ação | Iniciar a Story 2.1 — gerador de carga OTLP |
+| Último commit | `eaae22c` |
+| Próxima ação | Iniciar a Story 2.2 — cenários de benchmark e datasets de consulta |
 | Bloqueios | Nenhum |
-| Última sessão | Story 1.4 concluída; seis ADRs aprovadas (AC3) |
+| Última sessão | Story 2.1 concluída; gerador validado (100k/1M/5M sharded) |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -82,7 +82,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E1 | 1.2 | CI de qualidade e release alpha | `done` | CI/CodeQL verdes; `v0.0.1-alpha` com binários, SBOMs, checksums, bundles cosign e imagem assinada; falta habilitar branch protection (manual) |
 | P0-E1 | 1.3 | Governança open source | `done` | LICENSE Apache 2.0, DCO workflow + script testado (sem sign-off e e-mail divergente falham), CONTRIBUTING/CoC/SECURITY, templates e `docs/governance/open-core.md`; `make ci`/`make smoke` e CI/CodeQL verdes em `24a16be` |
 | P0-E1 | 1.4 | ADRs | `done` | Template + processo, seis ADRs **aceitas** por `kaikeventura` em 2026-10-31 (AC3), `scripts/check-adr.sh` no `make lint`; `make ci`/`make smoke` verdes |
-| P0-E2 | 2.1 | Gerador de carga OTLP | `todo` | Depende de 1.1 |
+| P0-E2 | 2.1 | Gerador de carga OTLP | `done` | `bench/loadgen` + `otlploadgen`; payload 37,8/199,0/499,2 B (132,3 B ponderado); 100k/1M 5 min e 5M sharded 5 min dentro de ±5%; 100k gzip/1M none HTTP; `make ci`/`make smoke` verdes; evidência em `docs/dev/story-2.1-handoff.md` |
 | P0-E2 | 2.2 | Cenários de benchmark | `todo` | Depende de 2.1 |
 | P0-E2 | 2.3 | Relatório de benchmark | `todo` | Depende de 2.1/2.2 |
 | P0-E2 | 2.4 | Ambiente reproduzível + baseline | `todo` | Depende de 2.2/2.3 |
@@ -150,6 +150,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-10-31 | Story 1.3 | P0 / 1.3 / — | `LICENSE` Apache 2.0, `CONTRIBUTING`, `CODE_OF_CONDUCT`, `SECURITY`, templates de issue/PR, `docs/governance/open-core.md` (P-03 explícita) e workflow `DCO sign-off`; `scripts/check-dco.sh` validado com sign-off ausente/divergente/malformado (exit 1) e caso válido (exit 0); `actionlint`, schema YAML dos issue forms, `make ci` e `make smoke` ok; CI e CodeQL verdes em `24a16be` | `8746351` | Story 1.4 |
 | 2026-10-31 | Story 1.4 | P0 / 1.4 / T1.4.1–T1.4.3 | Template e processo de ADR, seis ADRs (storage, gateway, fila, frontend, tenancy/retenção, benchmark), `scripts/check-adr.sh` (seções, status, revisão e índice) no `make lint`, `DECISIONS.md` atualizado; `make ci` e `make smoke` verdes; ADRs em `proposto` aguardando revisão humana (AC3); push não realizado a pedido do dono | `fa73372` | Revisão humana (AC3) |
 | 2026-10-31 | Story 1.4 / AC3 | P0 / 1.4 / T1.4.3 | Seis ADRs promovidas para `aceito` após aprovação de `kaikeventura`; revisão registrada em cada ADR, índice/DECISIONS/gate atualizados; `make adr-check` 6 válidas; push não realizado a pedido do dono | `fae7e73` | Story 2.1 |
+| 2026-10-31 | Story 2.1 | P0 / 2.1 / T2.1.1–T2.1.3 | Gerador OTLP determinístico (`bench/loadgen` + `otlploadgen`), payload 37,8/199,0/499,2 B (132,3 B ponderado), 100k/1M 5 min e 5M sharded 5 min dentro de ±5%, 100k gzip/1M none HTTP, métricas/backpressure; `make smoke` verde; evidência em `docs/dev/story-2.1-handoff.md` | `eaae22c` | Story 2.2 |
 
 ## Regras de atualização
 

@@ -1,8 +1,8 @@
 # Observaki — Project Context
 
 **Produto:** plataforma de observabilidade open source, self-hosted e OTel-native: métricas, logs, traces, dashboards, alertas e correlação.
-**Estágio:** planejamento completo; Fase 0 (fundação/benchmark) ainda não iniciada; nenhum código de produto.
-**Próximo passo:** Story 1.1 — bootstrap do mono-repo e ambiente de desenvolvimento.
+**Estágio:** Fase 0 (fundação/benchmark) em andamento; Stories 1.1–1.4 concluídas e gerador OTLP da Story 2.1 implementado.
+**Próximo passo:** Story 2.2 — cenários de benchmark e datasets de consulta.
 **Estado corrente:** `STATUS.md` (fonte de verdade de onde estamos; atualizar ao fim de cada sessão).
 **Prompt de retomada:** `PROMPT.md` (mandar `Leia PROMPT.md e execute.`).
 
