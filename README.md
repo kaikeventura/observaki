@@ -1,8 +1,46 @@
 # Observaki
 
-**Observabilidade open source, self-hosted e OTel-native.** Métricas, logs, traces, dashboards, alertas e correlação em uma única plataforma — com foco em performance, baixo footprint e operação por times pequenos.
+**Observabilidade open source, self-hosted e OTel-native:** métricas, logs, traces, dashboards, alertas e correlação em uma única plataforma — com foco em performance, baixo footprint e operação por times pequenos.
 
-> **Status:** planejamento completo; **Fase 0 ainda não iniciada**. Nenhum código de produto foi escrito. O estado corrente fica em [`STATUS.md`](STATUS.md).
+> **Status:** Fase 0 (fundação e benchmarks) em andamento. O scaffold do mono-repo nasce na Story 1.1; o estado corrente fica em [`STATUS.md`](STATUS.md).
+
+## Pré-requisitos
+
+| Ferramenta | Versão | Observação |
+|---|---|---|
+| Go | 1.27 | o `go.mod` fixa a versão e o toolchain é resolvido automaticamente |
+| Node.js | 26 LTS | frontend SvelteKit |
+| pnpm | 10 | gerenciador de pacotes do `web/` |
+| Rust | 1.85 (stable) | agente, com `rustfmt` e `clippy` |
+| Docker Compose | v2 | opcional nesta fase (Story 5.1) |
+| make, curl | recente | orquestração e smoke test |
+
+## Desenvolvimento local
+
+O guia completo (comandos, portas e troubleshooting) está em [`docs/dev/local-setup.md`](docs/dev/local-setup.md). O fluxo é:
+
+```bash
+make bootstrap   # valida a toolchain e instala dependências
+make test        # go test + vitest + cargo test
+make build       # binário Go + build do SvelteKit + agente
+make dev         # API Go (:8080) + SvelteKit (:5173)
+make smoke       # valida o binário e o build do web
+```
+
+## Estrutura do repositório
+
+```text
+cmd/observaki/     # binário Go
+internal/          # domínio, ports, adapters, ingest, query, alerting
+web/               # SvelteKit 3 SPA
+agent/             # agente Rust (Fase 2)
+bench/             # harness de benchmark
+deploy/            # Compose, Helm, jobs
+docs/              # ADRs, guias
+```
+
+Módulo Go: `github.com/observaki/observaki` (premissa da Story 1.1 — ajustar
+caso o org ou o nome definitivo do repositório sejam outros).
 
 ## Como o desenvolvimento funciona
 
@@ -22,20 +60,6 @@ Leia PROMPT.md e execute.
 - [`DESIGN.md`](_bmad-output/planning-artifacts/ux-designs/ux-observaki-2026-10-31/DESIGN.md) + [`EXPERIENCE.md`](_bmad-output/planning-artifacts/ux-designs/ux-observaki-2026-10-31/EXPERIENCE.md) — UX/UI.
 - [`epics.md`](_bmad-output/planning-artifacts/epics.md) — Fase 0 detalhada.
 - [`DECISIONS.md`](_bmad-output/planning-artifacts/DECISIONS.md) — decisões e pendências.
-
-## Estrutura do repositório
-
-A estrutura definitiva nasce na Story 1.1 (Fase 0). O alvo:
-
-```text
-cmd/observaki/     # binário Go
-internal/          # domínio, ports, adapters, ingest, query, alerting
-web/               # SvelteKit 3 SPA
-agent/             # agente Rust (Fase 2)
-bench/             # harness de benchmark
-deploy/            # Compose, Helm, jobs
-docs/              # ADRs, guias
-```
 
 ## Gates
 

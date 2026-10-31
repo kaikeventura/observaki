@@ -25,6 +25,11 @@ node_modules/
 .svelte-kit/
 web/build/
 web/.svelte-kit/
+.pnpm-store/
+coverage/
+web/coverage/
+*.tsbuildinfo
+.eslintcache
 pnpm-debug.log*
 npm-debug.log*
 yarn-error.log*
