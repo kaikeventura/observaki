@@ -8,6 +8,7 @@ Use `phase`, `epic`, `story`, `task` e `next_action` de `STATUS.md` como posiç�
 
 - Se `status: blocked`, leia `blocked_by`, explique o bloqueio e pare.
 - Se `status: done`, avance para o próximo item do checklist, mas só se as dependências estiverem concluídas.
+- Se estiver na branch `main`, crie a branch da story antes de editar (ex.: `feat/p0-s1.1-bootstrap`).
 - Implemente apenas o `next_action` atual. Se ele for uma task de story, siga o task breakdown em `_bmad-output/planning-artifacts/stories/`.
 - Rode os checks aplicáveis.
 - Atualize `STATUS.md` (frontmatter + checklist + session log) e `epics.md` se a story mudou de status.
