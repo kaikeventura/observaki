@@ -2,7 +2,7 @@
 
 **Status:** AC1–AC3 validados em run local single-node; **não é o Gate G1**.
 **Data:** 2026-11-02 (run em UTC de 2026-11-02).
-**Commit:** `fc2f0c1` (harness) + o commit de docs/resultados desta sessão.
+**Commit:** `fc2f0c1` (harness) + `9369638` (docs/resultados).
 **Escopo:** ingestão de 1M amostras/s com 1M séries ativas, 20 consultas
 MetricsQL em janelas de 24 h e admissão de cardinalidade por tenant com
 isolamento do vizinho.
