@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -182,6 +183,42 @@ func TestTracesMigrationContract(t *testing.T) {
 	}
 	if strings.Contains(strings.ToUpper(statements), "SELECT *") {
 		t.Error("traces migration must not contain SELECT *")
+	}
+}
+
+func TestIngestDedupeMigrationContract(t *testing.T) {
+	migration := findMigration(t, "ingest_dedupe")
+	ddl := migration.SQL
+
+	if strings.Contains(strings.ToUpper(ddl), "CREATE TABLE") {
+		t.Error("ingest dedupe migration must not create a table")
+	}
+	if strings.Contains(strings.ToUpper(ddl), "MATERIALIZED VIEW") {
+		t.Error("ingest dedupe migration must not create a materialized view")
+	}
+
+	for _, table := range []string{"otel_logs", "otel_traces"} {
+		want := "ALTER TABLE " + table + " MODIFY SETTING non_replicated_deduplication_window = 10000"
+		if !strings.Contains(ddl, want) {
+			t.Errorf("ingest dedupe migration is missing %q", want)
+		}
+	}
+
+	// The window must be large enough for the writer's 1-hour benchmark: one
+	// batch per second would be 3,600 blocks. The test is deliberately a
+	// lower bound so a later tuning can grow it without breaking the contract.
+	window := regexp.MustCompile(`non_replicated_deduplication_window\s*=\s*(\d+)`).FindAllStringSubmatch(ddl, -1)
+	if len(window) != 2 {
+		t.Fatalf("found %d dedupe windows, want 2", len(window))
+	}
+	for _, match := range window {
+		value, err := strconv.Atoi(match[1])
+		if err != nil {
+			t.Fatalf("parse dedupe window %q: %v", match[1], err)
+		}
+		if value < 3600 {
+			t.Errorf("dedupe window = %d, want >= 3600 blocks", value)
+		}
 	}
 }
 

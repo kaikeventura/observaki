@@ -11,6 +11,7 @@ BIN := $(BIN_DIR)/observaki
 LOADGEN := $(BIN_DIR)/otlploadgen
 BENCHCTL := $(BIN_DIR)/benchctl
 BENCH_SINK := $(BIN_DIR)/bench-sink
+CHLOADGEN := $(BIN_DIR)/chloadgen
 WEB_DIR := web
 AGENT_MANIFEST := agent/Cargo.toml
 ROWS ?= 1000000000
@@ -30,7 +31,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -76,6 +77,7 @@ build: ## build the Go binary, the load generator, the web app and the agent
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(LOADGEN) ./bench/cmd/otlploadgen
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(BENCHCTL) ./bench/cmd/benchctl
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(BENCH_SINK) ./bench/cmd/bench-sink
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(CHLOADGEN) ./bench/cmd/chloadgen
 	$(PNPM) --dir $(WEB_DIR) build
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 
@@ -110,5 +112,11 @@ bench-clickhouse-traces: ## run the ClickHouse traces storage spike (ROWS=1B by 
 
 bench-clickhouse-traces-check: ## validate the ClickHouse traces schema on a 10M-span smoke
 	./bench/clickhouse/traces/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5 --stop-merges
+
+bench-clickhouse-ingest: ## run the ClickHouse ingestion spike (400k/s local, 60s)
+	./bench/clickhouse/ingest/run.sh
+
+bench-clickhouse-ingest-check: ## run the short ClickHouse ingestion smoke (100k/s, 5s)
+	./bench/clickhouse/ingest/run.sh --smoke
 
 ci: bootstrap lint test build ## run the full local CI suite

@@ -83,6 +83,8 @@ grep -q "Observaki" web/build/index.html || {
 
 ./bin/benchctl check >/dev/null
 
+./bin/chloadgen --version >/dev/null
+
 ./bin/benchctl run throughput-100k --plan --results-dir "$bench_tmp/results" >/dev/null
 ./bin/benchctl report --results-dir "$bench_tmp/results" --out "$bench_tmp/report" >/dev/null
 for artifact in report.md report.json; do
@@ -92,4 +94,4 @@ for artifact in report.md report.json; do
 	}
 done
 
-echo "Smoke: OK (healthz, api health, web build, version, loadgen payload, bench scenarios, benchmark report)"
+echo "Smoke: OK (healthz, api health, web build, version, loadgen payload, chloadgen, bench scenarios, benchmark report)"
