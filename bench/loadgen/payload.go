@@ -142,7 +142,7 @@ func (b *Builder) SignalFor(index int64) Signal {
 
 // EventTime returns the deterministic event timestamp for a global event index.
 func (b *Builder) EventTime(index int64) uint64 {
-	step := int64(time.Second) / int64(b.cfg.Rate)
+	step := int64(time.Second) / int64(b.cfg.EffectiveEventTimeRate())
 	if step < 1 {
 		step = 1
 	}

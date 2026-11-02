@@ -9,6 +9,7 @@ GIT ?= git
 BIN_DIR := bin
 BIN := $(BIN_DIR)/observaki
 LOADGEN := $(BIN_DIR)/otlploadgen
+BENCHCTL := $(BIN_DIR)/benchctl
 WEB_DIR := web
 AGENT_MANIFEST := agent/Cargo.toml
 
@@ -66,6 +67,7 @@ build: ## build the Go binary, the load generator, the web app and the agent
 	@mkdir -p $(BIN_DIR)
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/observaki
 	$(GO) build -trimpath -o $(LOADGEN) ./bench/cmd/otlploadgen
+	$(GO) build -trimpath -o $(BENCHCTL) ./bench/cmd/benchctl
 	$(PNPM) --dir $(WEB_DIR) build
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 

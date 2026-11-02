@@ -14,6 +14,7 @@ type ConfigSummary struct {
 	Protocol        Protocol     `json:"protocol"`
 	Compression     Compression  `json:"compression"`
 	Rate            int          `json:"rate"`
+	EventTimeRate   int          `json:"event_time_rate"`
 	DurationSeconds float64      `json:"duration_seconds"`
 	StartTime       time.Time    `json:"start_time"`
 	Seed            int64        `json:"seed"`
@@ -206,6 +207,7 @@ func summarizeConfig(cfg Config) ConfigSummary {
 		Protocol:        cfg.Protocol,
 		Compression:     cfg.Compression,
 		Rate:            cfg.Rate,
+		EventTimeRate:   cfg.EffectiveEventTimeRate(),
 		DurationSeconds: cfg.Duration.Seconds(),
 		StartTime:       cfg.StartTime.UTC(),
 		Seed:            cfg.Seed,

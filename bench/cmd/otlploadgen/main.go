@@ -65,6 +65,7 @@ Flags:
 	flags.StringVar(&protocol, "protocol", string(cfg.Protocol), "OTLP transport: grpc or http")
 	flags.StringVar(&compression, "compression", string(cfg.Compression), "request compression: gzip or none")
 	flags.IntVar(&cfg.Rate, "rate", cfg.Rate, "target events per second")
+	flags.IntVar(&cfg.EventTimeRate, "event-time-rate", cfg.EventTimeRate, "events/s used to advance event timestamps (default: --rate); lower values spread a fast-seeded dataset over a realistic window")
 	flags.DurationVar(&cfg.Duration, "duration", cfg.Duration, "run duration (for example 5m)")
 	flags.StringVar(&startTime, "start-time", "", "event start time in RFC3339 (default: now)")
 	flags.Int64Var(&cfg.Seed, "seed", cfg.Seed, "deterministic seed")

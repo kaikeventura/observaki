@@ -23,6 +23,7 @@ func TestConfigValidate(t *testing.T) {
 	}{
 		{name: "valid", mutate: func(*Config) {}},
 		{name: "zero rate", mutate: func(c *Config) { c.Rate = 0 }, wantErr: true},
+		{name: "negative event-time rate", mutate: func(c *Config) { c.EventTimeRate = -1 }, wantErr: true},
 		{name: "zero duration", mutate: func(c *Config) { c.Duration = 0 }, wantErr: true},
 		{name: "zero batch size", mutate: func(c *Config) { c.BatchSize = 0 }, wantErr: true},
 		{name: "zero workers", mutate: func(c *Config) { c.Workers = 0 }, wantErr: true},

@@ -1,0 +1,21 @@
+id	surface	signal	engine	window	datasets	description
+q01	Explore/Logs	logs	sql	scenario	1b,10b,86b	Log volume by service in 1-minute buckets
+q02	Explore/Logs	logs	sql	24h	1b,10b,86b	Error log ratio by service
+q03	Explore/Logs	logs	sql	1h	1b,10b,86b	Filtered log search by service and severity
+q04	Explore/Logs	logs	sql	24h	1b,10b,86b	Top 10 services by log volume
+q05	Explore/Logs	logs	sql	24h	1b,10b,86b	Log volume by host and pod for one service
+q06	Explore/Logs	logs	sql	15m	1b,10b,86b	Free-text incident log search
+q07	Explore/Traces	traces	sql	24h	1b,10b,86b	p95 span duration by service
+q08	Explore/Traces	traces	sql	24h	1b,10b,86b	p99 span duration by operation for one service
+q09	Explore/Traces	traces	sql	24h	1b,10b,86b	Span error ratio by service
+q10	Explore/Traces	traces	sql	1h	1b,10b,86b	Span count by status code
+q11	Explore/Traces	traces	sql	15m	1b,10b,86b	Slow spans over 2s for one service
+q12	Explore/Traces	traces	sql	point	1b,10b,86b	Trace lookup by trace_id
+q13	Services	traces	sql	1h	1b,10b,86b	Service map caller-callee edges with p95
+q14	Explore/Traces	traces	sql	24h	1b,10b,86b	Span duration histogram by service
+q15	Explore/Logs	logs	sql	point	1b,10b,86b	Logs correlated by trace_id
+q16	Dashboard	metrics	metricsql	scenario	1b,10b,86b	Request rate by service
+q17	Dashboard	metrics	metricsql	scenario	1b,10b,86b	Error ratio by service
+q18	Dashboard	metrics	metricsql	scenario	1b,10b,86b	p95 latency from histogram buckets
+q19	Explorer/Metrics	metrics	metricsql	24h	1b,10b,86b	Top 10 metric series by cardinality
+q20	Dashboard	traces	sql	scenario	1b,10b,86b	p99 latency trend by service

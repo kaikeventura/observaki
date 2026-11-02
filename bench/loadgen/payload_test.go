@@ -85,6 +85,23 @@ func TestEventTimeUsesConfiguredStart(t *testing.T) {
 	}
 }
 
+func TestEventTimeUsesEventTimeRate(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Rate = 1_000_000
+	cfg.EventTimeRate = 1_000
+	cfg.StartTime = time.Date(2026, 10, 31, 12, 0, 0, 0, time.UTC)
+	builder, err := NewBuilder(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := builder.EventTime(1000)-builder.EventTime(0), uint64(time.Second); got != want {
+		t.Fatalf("event-time span for 1000 events = %d ns, want %d ns", got, want)
+	}
+	if got, want := cfg.EffectiveEventTimeRate(), 1_000; got != want {
+		t.Fatalf("EffectiveEventTimeRate() = %d, want %d", got, want)
+	}
+}
+
 func TestNewBuilderDefaultsStartTime(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.StartTime = time.Time{}

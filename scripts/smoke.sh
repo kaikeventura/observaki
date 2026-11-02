@@ -79,4 +79,6 @@ grep -q "Observaki" web/build/index.html || {
 
 ./bin/otlploadgen --check-payload >/dev/null
 
-echo "Smoke: OK (healthz, api health, web build, version, loadgen payload)"
+./bin/benchctl check >/dev/null
+
+echo "Smoke: OK (healthz, api health, web build, version, loadgen payload, bench scenarios)"

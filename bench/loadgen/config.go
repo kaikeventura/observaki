@@ -133,10 +133,14 @@ func DefaultPayloadSizes() PayloadSizes {
 
 // Config controls a generator run.
 type Config struct {
-	Endpoint       string
-	Protocol       Protocol
-	Compression    Compression
-	Rate           int
+	Endpoint    string
+	Protocol    Protocol
+	Compression Compression
+	Rate        int
+	// EventTimeRate controls how fast event timestamps advance. Zero means
+	// the send rate. A lower value lets a dataset span a realistic query
+	// window while it is seeded faster than real time.
+	EventTimeRate  int
 	Duration       time.Duration
 	StartTime      time.Time
 	Seed           int64
@@ -148,6 +152,15 @@ type Config struct {
 	RequestTimeout time.Duration
 	LogInterval    time.Duration
 	DryRun         bool
+}
+
+// EffectiveEventTimeRate returns the event-time rate, defaulting to the send
+// rate when none is configured.
+func (c Config) EffectiveEventTimeRate() int {
+	if c.EventTimeRate > 0 {
+		return c.EventTimeRate
+	}
+	return c.Rate
 }
 
 // DefaultConfig returns a runnable reference configuration.
@@ -185,6 +198,9 @@ func (c Config) Validate() error {
 	}
 	if c.Rate <= 0 {
 		return errors.New("rate must be greater than zero")
+	}
+	if c.EventTimeRate < 0 {
+		return errors.New("event-time rate must be non-negative")
 	}
 	if c.Duration <= 0 {
 		return errors.New("duration must be greater than zero")

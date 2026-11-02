@@ -1,10 +1,14 @@
 # bench/ — harness de benchmark
 
-O harness reproduzível da Fase 0. O primeiro componente é o gerador de carga
-OTLP da Story 2.1: um binário Go que produz o workload de referência com mix
-determinístico, taxa configurável, backpressure explícito e métricas próprias.
+O harness reproduzível da Fase 0. Componentes:
 
-Os cenários, o relatório e o ambiente reproduzível entram nas Stories 2.2–2.4.
+| Componente | Story | O que faz |
+|---|---|---|
+| `bench/loadgen` + `otlploadgen` | 2.1 | Gera o workload OTLP determinístico (60/30/10) com taxa, backpressure e métricas próprias |
+| `bench/scenarios` + `bench/run.sh` | 2.2 | Define cenários de throughput, query, cardinalidade e caos; valida pré-requisitos e grava resultados |
+| `bench/queries` | 2.2 | Catálogo das 20 consultas representativas de dashboard |
+| Relatório `report.md`/`report.json` | 2.3 | Coleta e comparação dos resultados |
+| Ambiente reproduzível e baseline | 2.4 | Cluster de referência, provisionamento e primeira execução publicada |
 
 ## Workload de referência
 
@@ -24,7 +28,146 @@ Os cenários, o relatório e o ambiente reproduzível entram nas Stories 2.2–2
 - O atributo `bench.payload` é um preenchimento sintético para calibrar o
   tamanho comprimido; ele não representa um label de produção.
 
-## Build e uso
+## Cenários
+
+Os cenários são arquivos `.env` versionados em `bench/scenarios/`. Cada arquivo
+declara hardware, duração, pré-requisitos, métricas coletadas e o veredito
+esperado; o `benchctl` valida o contrato antes de qualquer execução.
+
+| Cenário | Família | Carga | Duração | Hardware mínimo | Veredito esperado | Execução |
+|---|---|---|---|---|---|---|
+| `throughput-100k` | throughput | 100k eventos/s, 1 shard | 1h | 8 vCPU/16 GB loadgen; single-node 8 vCPU/32 GB | Taxa ±5%; lag p95 < 10s; zero perda confirmada | pronta |
+| `throughput-1m` | throughput | 1M eventos/s, 1 shard | 1h | 16 vCPU/32 GB loadgen; single-node 16 vCPU/64 GB | Taxa ±5% (gate G1); lag p95 < 10s; zero perda | pronta |
+| `throughput-5m` | throughput | 5M eventos/s, 5 shards de 1M/s | 1h | 2 loadgens 16 vCPU; cluster T1 da Story 2.4 | Agregado ±5%; lag p95 < 10s; zero perda | pronta |
+| `query-1b` | query | 1B eventos em 24h; 20 consultas × 3 | 20m | 1 ClickHouse 16 vCPU/64 GB; 1 VM; 1 gateway | p95 < 1s; p99 < 2× p95 | planejada (3.5) |
+| `query-10b` | query | 10B eventos em 7d; 20 consultas × 3 | 45m | 3 ClickHouse 32 vCPU/128 GB; 3 VM | p95 < 3s; p99 < 2× p95 | planejada (3.5) |
+| `query-86b` | query | 86,4B eventos em 24h; 20 consultas × 3 | 5h | cluster T1; rollups 1m/5m | p95 < 3s; p99 < 2× p95 | planejada (3.5) |
+| `cardinality-100k` | cardinality | 100k séries, 1 amostra/s, 2 tenants | 1h | 1 VictoriaMetrics 8 vCPU/32 GB | Drift do vizinho < 10% | planejada (3.4) |
+| `cardinality-1m` | cardinality | 1M séries, 1M amostras/s, 2 tenants | 1h | 1 VictoriaMetrics 16 vCPU/64 GB | Drift do vizinho < 10% | planejada (3.4) |
+| `cardinality-10m` | cardinality | 10M séries, 10M amostras/s, 2 tenants | 1h | 3 VictoriaMetrics 32 vCPU/128 GB | Drift do vizinho < 10% | planejada (3.4) |
+| `chaos-clickhouse` | chaos | 1M/s; ClickHouse fora por 15m | 1h | cluster T1 | Zero perda confirmada; recuperação automática | planejada (4.5) |
+| `chaos-nats` | chaos | 1M/s; NATS fora por 5m | 30m | cluster T1 | Zero perda confirmada; backpressure no produtor | planejada (4.5) |
+| `chaos-gateway` | chaos | 1M/s; 1 de 4 gateways morto por 5m | 30m | cluster T1 | Zero perda; tráfego absorvido pelos demais | planejada (4.5) |
+
+O hardware acima é o **mínimo documentado** para o cenário; o perfil T1 e o
+cluster de referência são fechados na Story 2.4 (Q-01 do ADR-0006). O texto
+completo de cada cenário está no respectivo `.env`.
+
+Métricas coletadas por família (a lista canônica de cada cenário está no `.env`
+e é validada pelo `benchctl check`):
+
+| Família | Métricas |
+|---|---|
+| throughput | `events_per_second`, `bytes_per_second`, lag p50/p95/p99, `error_rate`, `dropped_events`, `confirmed_lost_events`, CPU, RAM, disco, `compression_ratio`, backpressure, pacing lag |
+| query | latência p50/p95/p99, `rows_read`, `bytes_read`, `cache_hit_ratio`, `error_rate`, CPU, RAM |
+| cardinality | `series_active`, `series_limit_errors`, `neighbor_p95_drift_percent`, lag p95, `error_rate`, CPU, RAM |
+| chaos | `events_per_second`, lag p50/p95/p99, `error_rate`, `dropped_events`, `confirmed_lost_events`, `recovery_seconds`, `dlq_events`, CPU, RAM |
+
+> **Status de execução:** throughput executa hoje. Query, cardinalidade e caos
+> têm contrato, validação de pré-requisitos e plano registrados; a execução
+> entra nas Stories 3.4, 3.5 e 4.5, quando existirem os backends. `run` nesses
+> cenários grava `status: blocked` e sai com código 3; `--plan` grava o plano e
+> sai com 0.
+
+## Execução
+
+```bash
+make build                 # inclui bin/benchctl e bin/otlploadgen
+./bench/run.sh list        # inventário dos cenários
+./bench/run.sh check       # valida contratos e o catálogo de consultas
+./bench/run.sh queries     # imprime as 20 consultas
+```
+
+Executar um cenário:
+
+```bash
+# valida e grava o plano, sem tráfego
+./bench/run.sh run throughput-100k --plan
+
+# execução curta de validação contra um receptor OTLP local
+./bench/run.sh run throughput-100k --duration 10s \
+  --endpoint http://127.0.0.1:4318
+
+# 5M/s agregado sem enviar (5 processos de 1M/s)
+./bench/run.sh run throughput-5m --duration 10s --dry-run
+
+# plano do dataset de 1B eventos/24h (execução bloqueada até a Story 3.5)
+./bench/run.sh run query-1b --plan
+```
+
+Flags de `run`:
+
+| Flag | Default | Descrição |
+|---|---|---|
+| `--plan` | `false` | Valida e grava o plano, sem iniciar workload |
+| `--dry-run` | `false` | Executa o loadgen sem enviar (throughput) |
+| `--duration` | do cenário | Override da duração |
+| `--rate` | do cenário | Override da taxa total |
+| `--endpoint` | `$OBSERVAKI_BENCH_ENDPOINT` ou `http://127.0.0.1:4318` | Endpoint OTLP |
+| `--start-time` | agora | Timestamp inicial em RFC3339 para reproduzir conteúdo |
+| `--results-dir` | `bench/results` | Raiz dos resultados |
+| `--loadgen` | `bin/otlploadgen` | Binário do gerador |
+
+Pré-requisitos verificados em `run` (quando o cenário os declara):
+
+| Serviço | Variável | Default |
+|---|---|---|
+| Gateway/OTLP | `OBSERVAKI_BENCH_ENDPOINT` | `http://127.0.0.1:4318` |
+| ClickHouse | `OBSERVAKI_BENCH_CLICKHOUSE_URL` | `http://127.0.0.1:8123` |
+| VictoriaMetrics | `OBSERVAKI_BENCH_VICTORIAMETRICS_URL` | `http://127.0.0.1:8428` |
+| NATS | `OBSERVAKI_BENCH_NATS_ADDR` | `127.0.0.1:4222` |
+
+Códigos de saída: `0` ok/planejado, `1` falha, `3` bloqueado por story futura.
+
+### Resultados
+
+Cada execução grava uma pasta com timestamp UTC e o nome do cenário:
+
+```text
+bench/results/20261102T003723Z-throughput-100k/
+  run.json          # metadados, checks, comandos, shards e agregado
+  scenario.env      # cópia exata do contrato usado
+  loadgen-00.json   # resumo do gerador
+  loadgen-00.log    # log estruturado
+```
+
+`run.json` inclui commit e estado sujo do git, host (CPU/RAM/SO), versão do
+cenário, checks de pré-requisitos, opções resolvidas, comandos exatos e o
+agregado de taxa. `bench/results/` e `bench/.tmp/` não são versionados; o
+relatório consolidado entra na Story 2.3.
+
+## Datasets de consulta
+
+Os datasets são sintéticos, determinísticos e sem dependência de relógio de
+parede no conteúdo. O tamanho é contado em **eventos de telemetria** (o mesmo
+universo do workload 60/30/10): 60% métricas vão para o VictoriaMetrics e 40%
+logs/traces para o ClickHouse. O alvo de 86B do PRD é 1M/s × 24h = 86,4B
+eventos (o PRD arredonda para 86B).
+
+| Dataset | Eventos | Janela | Event-time rate | Seed (wall clock) | Duração do cenário |
+|---|---|---|---|---|---|
+| 1B/24h | 1.000.000.000 | 24h | 11.574 eventos/s | 1M/s × 1 shard = 16m40s | 20m |
+| 10B/7d | 10.000.000.000 | 7d | 16.534 eventos/s | 5M/s × 5 shards = 33m20s | 45m |
+| 86B/24h | 86.400.000.000 | 24h | 1.000.000 eventos/s | 5M/s × 5 shards = 4h48m | 5h |
+
+O `--event-time-rate` desacopla o avanço dos timestamps da taxa de envio: o
+dataset é semeado mais rápido que o tempo real, mas os eventos ficam
+distribuídos na janela de consulta. O plano usa
+`--start-time = agora - janela` para que os dados terminem perto do momento da
+consulta. A contagem e a distribuição são determinísticas; o instante absoluto
+só muda se você fixar `--start-time`.
+
+As **20 consultas representativas** estão em
+[`queries/dashboard.tsv`](queries/dashboard.tsv): volume e busca de logs, p95/p99
+e erros de traces, mapa de serviços, correlação por `trace_id`, rate/erro/p95 de
+métricas e top-10 por cardinalidade. Cada linha declara superfície, sinal,
+engine, janela e datasets aplicáveis. O catálogo é o contrato; o SQL/MetricsQL
+concreto é vinculado na Story 3.5, quando o schema do ClickHouse e o Query
+Service existirem — não há schema inventado aqui. Alvos: p95 < 1s em 1B/24h,
+< 3s em 10B/7d e < 3s em 86B/24h com rollups; p99 < 2× p95; no mínimo 3
+repetições.
+
+## Build e uso do gerador
 
 ```bash
 make build
@@ -38,9 +181,8 @@ Verificar o workload (não envia nada):
 ```
 
 Saída de referência com o batch default de 1000 eventos: métricas 37,8 B,
-logs 199,0 B, traces 499,2 B e média ponderada 132,3 B/evento (dentro de
-±10% de 134 B). Os números variam com `--batch-size` porque o gzip é medido por
-lote.
+logs 199,0 B, traces 499,2 B e média ponderada 132,3 B/evento (dentro de ±10%
+de 134 B). Os números variam com `--batch-size` porque o gzip é medido por lote.
 
 Exemplo gRPC (OTLP em `127.0.0.1:4317`):
 
@@ -74,7 +216,7 @@ O resumo final é um JSON no stdout; logs estruturados vão para o stderr. O
 processo sai com código diferente de zero se houver evento não enviado ou
 rejeitado pelo receptor.
 
-## Flags principais
+## Flags principais do gerador
 
 | Flag | Default | Descrição |
 |---|---|---|
@@ -82,6 +224,7 @@ rejeitado pelo receptor.
 | `--protocol` | `grpc` | `grpc` ou `http` |
 | `--compression` | `gzip` | `gzip` ou `none` para o transporte |
 | `--rate` | `100000` | eventos/s alvo |
+| `--event-time-rate` | `--rate` | eventos/s usados para avançar os timestamps; menor que a taxa de envio para semear datasets |
 | `--duration` | `5m` | duração da execução |
 | `--start-time` | agora | timestamp inicial dos eventos em RFC3339; use um valor fixo para reproduzir |
 | `--seed` | `1` | seed determinística |
@@ -137,16 +280,8 @@ mostrou:
   único gerador.
 
 Para 1M/s e 5M/s, prefira `--compression none` no transporte e distribua a
-taxa entre processos com seeds diferentes:
-
-```bash
-for seed in 1 2 3 4 5; do
-  ./bin/otlploadgen --protocol http --endpoint http://127.0.0.1:4318 \
-    --compression none --rate 1000000 --duration 5m --seed "$seed" \
-    --metrics-addr "" > "/tmp/shard-${seed}.json" 2> "/tmp/shard-${seed}.log" &
-done
-wait
-```
+taxa entre processos com seeds diferentes. O cenário `throughput-5m` já faz
+isso com cinco shards de 1M/s.
 
 O gateway/armazenamento continua responsável pela compressão de armazenamento;
 o alvo de 134 B/event é medido pelo `--check-payload`.
@@ -158,15 +293,33 @@ o alvo de 134 B/event é medido pelo `--check-payload`.
 - IDs de trace/span, timestamps, atributos e janelas de payload derivam do seed
   e do índice do evento.
 - O timestamp de evento parte de `--start-time` (default: agora, para respeitar
-  a janela de skew do AD-29) e avança pelo índice. Para reproduzir uma execução,
-  fixe `--start-time`; fora ele, não há dependência de relógio de parede no
-  conteúdo.
+  a janela de skew do AD-29) e avança por `--event-time-rate` (default: a taxa
+  de envio). Para reproduzir uma execução, fixe `--start-time`; fora ele, não
+  há dependência de relógio de parede no conteúdo.
 - `--check-payload`, `--dry-run` e os testes de `bench/loadgen` verificam
   contagem, distribuição e tamanho comprimido.
-- Não há dependência de relógio de parede para o conteúdo dos eventos.
+- `benchctl check` valida os 12 cenários, o catálogo de 20 consultas e os
+  campos obrigatórios de cada família.
+
+## Limitações atuais
+
+- **Rampa e aquecimento:** o gerador executa taxa constante. A rampa exigida
+  pelo ADR-0006 e a janela de regime serão definidas com o cluster de
+  referência na Story 2.4; por isso, os números desta fase ainda não são
+  evidência do gate G1.
+- **Query/cardinalidade/caos:** o contrato e o plano existem; a execução
+  depende de ClickHouse/Query Service (3.4/3.5) e da automação de falhas (4.5).
+- **Cardinalidade:** o gerador atual ainda não varia séries além dos 32
+  conjuntos de atributos; o gerador de séries e os guardrails entram na 3.4.
+- **5M/s em um processo** não se sustenta nesta máquina de desenvolvimento;
+  o cenário usa cinco shards.
+- O payload sintético não substitui dados reais de design partner; a
+  calibração de entropia é uma aproximação do workload de referência.
 
 ## Artefatos
 
 `bench/results/` e `bench/.tmp/` não são versionados. O relatório
-`BENCHMARKS.md` e o JSON bruto entram na Story 2.3; o provisionamento e o
-baseline entram na Story 2.4.
+`BENCHMARKS.md` e o JSON consolidado entram na Story 2.3; o provisionamento e o
+baseline entram na Story 2.4. O contrato de cada cenário (`bench/scenarios/`),
+o catálogo de consultas (`bench/queries/`) e o runner (`bench/run.sh`) são
+versionados.
