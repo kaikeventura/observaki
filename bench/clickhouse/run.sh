@@ -131,7 +131,11 @@ if [ -z "$RESULTS_DIR" ]; then
 fi
 mkdir -p "$RESULTS_DIR"
 LOG="$RESULTS_DIR/run.log"
-: >"$LOG"
+if [ "$REUSE" = 1 ] || [ "$SKIP_LOAD" = 1 ]; then
+	touch "$LOG"
+else
+	: >"$LOG"
+fi
 
 log "Story 3.1 ClickHouse logs spike"
 log "rows=$ROWS chunk_rows=$CHUNK_ROWS runs=$RUNS base=$BASE"
@@ -349,7 +353,7 @@ write_report() {
 	local p50 p95 p99 rows_read_mean bytes_read_mean returned_mean
 	local compression_pass query_pass query_rows_pass status schema_sha commit dirty
 	local ch_version generated_at hostname cpus memory_bytes disk_total disk_free
-	local limitations verdict_reason merges_stopped
+	local limitations verdict_reason merges_stopped reproduction
 
 	IFS=$'\t' read -r rows parts compressed uncompressed body_avg <"$RESULTS_DIR/storage.tsv"
 	ratio=$(awk -v u="$uncompressed" -v c="$compressed" 'BEGIN { printf "%.2f", u / c }')
@@ -399,6 +403,11 @@ write_report() {
 		merges_stopped=true
 		limitations=$(printf '%s' "$limitations" | jq '. + ["background merges are stopped for the main table during the local load to bound disk use; the table is measured with unmerged parts"]')
 	fi
+	reproduction="./bench/clickhouse/run.sh --rows $ROWS --chunk-rows $CHUNK_ROWS --runs $RUNS"
+	if [ "$STOP_MERGES" = 1 ]; then
+		reproduction="$reproduction --stop-merges"
+	fi
+	reproduction="$reproduction --base \"$BASE\""
 
 	jq -n \
 		--arg generated_at "$generated_at" \
@@ -438,6 +447,7 @@ write_report() {
 		--arg status "$status" \
 		--arg verdict_reason "$verdict_reason" \
 		--arg schema_sha "$schema_sha" \
+		--arg reproduction "$reproduction" \
 		--arg tenant "$TENANT" \
 		--arg project "$PROJECT" \
 		--arg service "$SERVICE" \
@@ -457,6 +467,7 @@ write_report() {
 			query: {id: "q03", description: "Filtered log search by service and severity, 1h window", runs: $runs, p50_ms: $p50, p95_ms: $p95, p99_ms: $p99, rows_read_mean: $rows_read_mean, bytes_read_mean: $bytes_read_mean, returned_mean: $returned_mean, tenant: $tenant, project: $project, service: $service, severity: $severity, start: $start, end: $end},
 			ttl: $ttl[0],
 			verdict: {status: $status, reason: $verdict_reason, criteria: {compression_ge_5x: $compression_pass, query_p95_lt_1s: $query_pass, query_returned_rows: $query_rows_pass, ttl_removes_expired: $ttl[0].passed}},
+			reproduction: $reproduction,
 			limitations: $limitations
 		}' >"$RESULTS_DIR/report.json"
 
@@ -536,7 +547,7 @@ $(printf '%s\n' "$limitations" | jq -r '.[] | "- " + .')
 ## Reproduction
 
 \`\`\`bash
-./bench/clickhouse/run.sh --rows ${ROWS} --chunk-rows ${CHUNK_ROWS} --runs ${RUNS} --base "${BASE}"
+${reproduction}
 \`\`\`
 EOF
 
