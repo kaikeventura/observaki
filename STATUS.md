@@ -2,23 +2,20 @@
 project: Observaki
 phase: 0
 phase_name: Fundação e Benchmarks
-epic: P0-E2
-epic_name: Benchmark reproduzível do workload de referência
-story: "2.4"
-story_name: Ambiente reproduzível e baseline publicado
+epic: P0-E3
+epic_name: Spikes de armazenamento, consulta e tenancy
+story: "3.1"
+story_name: Schema ClickHouse para logs
 task: "AC1–AC3"
-task_name: Perfil T1, provisionamento, custo, limpeza e pré-baseline
-status: blocked        # not_started | in_progress | blocked | done
-updated: 2026-11-01
+task_name: Schema, carga de 1B linhas, compressão, q03 e TTL 7/15
+status: done        # not_started | in_progress | blocked | done
+updated: 2026-11-02
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "5b6096d"
-next_action: "Aprovar P-07 (provedor, teto de gasto e credencial IAM dedicada) e concluir 3.1/4.1; depois aplicar o T1 e rodar bench/env/baseline.sh --scenario throughput-1m"
-blocked_by:
-  - "P-07: aprovação de provedor, orçamento e credencial IAM dedicada (a conta atual usa root; o apply recusa por design)"
-  - "Stories 3.1–3.5/4.1–4.5: gateway, schema/ingestão, Query Service e caos para um baseline real de ponta a ponta"
-  - "Rampa contínua no gerador: o protocolo separa warm-up/ramp/medido, mas cada fase ainda é taxa constante"
-last_session: "Story 2.4: perfil T1, Terraform AWS de referência, custo/cleanup, guards e protocolo de baseline entregues; pré-baseline local 3×60s a 99.935,1/s (pass), BENCHMARKS.md publicado; cluster T1 não provisionado; evidência em docs/dev/story-2.4-handoff.md."
+last_commit: "494391a"
+next_action: "Story 3.2 — schema ClickHouse para traces; o baseline T1 da 2.4 continua bloqueado por P-07 e 3.2–3.5/4.1–4.5"
+blocked_by: []
+last_session: "Story 3.1: schema ClickHouse de logs, DDL com partição/TTL por ingested_at, carga local de 1B linhas em 24h, 6,98x de compressão, q03 p95 263 ms e TTL 7/15 pass; não é G1; evidência em docs/dev/story-3.1-handoff.md."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -60,16 +57,16 @@ Atalho no OpenCode: `/continue`.
 | Campo | Valor |
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
-| Epic | **P0-E2 — Benchmark reproduzível do workload de referência** |
-| Story | **2.4 — Ambiente reproduzível e baseline publicado** |
-| Task | **AC1–AC3 — scaffolding entregue; execução T1 bloqueada** |
-| Status | `blocked` |
+| Epic | **P0-E3 — Spikes de armazenamento, consulta e tenancy** |
+| Story | **3.1 — Schema ClickHouse para logs** |
+| Task | **AC1–AC3 — schema, 1B linhas, compressão/q03 e TTL 7/15** |
+| Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `5b6096d` |
-| Próxima ação | Aprovar P-07 e concluir 3.1/4.1; depois aplicar o T1 e rodar `bench/env/baseline.sh --scenario throughput-1m` |
-| Bloqueios | P-07 (provedor/orçamento/credencial), Stories 3.1–3.5/4.1–4.5, rampa contínua |
-| Última sessão | Story 2.4: perfil T1, provisionamento, custo/cleanup e pré-baseline local; baseline T1 pendente |
+| Último commit | `494391a` |
+| Próxima ação | Story 3.2 — schema ClickHouse para traces |
+| Bloqueios | 2.4 (T1): P-07, 3.2–3.5/4.1–4.5 e rampa contínua; não bloqueia a 3.2 |
+| Última sessão | Story 3.1: 1B linhas locais, 6,98x, q03 p95 263 ms, TTL 7/15 ok; não é G1 |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -88,8 +85,8 @@ Atalho no OpenCode: `/continue`.
 | P0-E2 | 2.1 | Gerador de carga OTLP | `done` | `bench/loadgen` + `otlploadgen`; payload 37,8/199,0/499,2 B (132,3 B ponderado); 100k/1M 5 min e 5M sharded 5 min dentro de ±5%; 100k gzip/1M none HTTP; `make ci`/`make smoke` verdes; evidência em `docs/dev/story-2.1-handoff.md` |
 | P0-E2 | 2.2 | Cenários de benchmark | `done` | 12 cenários + `bench/run.sh` + 20 consultas; `--event-time-rate`; 100k real (99.776,8/s) e 5M sharded (4.999.569,8/s) dentro de ±5%; query/cardinalidade/caos bloqueados até 3.4/3.5/4.5; `make ci`/`make smoke` verdes; evidência em `docs/dev/story-2.2-handoff.md` |
 | P0-E2 | 2.3 | Relatório de benchmark | `done` | `resources.json` 1 Hz, `config_hash`/versões, `report.md`+`report.json`, cobertura `collected`/`not_collected` e variância; 3×60s reais a 99.964,5/s médio (spread 0,01%), p95 1,22%, CPU 7,03%, report pass; 5s/30s flagaram p99/CPU; `make ci`/`make smoke` verdes; evidência em `docs/dev/story-2.3-handoff.md` |
-| P0-E2 | 2.4 | Ambiente reproduzível + baseline | `blocked` | Perfil T1, Terraform AWS de referência, custo/cleanup e guards de gasto/root; pré-baseline local 3×60s a 99.935,1/s (pass) em `BENCHMARKS.md`; falta apply/baseline T1 (P-07 + Stories 3.1–3.5/4.1–4.5); evidência em `docs/dev/story-2.4-handoff.md` |
-| P0-E3 | 3.1 | Schema ClickHouse para logs | `todo` | Depende de 2.2 |
+| P0-E2 | 2.4 | Ambiente reproduzível + baseline | `blocked` | Perfil T1, Terraform AWS de referência, custo/cleanup e guards de gasto/root; pré-baseline local 3×60s a 99.935,1/s (pass) em `BENCHMARKS.md`; falta apply/baseline T1 (P-07 + Stories 3.2–3.5/4.1–4.5); evidência em `docs/dev/story-2.4-handoff.md` |
+| P0-E3 | 3.1 | Schema ClickHouse para logs | `done` | DDL com partição/TTL por `ingested_at`, ordem tenant/projeto/serviço/tempo e codecs; 1B linhas locais em 24 h, **6,98x**, `q03` p95 **263 ms**, TTL 7/15 pass; `make smoke` verde; não é G1; evidência em `docs/dev/story-3.1-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b/` |
 | P0-E3 | 3.2 | Schema ClickHouse para traces | `todo` | Depende de 3.1 |
 | P0-E3 | 3.3 | Ingestão ClickHouse + dedupe | `todo` | Depende de 3.1/3.2 |
 | P0-E3 | 3.4 | VictoriaMetrics + cardinalidade | `todo` | Depende de 3.1 |
@@ -117,16 +114,16 @@ Atalho no OpenCode: `/continue`.
 
 - [ ] 1M eventos/s por 1 hora no workload de referência
 - [ ] Lag p95 < 10s; zero perda para eventos confirmados
-- [ ] p95 < 1s em 1B linhas/24h
+- [ ] p95 < 1s em 1B linhas/24h (logs local: `q03` p95 263 ms; T1/gateway pendentes)
 - [ ] p95 < 3s em 10B linhas/7d
-- [ ] Compressão ≥ 5x em logs e traces
-- [ ] Retenção/row policies/quotas validadas
+- [ ] Compressão ≥ 5x em logs e traces (logs local 6,98x; traces/T1 pendentes)
+- [ ] Retenção/row policies/quotas validadas (TTL 7/15 local pass; row policies/quotas na 3.5)
 - [ ] Compose single-node < 15 min; Helm em 3 nós; upgrade/rollback
 - [ ] 100k pontos < 100ms; bundle inicial < 180 KB gzip
 - [ ] 3 design partners com dados reais
 - [x] ADRs aprovadas (storage, gateway, fila, frontend, tenancy, benchmark)
-- [ ] Go/no-go registrado para cada spike
-- [ ] `BENCHMARKS.md` publicado (pré-baseline local publicada; baseline T1 pendente de P-07 e 3.1/4.1)
+- [ ] Go/no-go registrado para cada spike (3.1: go local; T1 pendente)
+- [ ] `BENCHMARKS.md` publicado (spike 3.1 local e pré-baseline publicados; baseline T1 pendente de P-07 e 3.2–3.5/4.1–4.5)
 
 **Só depois de todos os itens:** atualizar `phase: 1` e começar o detalhamento da Fase 1.
 
@@ -157,6 +154,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-01 | Story 2.2 | P0 / 2.2 / AC1–AC3 | 12 cenários declarativos (throughput/query/cardinalidade/caos), `benchctl` + `bench/run.sh`, catálogo de 20 consultas, `--event-time-rate` para datasets; 100k real a 99.776,8/s (−0,22%) e 5M sharded a 4.999.569,8/s (−0,01%); query/cardinalidade/caos validam pré-requisitos e registram plano/bloqueio; `make ci` e `make smoke` verdes; evidência em `docs/dev/story-2.2-handoff.md` | `46a76cd` | Story 2.3 |
 | 2026-11-01 | Story 2.3 | P0 / 2.3 / AC1–AC3 | `resources.json` a 1 Hz (CPU/RAM/disco + rusage do loadgen), `config_hash`/versões/hardware no `run.json`, `compressed_bytes` no loadgen, `benchctl report` com `report.md`+`report.json`, cobertura de métricas por story e variância documentada; 3×60s HTTP/gzip reais a 99.959,9/99.966,6/99.967,0/s (−0,03% a −0,04%), report **pass** (throughput 0,01%, p95 1,22%, CPU 7,03%); 5s/30s falharam p99/CPU e foram reportados; `make ci`, `make smoke` e `go test -race` verdes; evidência em `docs/dev/story-2.3-handoff.md` | `d47ca9e` | Story 2.4 |
 | 2026-11-01 | Story 2.4 | P0 / 2.4 / AC1–AC3 | Perfil T1 (`t1.json`: 6 CH/3 VM/6 gateway/4 NATS/2 loadgen; 1M/s; 168 h), Terraform AWS de referência validado, `cluster.sh` com `check/cost/plan/apply/status/destroy` e guards de gasto/root, modelo de custo (USD 41,79/h; 30.504,49/mês), `baseline.sh` (warm-up/ramp/medido) e `bench-sink`; pré-baseline local 3×60s a 99.932–99.939/s (0,007% spread; report **pass**), publicada em `BENCHMARKS.md`; `make ci`, `bench-env-check`, `go test -race` e `terraform validate` verdes; cluster T1 **não** provisionado; evidência em `docs/dev/story-2.4-handoff.md` | `5b6096d` | P-07 + 3.1/4.1 |
+| 2026-11-02 | Story 3.1 | P0 / 3.1 / AC1–AC3 | Schema ClickHouse de logs (`0001_otel_logs.sql`) com partição/TTL por `ingested_at`, `ORDER BY` tenant/projeto/serviço/tempo, TTL por `retention_days` e codecs; teste de contrato no `make test`; dataset local de 1B linhas em 24 h (20×50M) em 40 min 20 s, **6,98x** de compressão, `q03` p95 **263 ms**/p99 299 ms, TTL 7/15 pass; merges parados no run local para caber no disco; `make fmt/lint/test/build/smoke` verdes; **não é G1**; evidência em `docs/dev/story-3.1-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b/` | `494391a` | Story 3.2 |
 
 ## Regras de atualização
 

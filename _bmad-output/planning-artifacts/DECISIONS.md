@@ -33,6 +33,14 @@ estimativa de custo em `bench/internal/envprofile` + `bench/env/prices.*.json`.
 `apply` do cluster é bloqueado sem `OBSERVAKI_BENCH_ALLOW_SPEND=1` e recusa
 credencial root da AWS; falta a decisão P-07.
 
+**Story 3.1 (2026-11-02):** o schema de logs foi validado localmente com 1B
+linhas (`bench/clickhouse/results/2026-11-02-local-1b/`): 6,98x de compressão,
+`q03` p95 263 ms e TTL 7/15 ok. A estratégia escolhida é TTL por linha
+(`retention_days`) em partição diária por `ingested_at`; o fallback de tabelas
+por bucket continua para a Story 3.5. O run local parou merges de background
+para caber no disco e **não é evidência do G1**. A Q-02 do ADR-0005 continua
+aberta para reconciliação por projeto, row policies e isolamento.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.
