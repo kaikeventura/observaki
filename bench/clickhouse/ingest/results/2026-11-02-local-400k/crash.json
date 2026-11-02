@@ -1,0 +1,7 @@
+{
+  "kind": "crash",
+  "exit_code": 137,
+  "stored_rows_before_recovery": 100000,
+  "expected_rows": 100000,
+  "status": "pass"
+}

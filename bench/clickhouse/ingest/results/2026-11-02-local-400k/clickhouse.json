@@ -1,0 +1,10 @@
+{
+  "count": 24000000,
+  "unique_event_ids": 24000000,
+  "active_parts": 18,
+  "compressed_bytes": 187426610,
+  "uncompressed_bytes": 10554032190,
+  "compression_ratio": 56.31021224787665,
+  "insert_errors": 0,
+  "too_many_parts_errors": 0
+}

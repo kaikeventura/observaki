@@ -52,6 +52,18 @@ sendo o RED do gateway no VictoriaMetrics (AD-21). O run local parou merges de
 background e **não é evidência do G1**. A Q-02 do ADR-0005 continua aberta para
 reconciliação por projeto, row policies e isolamento.
 
+**Story 3.3 (2026-11-02):** o caminho de ingestão ClickHouse foi validado
+localmente (`bench/clickhouse/ingest/results/2026-11-02-local-400k/`): batches
+RowBinary de 200k, spool local com `fsync`/checkpoint, dedupe por `event_id` e
+`insert_deduplication_token` estável, 400k/s por 60 s, lag p95 1,4 s, 24M
+eventos, 18 parts e zero `Too many parts`. O dedupe de um batch repetido e a
+recuperação após crash (insert antes do checkpoint) passaram. O buffer local
+durável é o modo single-node permitido pelo AD-4; o NATS é a Story 4.3. A
+janela de dedupe em memória não sobrevive ao restart; o índice durável para
+duplicatas de produtor entre restarts fica para a Fase 1 (FR-4). O run local
+satura em ~400k/s e **não é evidência do G1**; 1M/s por 1 h no T1 depende de
+P-07 e das Stories 4.1/4.3.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.

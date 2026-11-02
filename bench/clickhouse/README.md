@@ -6,7 +6,9 @@ de retenção de 7 e 15 dias.
 
 O spike de traces da Story 3.2 fica em [`traces/`](traces/README.md): schema
 `otel_traces`, busca por `trace_id`, busca por serviço/status/24 h, compressão,
-service map e correlação log↔trace.
+service map e correlação log↔trace. O caminho de ingestão da Story 3.3 fica em
+[`ingest/`](ingest/README.md): writer RowBinary, spool/checkpoint, dedupe por
+`event_id`, recuperação e o run local de 400k/s.
 
 > **Não é evidência do G1.** O run padrão é single-node, local e usa SQL para
 > gerar o dataset; não passa pelo gateway, NATS, Query Service ou row policies.

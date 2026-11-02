@@ -1,8 +1,8 @@
 # Observaki — Benchmarks
 
-> **Status (2026-11-02):** pré-baseline local do harness e spikes locais de
-> armazenamento de logs (1B linhas) e traces (1B spans) publicados; baseline T1
-> **não executado**. Nenhum número deste arquivo é evidência do Gate G1 até a
+> **Status (2026-11-02):** pré-baseline local do harness, spikes locais de
+> armazenamento de logs (1B linhas) e traces (1B spans) e o caminho de ingestão
+> ClickHouse (400k/s, 60 s) publicados; baseline T1 **não executado**. Nenhum número deste arquivo é evidência do Gate G1 até a
 > execução no cluster T1 com gateway, armazenamento e o commit registrados.
 
 Este arquivo segue o ADR-0006: todo número publicado declara commit, hardware,
@@ -16,6 +16,7 @@ benchmark de fornecedor não entra sem reprodução própria.
 | Pré-baseline local do harness (100k/s, 3 × 60 s) | ✅ publicada; mecanismo de geração, transporte, coleta e relatório validado |
 | Schema ClickHouse de logs (1B linhas, local) | ✅ publicado; 6,98x, `q03` p95 263 ms e TTL 7/15 ok; **não é G1** |
 | Schema ClickHouse de traces (1B spans, local) | ✅ publicado; 7,52x, trace lookup p95 328 ms, serviço/status p95 178 ms e correlação ok; **não é G1** |
+| Ingestão ClickHouse + dedupe (400k/s, 60 s, local) | ✅ publicado; 399.994/s, lag p95 1,4 s, 24M linhas, dedupe e recuperação ok; **não é G1** |
 | Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.2–3.5/4.1–4.5 |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
@@ -214,6 +215,59 @@ fatos estão nas limitações do relatório.
 policies, réplica, caos nem o hardware T1. O baseline T1 continua bloqueado por
 P-07 e pelas Stories 3.2–3.5/4.1–4.5.
 
+## Story 3.3 — caminho de ingestão ClickHouse (local, 400k/s)
+
+**O que é:** o caminho de ingestão da Story 3.3 em um ClickHouse 26.8
+single-node local: batches RowBinary de 200k eventos pelo HTTP, spool durável
+com checkpoint, dedupe por `event_id` e token de bloco. Mede throughput, lag
+ponta a ponta do writer, parts e erros de insert. **Não é o gateway, não usa
+NATS e não é evidência do Gate G1.**
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Commit do writer/harness | `9650da1` (limpo, `dirty: false` no relatório) |
+| Run (UTC) | 2026-11-02T20:28:37Z a 20:29:38Z |
+| Workload | 400k/s por 60 s; 120 batches de 200k; 2 tenants × 4 projetos × 8 serviços |
+| Writer | 12 workers de geração/encode; 4 threads de insert; `async_insert=1` + `wait_for_async_insert=1` |
+| Dedupe | janela de 200k `event_id`; token estável por batch; migration `0003_ingest_dedupe.sql` |
+| Hardware | `kabuntu-zenbook`, 22 CPUs, 15,0 GiB de RAM; ClickHouse 26.8.36.3 |
+| Schema | [`0001_otel_logs.sql`](internal/adapters/clickhouse/migrations/0001_otel_logs.sql), [`0003_ingest_dedupe.sql`](internal/adapters/clickhouse/migrations/0003_ingest_dedupe.sql) |
+| Artefatos | [`report.md`](bench/clickhouse/ingest/results/2026-11-02-local-400k/report.md), [`report.json`](bench/clickhouse/ingest/results/2026-11-02-local-400k/report.json), [`handoff`](docs/dev/story-3.3-handoff.md) |
+
+### Resultados
+
+| Métrica | Valor |
+|---|---:|
+| Eventos confirmados | 24.000.000 |
+| Throughput | **399.994,4/s** |
+| Lag p50 (evento mais antigo) | 679,7 ms |
+| Lag p95 | **1.403,0 ms** (alvo < 10.000 ms) |
+| Lag p99 | 1.434,6 ms |
+| Linhas armazenadas | 24.000.000 |
+| `uniqExact(event_id)` | 24.000.000 |
+| Parts ativas ao fim | 18 |
+| Compressão | 56,31x (corpo sintético repetitivo) |
+| Erros de insert | 0 |
+| `Too many parts` | 0 |
+| Dedupe (50k iguais) | 50.000 linhas / 50.000 duplicatas |
+| Recuperação (100k) | 100.000 antes e depois; 1 batch reenviado; checkpoint avançado |
+
+### Veredito
+
+**Pass local para o caminho de ingestão.** O writer sustentou 400k/s por 60 s
+com lag p95 de 1,4 s, sem `Too many parts`, sem erro de insert e sem perda de
+eventos confirmados. O teste de dedupe manteve 50k linhas únicas ao submeter o
+mesmo batch duas vezes; o teste de crash depois do insert e antes do checkpoint
+manteve 100k linhas após o replay.
+
+**Não é o G1.** O host local satura em ~400k/s; uma tentativa de 500k/s por
+60 s ficou em 397–447k/s com lag p95 de 12–17 s. O run de 1M/s por 1 h exige o
+cluster T1 (6 ClickHouse + 6 writers) e o caminho gateway → NATS → writer
+(Stories 4.1/4.3), além de P-07. O WAL do run local é o spool de arquivos
+permitido pelo AD-4 no modo single-node.
+
 ## Cluster de referência T1 (pendente)
 
 O perfil está em [`bench/env/t1.json`](bench/env/t1.json) e a documentação de
@@ -296,7 +350,8 @@ sem cluster com `--dry-run`.
    Terraform e uma tabela de preços, mas não muda o perfil.
 2. **Gateway OTLP (Story 4.1)** para receber o workload e calcular RED.
 3. **Ingestão ClickHouse (Story 3.3)** para medir lag e perda confirmada; o
-   schema de logs (Story 3.1) já tem spike local com 1B linhas.
+   writer/spool/dedupe foi validado localmente a 400k/s, mas o número de 1M/s
+   por 1 h precisa do cluster T1 e do caminho gateway → NATS → writer.
 4. **VictoriaMetrics e cardinalidade (Story 3.4)** para as métricas e o RED.
 5. **Query Service (Story 3.5)** para as 20 consultas de dashboard.
 6. **Automação de caos (Story 4.5)** para o teste de falha e DLQ.

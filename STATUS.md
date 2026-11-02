@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E3
 epic_name: Spikes de armazenamento, consulta e tenancy
-story: "3.2"
-story_name: Schema ClickHouse para traces
-task: "AC1–AC4"
-task_name: Schema, 1B spans, trace lookup, serviço/status, service map e correlação
+story: "3.3"
+story_name: Ingestão ClickHouse com dedupe
+task: "AC1–AC3"
+task_name: Throughput local, dedupe por event_id e recuperação após crash
 status: done        # not_started | in_progress | blocked | done
 updated: 2026-11-02
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "03f01e7"
-next_action: "Story 3.3 — caminho de ingestão ClickHouse com dedupe; o baseline T1 da 2.4 continua bloqueado por P-07 e 3.3–3.5/4.1–4.5"
+last_commit: "9650da1"
+next_action: "Story 3.4 — VictoriaMetrics, MetricsQL e cardinalidade; o baseline T1 da 2.4 continua bloqueado por P-07 e 3.4–3.5/4.1–4.5"
 blocked_by: []
-last_session: "Story 3.2: schema ClickHouse de traces, DDL com partição/TTL por ingested_at, ordem tenant/projeto/serviço/status/tempo, bloom filters e sem MV de RED; 1B spans locais em 24h, 7,52x de compressão, trace lookup p95 328 ms, serviço/status p95 178 ms, service map 9/9 e correlação log↔trace ok; não é G1; evidência em docs/dev/story-3.2-handoff.md."
+last_session: "Story 3.3: writer ClickHouse RowBinary com spool/checkpoint, dedupe por event_id e token, DLQ e métricas; run local de 400k/s por 60s (24M eventos, lag p95 1,4s, 18 parts, 0 Too many parts), dedupe de 50k e recuperação de 100k após crash; não é G1; evidência em docs/dev/story-3.3-handoff.md."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E3 — Spikes de armazenamento, consulta e tenancy** |
-| Story | **3.2 — Schema ClickHouse para traces** |
-| Task | **AC1–AC4 — schema, 1B spans, trace lookup, serviço/status, service map e correlação** |
+| Story | **3.3 — Ingestão ClickHouse com dedupe** |
+| Task | **AC1–AC3 — throughput local, dedupe por `event_id` e recuperação após crash** |
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `03f01e7` |
-| Próxima ação | Story 3.3 — caminho de ingestão ClickHouse com dedupe |
-| Bloqueios | 2.4 (T1): P-07, 3.3–3.5/4.1–4.5 e rampa contínua; não bloqueia a 3.3 |
-| Última sessão | Story 3.2: 1B spans locais, 7,52x, trace lookup p95 328 ms, serviço/status p95 178 ms, service map 9/9 e correlação ok; não é G1 |
+| Último commit | `9650da1` |
+| Próxima ação | Story 3.4 — VictoriaMetrics, MetricsQL e cardinalidade |
+| Bloqueios | 2.4 (T1): P-07, 3.4–3.5/4.1–4.5 e rampa contínua; não bloqueia a 3.4 |
+| Última sessão | Story 3.3: 400k/s locais por 60s, 24M eventos, lag p95 1,4s, dedupe 50k e recuperação 100k; não é G1 |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -88,7 +88,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E2 | 2.4 | Ambiente reproduzível + baseline | `blocked` | Perfil T1, Terraform AWS de referência, custo/cleanup e guards de gasto/root; pré-baseline local 3×60s a 99.935,1/s (pass) em `BENCHMARKS.md`; falta apply/baseline T1 (P-07 + Stories 3.2–3.5/4.1–4.5); evidência em `docs/dev/story-2.4-handoff.md` |
 | P0-E3 | 3.1 | Schema ClickHouse para logs | `done` | DDL com partição/TTL por `ingested_at`, ordem tenant/projeto/serviço/tempo e codecs; 1B linhas locais em 24 h, **6,98x**, `q03` p95 **263 ms**, TTL 7/15 pass; `make smoke` verde; não é G1; evidência em `docs/dev/story-3.1-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b/` |
 | P0-E3 | 3.2 | Schema ClickHouse para traces | `done` | DDL com partição/TTL por `ingested_at`, ordem tenant/projeto/serviço/status/tempo, bloom filters e sem MV de RED; 1B spans locais em 24 h, **7,52x**, trace lookup p95 **328 ms**, serviço/status p95 **178 ms**, service map 9/9 e correlação log↔trace ok; `make smoke` verde; não é G1; evidência em `docs/dev/story-3.2-handoff.md` e `bench/clickhouse/traces/results/2026-11-02-local-1b/` |
-| P0-E3 | 3.3 | Ingestão ClickHouse + dedupe | `todo` | Depende de 3.1/3.2 |
+| P0-E3 | 3.3 | Ingestão ClickHouse + dedupe | `done` | Writer RowBinary com spool/checkpoint, dedupe por `event_id` e token, DLQ e métricas; run local 400k/s por 60s, **24M eventos**, lag p95 **1,4s**, 18 parts, 0 `Too many parts`, dedupe 50k e recuperação 100k após crash; 1M/s/1h no T1 pendente (P-07/4.1/4.3); não é G1; evidência em `docs/dev/story-3.3-handoff.md` e `bench/clickhouse/ingest/results/2026-11-02-local-400k/` |
 | P0-E3 | 3.4 | VictoriaMetrics + cardinalidade | `todo` | Depende de 3.1 |
 | P0-E3 | 3.5 | Query/retenção/row policies | `todo` | Depende de 3.1-3.4 |
 | P0-E4 | 4.1 | Gateway OTLP | `todo` | Depende de 1.1 |
@@ -113,7 +113,7 @@ Atalho no OpenCode: `/continue`.
 ## Gate G1 — checklist de saída da Fase 0
 
 - [ ] 1M eventos/s por 1 hora no workload de referência
-- [ ] Lag p95 < 10s; zero perda para eventos confirmados
+- [ ] Lag p95 < 10s; zero perda para eventos confirmados (local 3.3: p95 1,4s e crash/replay de 100k sem perda; T1/caos pendentes)
 - [ ] p95 < 1s em 1B linhas/24h (logs local: `q03` p95 263 ms; traces local: trace lookup p95 328 ms; T1/gateway pendentes)
 - [ ] p95 < 3s em 10B linhas/7d
 - [ ] Compressão ≥ 5x em logs e traces (logs local 6,98x; traces local 7,52x; T1 pendente)
@@ -122,8 +122,8 @@ Atalho no OpenCode: `/continue`.
 - [ ] 100k pontos < 100ms; bundle inicial < 180 KB gzip
 - [ ] 3 design partners com dados reais
 - [x] ADRs aprovadas (storage, gateway, fila, frontend, tenancy, benchmark)
-- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; T1 pendente)
-- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2 locais e pré-baseline publicados; baseline T1 pendente de P-07 e 3.3–3.5/4.1–4.5)
+- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; T1 pendente)
+- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3 locais e pré-baseline publicados; baseline T1 pendente de P-07 e 3.4–3.5/4.1–4.5)
 
 **Só depois de todos os itens:** atualizar `phase: 1` e começar o detalhamento da Fase 1.
 
@@ -156,6 +156,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-01 | Story 2.4 | P0 / 2.4 / AC1–AC3 | Perfil T1 (`t1.json`: 6 CH/3 VM/6 gateway/4 NATS/2 loadgen; 1M/s; 168 h), Terraform AWS de referência validado, `cluster.sh` com `check/cost/plan/apply/status/destroy` e guards de gasto/root, modelo de custo (USD 41,79/h; 30.504,49/mês), `baseline.sh` (warm-up/ramp/medido) e `bench-sink`; pré-baseline local 3×60s a 99.932–99.939/s (0,007% spread; report **pass**), publicada em `BENCHMARKS.md`; `make ci`, `bench-env-check`, `go test -race` e `terraform validate` verdes; cluster T1 **não** provisionado; evidência em `docs/dev/story-2.4-handoff.md` | `5b6096d` | P-07 + 3.1/4.1 |
 | 2026-11-02 | Story 3.1 | P0 / 3.1 / AC1–AC3 | Schema ClickHouse de logs (`0001_otel_logs.sql`) com partição/TTL por `ingested_at`, `ORDER BY` tenant/projeto/serviço/tempo, TTL por `retention_days` e codecs; teste de contrato no `make test`; dataset local de 1B linhas em 24 h (20×50M) em 40 min 20 s, **6,98x** de compressão, `q03` p95 **263 ms**/p99 299 ms, TTL 7/15 pass; merges parados no run local para caber no disco; `make fmt/lint/test/build/smoke` verdes; **não é G1**; evidência em `docs/dev/story-3.1-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b/` | `494391a` | Story 3.2 |
 | 2026-11-02 | Story 3.2 | P0 / 3.2 / AC1–AC4 | Schema ClickHouse de traces (`0002_otel_traces.sql`) com partição/TTL por `ingested_at`, `ORDER BY` tenant/projeto/serviço/status/tempo, bloom filters em trace/span/parent, `set` de serviço e nenhuma MV de RED (AD-21); teste de contrato no `make test`; dataset local de 1B spans (100M traces de 10 spans, 20×50M) em 32 min 31 s, **7,52x** de compressão, trace lookup p95 **328 ms**, serviço/status/24h p95 **178 ms**, service map 9 nós/9 arestas e correlação log↔trace nos dois sentidos; merges parados no run local; `make fmt/lint/test/build/smoke` verdes; **não é G1**; evidência em `docs/dev/story-3.2-handoff.md` e `bench/clickhouse/traces/results/2026-11-02-local-1b/` | `03f01e7` | Story 3.3 |
+| 2026-11-02 | Story 3.3 | P0 / 3.3 / AC1–AC3 | Writer ClickHouse (`internal/adapters/clickhouse/writer`) com batches RowBinary, spool local durável (`fsync`+checkpoint), dedupe por `event_id`, `insert_deduplication_token` estável, retry, DLQ e métricas; migration `0003_ingest_dedupe.sql`; `chloadgen` com `--dedupe-test`, `--recover`, `--crash-after-insert` e dry-run; `bench/clickhouse/ingest/run.sh` e alvos `make bench-clickhouse-ingest*`; run local de **400k/s por 60s** (24M eventos, lag p95 **1,4s**, 18 parts, 0 `Too many parts`, 0 erros de insert), dedupe de 50k e recuperação de 100k após crash; `make fmt/lint/test/build` e `make smoke` verdes; **não é G1**; 1M/s/1h no T1 pendente; evidência em `docs/dev/story-3.3-handoff.md` e `bench/clickhouse/ingest/results/2026-11-02-local-400k/` | `9650da1` | Story 3.4 |
 
 ## Regras de atualização
 
