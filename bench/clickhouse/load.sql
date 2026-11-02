@@ -1,15 +1,21 @@
 -- Synthetic OTLP log records for the Story 3.1 ClickHouse storage spike.
 --
 -- Parameters:
---   {base:DateTime64(9)}  end of the 24h event-time window (also the max timestamp)
+--   {base:DateTime64(9)}  end of the 24h event-time window (max timestamp)
 --   {offset:UInt64}       first global row index of the chunk
 --   {count:UInt64}        number of rows in the chunk
+--   {rows:UInt64}         total rows in the dataset
 --
 -- The dimensions come from different slices of one CityHash64 so tenant,
 -- project, service and severity are independent. A modulo-only generator
 -- makes some tenant/project/service/severity combinations impossible
 -- (for example, tenant-0 + project-0 + checkout + ERROR), which would make
 -- the q03 search return zero rows.
+--
+-- Timestamps are ordered by the global row index: each 50M-row chunk covers
+-- a contiguous ~1.2h slice of the 24h window. That is how real ingestion
+-- arrives over time, and it keeps the q03 1h search on the last chunk instead
+-- of touching every part of every chunk.
 INSERT INTO otel_logs
 SELECT
     tenant_id,
@@ -54,7 +60,7 @@ FROM
         SELECT
             number,
             cityHash64(number) AS h,
-            toDateTime64({base:DateTime64(9)} - toIntervalSecond(number % 86400) - toIntervalNanosecond(number % 1000000000), 9, 'UTC') AS ts
+            toDateTime64({base:DateTime64(9)} - toIntervalSecond(86400) + toIntervalSecond(intDiv(number * 86400, {rows:UInt64}) + 1), 9, 'UTC') AS ts
         FROM numbers({offset:UInt64}, {count:UInt64})
     )
 );

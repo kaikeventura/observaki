@@ -15,7 +15,7 @@ de retenção de 7 e 15 dias.
 | Container | Sobe `clickhouse/clickhouse-server:26.8` com o perfil de memória/CPU de `config/bench.xml` |
 | Schema | Aplica `internal/adapters/clickhouse/migrations/0001_otel_logs.sql` |
 | TTL | Cria uma tabela clone, insere 5 linhas com 7/15 dias e força `OPTIMIZE ... FINAL`; espera 3 sobreviventes |
-| Dataset | Gera 1B linhas determinísticas em chunks de 50M, com 24 h de event time, 2 tenants, 4 projetos, 8 serviços e 90/7/3% INFO/WARN/ERROR |
+| Dataset | Gera 1B linhas determinísticas em chunks de 50M, com 24 h de event time ordenado no tempo, 2 tenants, 4 projetos, 8 serviços e 90/7/3% INFO/WARN/ERROR |
 | Consulta | Roda `queries/q03_filtered_logs.sql` (tenant + projeto + serviço + severidade + 1 h + `LIMIT 100`) com 1 warm-up e 20 repetições |
 | Relatório | Publica `report.md`, `report.json`, `runs.jsonl`, `ttl.json` e `run.log` em `results/<timestamp>/` |
 
@@ -76,6 +76,11 @@ pelo script. Para recriar o container com o perfil atual:
   da tabela principal durante a carga; o relatório mede a tabela com parts não
   consolidadas e registra isso nas limitações. No T1 os merges rodam normal e
   são parte do comportamento medido.
+- **Chunks ordenados no tempo.** Cada chunk de 50M cobre ~1,2 h contíguas das
+  24 h; a consulta de 1 h toca as parts do último chunk, não as parts de todos
+  os chunks. Sem isso, cada part cobriria 24 h e a `q03` abriria ~7.000 parts.
+  O limite local de parts é elevado para 5.000/6.000 apenas no run sem merges;
+  o schema de produção não carrega esse tuning.
 
 ## Limitações
 

@@ -193,7 +193,7 @@ stop_merges() {
 	fi
 	log "stopping background merges for otel_logs (local 1B disk bound)"
 	ch --query "SYSTEM STOP MERGES observaki_bench.otel_logs"
-	ch --query "ALTER TABLE otel_logs MODIFY SETTING parts_to_delay_insert = 1000, parts_to_throw_insert = 2000"
+	ch --query "ALTER TABLE otel_logs MODIFY SETTING parts_to_delay_insert = 5000, parts_to_throw_insert = 6000"
 }
 
 table_count() {
@@ -284,7 +284,7 @@ load() {
 		fi
 		started=$(date +%s)
 		docker exec "$CONTAINER" clickhouse-client --database "$DATABASE" \
-			--param_base="$BASE" --param_offset="$offset" --param_count="$count" \
+			--param_base="$BASE" --param_offset="$offset" --param_count="$count" --param_rows="$ROWS" \
 			--query "$(cat "$LOAD_SQL")"
 		elapsed=$(( $(date +%s) - started ))
 		offset=$((offset + count))
