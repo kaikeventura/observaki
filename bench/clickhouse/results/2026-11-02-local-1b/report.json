@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-02T18:49:47Z",
+  "commit": "494391a",
+  "dirty": false,
+  "clickhouse": {
+    "version": "26.8.36.3",
+    "image": "clickhouse/clickhouse-server:26.8",
+    "container": "observaki-ch31"
+  },
+  "host": {
+    "hostname": "kabuntu-zenbook",
+    "cpus": 22,
+    "memory_bytes": 16092479488,
+    "disk_total_bytes": 473626828800,
+    "disk_free_bytes": 45680427008,
+    "data_dir": "/tmp/opencode/observaki-ch31"
+  },
+  "schema": {
+    "migration": "0001_otel_logs.sql",
+    "sha256": "2daca91e22cdbfe3cfb367fb8f8241e9839464653f2a0125f3352c35e7197e05",
+    "partition_by": "toDate(ingested_at)",
+    "order_by": "(tenant_id, project_id, service_name, timestamp)",
+    "ttl": "ingested_at + INTERVAL retention_days DAY"
+  },
+  "dataset": {
+    "rows": 1000000000,
+    "chunk_rows": 50000000,
+    "chunks": 20,
+    "base": "2026-11-02 18:07:19",
+    "window_hours": 24,
+    "body_avg_bytes": 165.3,
+    "tenants": 2,
+    "projects": 4,
+    "services": 8,
+    "severity_mix": "90% INFO / 7% WARN / 3% ERROR",
+    "retention_days": [
+      7,
+      15
+    ]
+  },
+  "storage": {
+    "parts": 1921,
+    "merges_stopped": true,
+    "compressed_bytes": 83271749197,
+    "uncompressed_bytes": 580989960496,
+    "ratio": 6.98,
+    "compressed_bytes_per_row": 83.3
+  },
+  "query": {
+    "id": "q03",
+    "description": "Filtered log search by service and severity, 1h window",
+    "runs": 20,
+    "p50_ms": 248.841,
+    "p95_ms": 262.983,
+    "p99_ms": 298.510,
+    "rows_read_mean": 21282816,
+    "bytes_read_mean": 426995180,
+    "returned_mean": 100,
+    "tenant": "tenant-0",
+    "project": "project-0",
+    "service": "checkout",
+    "severity": "ERROR",
+    "start": "2026-11-02 17:07:19",
+    "end": "2026-11-02 18:07:19"
+  },
+  "ttl": {
+    "inserted": 5,
+    "remaining": 3,
+    "expected_remaining": 3,
+    "keep_7d": 1,
+    "keep_15d_8d_old": 1,
+    "keep_15d_1d_old": 1,
+    "expired_7d": 0,
+    "expired_15d": 0,
+    "passed": true
+  },
+  "verdict": {
+    "status": "pass",
+    "reason": "compression >= 5x, q03 p95 < 1000 ms and q03 returned rows",
+    "criteria": {
+      "compression_ge_5x": true,
+      "query_p95_lt_1s": true,
+      "query_returned_rows": true,
+      "ttl_removes_expired": true
+    }
+  },
+  "reproduction": "./bench/clickhouse/run.sh --rows 1000000000 --chunk-rows 50000000 --runs 20 --stop-merges --base \"2026-11-02 18:07:19\"",
+  "limitations": [
+    "single-node local ClickHouse, not the T1 cluster (Story 2.4 profile requires P-07)",
+    "the 1B dataset is generated with ClickHouse SQL, not through the OTLP gateway (Story 4.1/3.3)",
+    "q03 uses the last hour of the synthetic 24h window; the OS page cache is warm after the warm-up run",
+    "the local host is smaller than the query-1b scenario reference (16 vCPU/64 GB); the report records the real hardware",
+    "no replication, NATS, Query Service, row policies or chaos; those are Stories 3.3/3.5/4.5",
+    "background merges are stopped for the main table during the local load to bound disk use; the table is measured with unmerged parts"
+  ]
+}

@@ -61,3 +61,6 @@ bench/env/terraform/crash.*.log
 
 # OS generated
 .fuse_hidden*
+
+# Benchmark evidence keeps its harness log.
+!bench/clickhouse/results/**/run.log

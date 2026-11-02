@@ -1,0 +1,11 @@
+{
+  "inserted": 5,
+  "remaining": 3,
+  "expected_remaining": 3,
+  "keep_7d": 1,
+  "keep_15d_8d_old": 1,
+  "keep_15d_1d_old": 1,
+  "expired_7d": 0,
+  "expired_15d": 0,
+  "passed": true
+}

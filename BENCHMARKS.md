@@ -1,8 +1,9 @@
 # Observaki — Benchmarks
 
-> **Status (2026-11-01):** pré-baseline local do harness publicada; baseline T1
-> **não executado**. Nenhum número deste arquivo é evidência do Gate G1 até a
-> execução no cluster T1 com gateway, armazenamento e o commit registrados.
+> **Status (2026-11-02):** pré-baseline local do harness e spike local de
+> armazenamento de logs (1B linhas) publicados; baseline T1 **não executado**.
+> Nenhum número deste arquivo é evidência do Gate G1 até a execução no cluster
+> T1 com gateway, armazenamento e o commit registrados.
 
 Este arquivo segue o ADR-0006: todo número publicado declara commit, hardware,
 configuração, seed, duração e veredito; falhas e limitações ficam visíveis; e
@@ -13,7 +14,8 @@ benchmark de fornecedor não entra sem reprodução própria.
 | Item | Situação |
 |---|---|
 | Pré-baseline local do harness (100k/s, 3 × 60 s) | ✅ publicada; mecanismo de geração, transporte, coleta e relatório validado |
-| Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.1/4.1 |
+| Schema ClickHouse de logs (1B linhas, local) | ✅ publicado; 6,98x, `q03` p95 263 ms e TTL 7/15 ok; **não é G1** |
+| Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.2–3.5/4.1–4.5 |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
 | Gate G1 | ⛔ aberto |
@@ -103,6 +105,56 @@ laptop; a duração é de 60 s; não há ClickHouse, VictoriaMetrics, NATS ou
 gateway. O G1 exige 1M/s por 1 h no cluster T1, lag p95 < 10 s e zero perda
 confirmada.
 
+## Story 3.1 — schema ClickHouse de logs (local, 1B)
+
+**O que é:** o spike de schema da Story 3.1 em um ClickHouse 26.8 single-node
+local, com 1B de linhas sintéticas em 24 h. Mede compressão, a consulta `q03`
+(tenant + projeto + serviço + severidade + janela de 1 h + `LIMIT 100`) e a
+expiração dos buckets de retenção de 7 e 15 dias. **Não é o gateway, não é o
+cluster T1 e não é evidência do Gate G1.**
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Commit do schema/harness | `494391a` (limpo, sem alterações não commitadas) |
+| Carga (UTC) | 2026-11-02T18:07:20Z a 2026-11-02T18:47:40Z (40 min 20 s; ~413k linhas/s) |
+| Dataset | 1.000.000.000 linhas; 20 chunks × 50.000.000; 24 h ordenadas no tempo |
+| Dimensões | 2 tenants × 4 projetos × 8 serviços; 90% INFO / 7% WARN / 3% ERROR |
+| Corpo | 165,3 B de média; IDs de trace/span aleatórios |
+| Retenção | 7 e 15 dias por linha (`retention_days`) |
+| Hardware | `kabuntu-zenbook`, 22 CPUs, 15,0 GiB de RAM, disco de 441,1 GiB (42,6 GiB livres ao fim) |
+| ClickHouse | 26.8.36.3 (`clickhouse/clickhouse-server:26.8`) |
+| Schema | [`0001_otel_logs.sql`](internal/adapters/clickhouse/migrations/0001_otel_logs.sql), sha256 `2daca91e22cdbfe3cfb367fb8f8241e9839464653f2a0125f3352c35e7197e05` |
+| Artefatos | [`report.md`](bench/clickhouse/results/2026-11-02-local-1b/report.md), [`report.json`](bench/clickhouse/results/2026-11-02-local-1b/report.json), [`handoff`](docs/dev/story-3.1-handoff.md) |
+
+### Resultados
+
+| Métrica | Valor |
+|---|---:|
+| Compressão | **6,98x** (77,55 GiB comprimidos / 541,09 GiB sem compressão) |
+| Bytes comprimidos/linha | 83,3 B |
+| Partes ativas | 1.921 (merges de background parados no run local) |
+| `q03` p50 | 248,8 ms |
+| `q03` p95 | **263,0 ms** (alvo < 1.000 ms) |
+| `q03` p99 | 298,5 ms |
+| Linhas lidas (média) | 21.282.816 |
+| Bytes lidos (média) | 426.995.180 B |
+| Linhas retornadas | 100 |
+| TTL 7/15 | **pass**: 5 inseridas, 3 sobreviveram; expiradas de 7 e 15 dias removidas; a linha de 15 dias com 8 dias de idade sobreviveu |
+
+### Veredito
+
+**Pass local para o schema.** A compressão ficou 39,6% acima do alvo de 5x, a
+`q03` ficou 3,8x abaixo do alvo de 1 s e os dois buckets de TTL removeram apenas
+o que estava expirado. O run usou SQL para gerar o dataset, parou os merges de
+background para caber no disco local e mediu a tabela com 1.921 partes; esses
+fatos estão nas limitações do relatório.
+
+**Não é um resultado do G1.** Não há gateway, NATS, Query Service, row
+policies, réplica, caos nem o hardware T1. O baseline T1 continua bloqueado por
+P-07 e pelas Stories 3.2–3.5/4.1–4.5.
+
 ## Cluster de referência T1 (pendente)
 
 O perfil está em [`bench/env/t1.json`](bench/env/t1.json) e a documentação de
@@ -184,8 +236,8 @@ sem cluster com `--dry-run`.
    `DECISIONS.md`). O perfil de referência é AWS; outra nuvem exige um adapter
    Terraform e uma tabela de preços, mas não muda o perfil.
 2. **Gateway OTLP (Story 4.1)** para receber o workload e calcular RED.
-3. **Schema e ingestão ClickHouse (Stories 3.1–3.3)** para medir compressão de
-   armazenamento, lag e perda confirmada.
+3. **Ingestão ClickHouse (Story 3.3)** para medir lag e perda confirmada; o
+   schema de logs (Story 3.1) já tem spike local com 1B linhas.
 4. **VictoriaMetrics e cardinalidade (Story 3.4)** para as métricas e o RED.
 5. **Query Service (Story 3.5)** para as 20 consultas de dashboard.
 6. **Automação de caos (Story 4.5)** para o teste de falha e DLQ.

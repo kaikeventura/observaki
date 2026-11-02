@@ -1,0 +1,45 @@
+[18:07:19] Story 3.1 ClickHouse logs spike
+[18:07:19] rows=1000000000 chunk_rows=50000000 runs=20 base=2026-11-02 18:07:19
+[18:07:19] container=observaki-ch31 image=clickhouse/clickhouse-server:26.8 data_dir=/tmp/opencode/observaki-ch31 results=bench/clickhouse/results/2026-11-02-local-1b
+[18:07:19] stopping background merges for otel_logs (local 1B disk bound)
+[18:07:19] TTL check: 7-day and 15-day buckets
+[18:07:20] TTL result: remaining=3 keep7=1 keep15mid=1 keep15new=1 expired7=0 expired15=0 pass=true
+[18:07:20] creating a fresh logs table
+[18:07:20] stopping background merges for otel_logs (local 1B disk bound)
+[18:09:21] loaded 50000000/1000000000 rows (chunk 50000000 in 120s, free 120.4 GiB)
+[18:11:25] loaded 100000000/1000000000 rows (chunk 50000000 in 124s, free 117.1 GiB)
+[18:13:31] loaded 150000000/1000000000 rows (chunk 50000000 in 126s, free 112.9 GiB)
+[18:15:34] loaded 200000000/1000000000 rows (chunk 50000000 in 123s, free 109.6 GiB)
+[18:17:37] loaded 250000000/1000000000 rows (chunk 50000000 in 123s, free 105.4 GiB)
+[18:19:39] loaded 300000000/1000000000 rows (chunk 50000000 in 122s, free 101.2 GiB)
+[18:21:41] loaded 350000000/1000000000 rows (chunk 50000000 in 122s, free 97.1 GiB)
+[18:23:41] loaded 400000000/1000000000 rows (chunk 50000000 in 120s, free 92.9 GiB)
+[18:25:39] loaded 450000000/1000000000 rows (chunk 50000000 in 118s, free 88.7 GiB)
+[18:27:39] loaded 500000000/1000000000 rows (chunk 50000000 in 120s, free 84.5 GiB)
+[18:29:39] loaded 550000000/1000000000 rows (chunk 50000000 in 120s, free 80.3 GiB)
+[18:31:40] loaded 600000000/1000000000 rows (chunk 50000000 in 121s, free 76.1 GiB)
+[18:33:39] loaded 650000000/1000000000 rows (chunk 50000000 in 119s, free 71.9 GiB)
+[18:35:37] loaded 700000000/1000000000 rows (chunk 50000000 in 118s, free 67.7 GiB)
+[18:37:40] loaded 750000000/1000000000 rows (chunk 50000000 in 123s, free 63.6 GiB)
+[18:39:40] loaded 800000000/1000000000 rows (chunk 50000000 in 120s, free 59.3 GiB)
+[18:41:39] loaded 850000000/1000000000 rows (chunk 50000000 in 119s, free 55.2 GiB)
+[18:43:40] loaded 900000000/1000000000 rows (chunk 50000000 in 121s, free 51.0 GiB)
+[18:45:43] loaded 950000000/1000000000 rows (chunk 50000000 in 123s, free 46.7 GiB)
+[18:47:40] loaded 1000000000/1000000000 rows (chunk 50000000 in 117s, free 42.6 GiB)
+[18:48:04] storage: rows=1000000000 parts=1921 compressed=83271749197 uncompressed=580989960496 body_avg=165.3
+[18:48:04] query warm-up (not counted)
+[18:48:13] measured 20 query runs
+[18:48:13] report: bench/clickhouse/results/2026-11-02-local-1b/report.md
+[18:48:13] json:   bench/clickhouse/results/2026-11-02-local-1b/report.json
+[18:49:15] Story 3.1 ClickHouse logs spike
+[18:49:15] rows=1000000000 chunk_rows=50000000 runs=20 base=2026-11-02 18:07:19
+[18:49:15] container=observaki-ch31 image=clickhouse/clickhouse-server:26.8 data_dir=/tmp/opencode/observaki-ch31 results=bench/clickhouse/results/2026-11-02-local-1b
+[18:49:15] stopping background merges for otel_logs (local 1B disk bound)
+[18:49:15] TTL check: 7-day and 15-day buckets
+[18:49:16] TTL result: remaining=3 keep7=1 keep15mid=1 keep15new=1 expired7=0 expired15=0 pass=true
+[18:49:17] reusing 1000000000 rows
+[18:49:39] storage: rows=1000000000 parts=1921 compressed=83271749197 uncompressed=580989960496 body_avg=165.3
+[18:49:39] query warm-up (not counted)
+[18:49:47] measured 20 query runs
+[18:49:47] report: bench/clickhouse/results/2026-11-02-local-1b/report.md
+[18:49:47] json:   bench/clickhouse/results/2026-11-02-local-1b/report.json
