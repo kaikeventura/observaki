@@ -7,7 +7,7 @@ paradigm: 'Ports & Adapters (hexagonal) no control plane + pipes-and-filters no 
 scope: 'Plataforma Observaki: ingestão, armazenamento, consulta, control plane, frontend, deploy e operação'
 status: final
 created: '2026-10-31'
-updated: '2026-10-31'
+updated: '2026-11-02'
 binds: ['FR-1..FR-64', 'NFR-1..NFR-15']
 sources:
   - '_bmad-output/planning-artifacts/prds/prd-observaki-2026-10-31/prd.md'
@@ -454,12 +454,13 @@ erDiagram
     PROJECT ||--o{ RETENTION_POLICY : applies
     USER ||--o{ MEMBERSHIP : has
     ORGANIZATION ||--o{ MEMBERSHIP : includes
-    DASHBOARD ||--o{ PANEL : contains
-    ALERT_RULE ||--o{ NOTIFICATION_CHANNEL : routes
-    ALERT_RULE ||--o{ SILENCE : silenced_by
+    ORGANIZATION ||--o{ NOTIFICATION_CHANNEL : owns
+    ALERT_RULE ||--o{ ALERT_RULE_CHANNEL : routes
+    NOTIFICATION_CHANNEL ||--o{ ALERT_RULE_CHANNEL : targets
+    PROJECT ||--o{ SILENCE : owns
     PROJECT ||--o{ SLO : defines
-    SLO ||--o{ ERROR_BUDGET : tracks
-    PROJECT ||--o{ AUDIT_EVENT : records
+    SLO ||--|| ERROR_BUDGET : tracks
+    ORGANIZATION ||--o{ AUDIT_EVENT : records
 
     ORGANIZATION {
         uuid id PK
@@ -471,8 +472,7 @@ erDiagram
         uuid org_id FK
         string name
         string slug
-        int retention_logs_days
-        int retention_traces_days
+        bigint generation
     }
     DASHBOARD {
         uuid id PK
@@ -564,3 +564,5 @@ observaki/
 ## Architecture Decisions Log
 
 *As decisões completas, alternativas e rationale estão no `.memlog.md` desta run. IDs AD-1..AD-35 são estáveis; mudanças futuras adicionam AD-36+ sem renumerar.*
+
+*2026-11-02 — seed do ERD alinhado ao DDL canônico do addendum e a AD-28: sem entidade `PANEL`; canais via `alert_rule_channels`; retenção só em `retention_policies`; `silences` e `audit_events` com o dono correto; `error_budgets` 1:1 com `slos`. Nenhum AD novo e AD-28 inalterado — foi correção do seed, não mudança de invariante.*

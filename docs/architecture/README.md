@@ -69,16 +69,23 @@ armazenamento e mensageria continuam sendo as dos ADs:
 - Região, tamanho de nó e fator de replicação exatos: dependem do baseline T1 (P-07) e
   do run de 1M/s por 1 h.
 
-## Divergências encontradas na spine
+## Alinhamento com a spine (2026-11-02)
 
-1. **`PANEL` no ERD da spine × AD-28.** O ERD da spine tem `DASHBOARD ||--o{ PANEL`;
-   AD-28 diz explicitamente "dashboard definition JSONB sem entidade `PANEL` separada".
-   A página 6 segue o AD (dashboard com `definition : jsonb`) e marca a divergência no
-   próprio nó. A spine não foi editada: corrigir o artefato binding é uma decisão sua.
-2. **Roteamento de canal de alerta.** A spine liga `ALERT_RULE` direto a
-   `NOTIFICATION_CHANNEL`. A página 6 usa a tabela de junção `alert_rule_channel`, que é
-   o que AD-28 ("canais normalizados por projeto/org") implica para muitos-para-muitos.
-   É refinamento de modelagem, não conflito — mas vale alinhar o texto da spine.
+O seed do ERD da spine foi corrigido para bater com **AD-28** e com o DDL canônico do
+addendum (`prds/prd-observaki-2026-10-31/addendum.md`, §5.4). Nenhum AD novo e AD-28
+inalterado — foi correção de seed, não mudança de invariante.
+
+| Antes | Depois |
+|---|---|
+| `DASHBOARD ||--o{ PANEL` | removido — dashboard é `definition JSONB` (AD-28) |
+| `ALERT_RULE ||--o{ NOTIFICATION_CHANNEL` | `ALERT_RULE` e `NOTIFICATION_CHANNEL` ligados por `ALERT_RULE_CHANNEL` |
+| `retention_logs_days` / `retention_traces_days` em `PROJECT` | retenção só em `retention_policies` |
+| `ALERT_RULE ||--o{ SILENCE` | `PROJECT ||--o{ SILENCE` — silence casa por matcher, não por FK |
+| `PROJECT ||--o{ AUDIT_EVENT` | `ORGANIZATION ||--o{ AUDIT_EVENT` |
+| `SLO ||--o{ ERROR_BUDGET` | `SLO ||--|| ERROR_BUDGET` (1:1) |
+
+A página 6 já refletia esse modelo; com a spine corrigida, diagrama e artefato binding
+não divergem mais. O lint da spine (`lint_spine.py`) passou com 0 achados.
 
 ## Regenerar os exports
 
