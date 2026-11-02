@@ -1,0 +1,300 @@
+[22:27:01] Story 3.4 VictoriaMetrics spike
+[22:27:01] series=1000000 rate=1000000 duration=1h workers=16 batch=5000 runs=5
+[22:27:01] results=/home/kaike/Github/observaki/bench/victoriametrics/results/2026-11-02-local-1m-1h
+[22:27:03] building vmloadgen/vmquerybench/vmadmission (v0.0.1-alpha-37-gc153046-dirty/c153046)
+[22:27:04] correctness: rate, histogram_quantile and label aggregation
+vmquerybench: verify rate_alpha pass want=0.666666667 got=0.666666667
+vmquerybench: verify rate_beta pass want=0.333333333 got=0.333333333
+vmquerybench: verify increase_alpha pass want=200.000000000 got=200.000000000
+vmquerybench: verify label_aggregation_200 pass want=200.000000000 got=200.000000000
+vmquerybench: verify label_aggregation_500 pass want=100.000000000 got=100.000000000
+vmquerybench: verify histogram_quantile_p95 pass want=0.475000000 got=0.475000000
+vmquerybench: verify histogram_quantile_p50 pass want=0.250000000 got=0.250000000
+vmquerybench: verify pass checks=7
+[22:27:13] sustained load: 1000000/s for 1h with 1000000 series
+time=2026-11-02T19:27:14.386-03:00 level=INFO msg="starting load" mode=load series=1000000 rate=1000000 duration=1h0m0s workers=16 batch_series=5000
+time=2026-11-02T19:27:29.387-03:00 level=INFO msg=progress sent=14960000 rate=997285.0308966326 errors=0 rejected=0
+time=2026-11-02T19:27:44.387-03:00 level=INFO msg=progress sent=29920000 rate=997323.2090067771 errors=0 rejected=0
+time=2026-11-02T19:27:59.387-03:00 level=INFO msg=progress sent=44960000 rate=999106.5761219574 errors=0 rejected=0
+time=2026-11-02T19:28:14.387-03:00 level=INFO msg=progress sent=59920000 rate=998654.5986249004 errors=0 rejected=0
+time=2026-11-02T19:28:29.388-03:00 level=INFO msg=progress sent=74960000 rate=999450.6595981626 errors=0 rejected=0
+time=2026-11-02T19:28:44.387-03:00 level=INFO msg=progress sent=89920000 rate=999104.6810510025 errors=0 rejected=0
+time=2026-11-02T19:28:59.387-03:00 level=INFO msg=progress sent=104960000 rate=999611.4638619947 errors=0 rejected=0
+time=2026-11-02T19:29:14.387-03:00 level=INFO msg=progress sent=119920000 rate=999328.9238360956 errors=0 rejected=0
+time=2026-11-02T19:29:29.387-03:00 level=INFO msg=progress sent=134960000 rate=999698.7028701538 errors=0 rejected=0
+time=2026-11-02T19:29:44.387-03:00 level=INFO msg=progress sent=149920000 rate=999461.4859780434 errors=0 rejected=0
+time=2026-11-02T19:29:59.387-03:00 level=INFO msg=progress sent=164960000 rate=999754.7307403906 errors=0 rejected=0
+time=2026-11-02T19:30:14.387-03:00 level=INFO msg=progress sent=179920000 rate=999548.9931665732 errors=0 rejected=0
+time=2026-11-02T19:30:29.387-03:00 level=INFO msg=progress sent=194960000 rate=999793.0264230479 errors=0 rejected=0
+time=2026-11-02T19:30:44.387-03:00 level=INFO msg=progress sent=209920000 rate=999614.0814268097 errors=0 rejected=0
+time=2026-11-02T19:30:59.387-03:00 level=INFO msg=progress sent=224960000 rate=999819.695029081 errors=0 rejected=0
+time=2026-11-02T19:31:14.387-03:00 level=INFO msg=progress sent=239920000 rate=999665.4603078767 errors=0 rejected=0
+time=2026-11-02T19:31:29.387-03:00 level=INFO msg=progress sent=254960000 rate=999839.6228892044 errors=0 rejected=0
+time=2026-11-02T19:31:44.387-03:00 level=INFO msg=progress sent=269920000 rate=999701.962063674 errors=0 rejected=0
+time=2026-11-02T19:31:59.387-03:00 level=INFO msg=progress sent=284960000 rate=999856.2309792131 errors=0 rejected=0
+time=2026-11-02T19:32:14.387-03:00 level=INFO msg=progress sent=299920000 rate=999732.5007294471 errors=0 rejected=0
+time=2026-11-02T19:32:29.387-03:00 level=INFO msg=progress sent=314960000 rate=999870.7537654225 errors=0 rejected=0
+time=2026-11-02T19:32:44.387-03:00 level=INFO msg=progress sent=329920000 rate=999755.2069315293 errors=0 rejected=0
+time=2026-11-02T19:32:59.387-03:00 level=INFO msg=progress sent=344960000 rate=999883.0746251364 errors=0 rejected=0
+time=2026-11-02T19:33:14.387-03:00 level=INFO msg=progress sent=359920000 rate=999775.6004359265 errors=0 rejected=0
+time=2026-11-02T19:33:29.387-03:00 level=INFO msg=progress sent=374960000 rate=999891.7954117615 errors=0 rejected=0
+time=2026-11-02T19:33:44.387-03:00 level=INFO msg=progress sent=389920000 rate=999792.9769769676 errors=0 rejected=0
+time=2026-11-02T19:33:59.387-03:00 level=INFO msg=progress sent=404960000 rate=999900.4326823187 errors=0 rejected=0
+time=2026-11-02T19:34:14.387-03:00 level=INFO msg=progress sent=419920000 rate=999808.0488379388 errors=0 rejected=0
+time=2026-11-02T19:34:29.387-03:00 level=INFO msg=progress sent=434960000 rate=999907.3088614339 errors=0 rejected=0
+time=2026-11-02T19:34:44.387-03:00 level=INFO msg=progress sent=449920000 rate=999820.0812030567 errors=0 rejected=0
+time=2026-11-02T19:34:59.387-03:00 level=INFO msg=progress sent=464960000 rate=999912.2428254491 errors=0 rejected=0
+time=2026-11-02T19:35:14.387-03:00 level=INFO msg=progress sent=479920000 rate=999832.3801452167 errors=0 rejected=0
+time=2026-11-02T19:35:29.387-03:00 level=INFO msg=progress sent=494960000 rate=999917.7697533183 errors=0 rejected=0
+time=2026-11-02T19:35:44.387-03:00 level=INFO msg=progress sent=509920000 rate=999841.000298653 errors=0 rejected=0
+time=2026-11-02T19:35:59.387-03:00 level=INFO msg=progress sent=524960000 rate=999922.4612683597 errors=0 rejected=0
+time=2026-11-02T19:36:14.387-03:00 level=INFO msg=progress sent=539920000 rate=999851.0425983401 errors=0 rejected=0
+time=2026-11-02T19:36:29.387-03:00 level=INFO msg=progress sent=554960000 rate=999926.2779648909 errors=0 rejected=0
+time=2026-11-02T19:36:44.387-03:00 level=INFO msg=progress sent=569920000 rate=999859.1264525882 errors=0 rejected=0
+time=2026-11-02T19:36:59.388-03:00 level=INFO msg=progress sent=584960000 rate=999929.572173571 errors=0 rejected=0
+time=2026-11-02T19:37:14.387-03:00 level=INFO msg=progress sent=599920000 rate=999865.8856980865 errors=0 rejected=0
+time=2026-11-02T19:37:29.387-03:00 level=INFO msg=progress sent=614960000 rate=999934.621901738 errors=0 rejected=0
+time=2026-11-02T19:37:44.387-03:00 level=INFO msg=progress sent=629920000 rate=999871.3847304517 errors=0 rejected=0
+time=2026-11-02T19:37:59.387-03:00 level=INFO msg=progress sent=644960000 rate=999936.7802637329 errors=0 rejected=0
+time=2026-11-02T19:38:14.387-03:00 level=INFO msg=progress sent=659920000 rate=999877.8838149598 errors=0 rejected=0
+time=2026-11-02T19:38:29.387-03:00 level=INFO msg=progress sent=674960000 rate=999939.9111387416 errors=0 rejected=0
+time=2026-11-02T19:38:44.387-03:00 level=INFO msg=progress sent=689920000 rate=999882.5974396062 errors=0 rejected=0
+time=2026-11-02T19:38:59.387-03:00 level=INFO msg=progress sent=704960000 rate=999942.4462696698 errors=0 rejected=0
+time=2026-11-02T19:39:14.387-03:00 level=INFO msg=progress sent=719920000 rate=999888.3084356723 errors=0 rejected=0
+time=2026-11-02T19:39:29.387-03:00 level=INFO msg=progress sent=734960000 rate=999943.9750789371 errors=0 rejected=0
+time=2026-11-02T19:39:44.387-03:00 level=INFO msg=progress sent=749920000 rate=999891.9459299308 errors=0 rejected=0
+time=2026-11-02T19:39:59.387-03:00 level=INFO msg=progress sent=764960000 rate=999946.7013833014 errors=0 rejected=0
+time=2026-11-02T19:40:14.387-03:00 level=INFO msg=progress sent=779920000 rate=999896.4317911838 errors=0 rejected=0
+time=2026-11-02T19:40:29.387-03:00 level=INFO msg=progress sent=794960000 rate=999949.1406780268 errors=0 rejected=0
+time=2026-11-02T19:40:44.387-03:00 level=INFO msg=progress sent=809920000 rate=999900.6843040381 errors=0 rejected=0
+time=2026-11-02T19:40:59.387-03:00 level=INFO msg=progress sent=824960000 rate=999950.232865031 errors=0 rejected=0
+time=2026-11-02T19:41:14.387-03:00 level=INFO msg=progress sent=839920000 rate=999904.2951553887 errors=0 rejected=0
+time=2026-11-02T19:41:29.388-03:00 level=INFO msg=progress sent=854960000 rate=999951.8139073488 errors=0 rejected=0
+time=2026-11-02T19:41:44.388-03:00 level=INFO msg=progress sent=869920000 rate=999906.5952527586 errors=0 rejected=0
+time=2026-11-02T19:41:59.387-03:00 level=INFO msg=progress sent=884960000 rate=999953.5365458179 errors=0 rejected=0
+time=2026-11-02T19:42:14.388-03:00 level=INFO msg=progress sent=899920000 rate=999909.7539869305 errors=0 rejected=0
+time=2026-11-02T19:42:29.387-03:00 level=INFO msg=progress sent=914960000 rate=999955.7220019412 errors=0 rejected=0
+time=2026-11-02T19:42:44.387-03:00 level=INFO msg=progress sent=929920000 rate=999912.8379187784 errors=0 rejected=0
+time=2026-11-02T19:42:59.387-03:00 level=INFO msg=progress sent=944960000 rate=999956.5735016725 errors=0 rejected=0
+time=2026-11-02T19:43:14.387-03:00 level=INFO msg=progress sent=959920000 rate=999916.009823923 errors=0 rejected=0
+time=2026-11-02T19:43:29.387-03:00 level=INFO msg=progress sent=974960000 rate=999958.6122847297 errors=0 rejected=0
+time=2026-11-02T19:43:44.387-03:00 level=INFO msg=progress sent=989920000 rate=999918.4397340807 errors=0 rejected=0
+time=2026-11-02T19:43:59.387-03:00 level=INFO msg=progress sent=1004960000 rate=999959.2259849492 errors=0 rejected=0
+time=2026-11-02T19:44:14.387-03:00 level=INFO msg=progress sent=1019920000 rate=999920.9274036484 errors=0 rejected=0
+time=2026-11-02T19:44:29.387-03:00 level=INFO msg=progress sent=1034960000 rate=999960.6689128838 errors=0 rejected=0
+time=2026-11-02T19:44:44.387-03:00 level=INFO msg=progress sent=1049920000 rate=999923.4711249468 errors=0 rejected=0
+time=2026-11-02T19:44:59.387-03:00 level=INFO msg=progress sent=1064960000 rate=999962.2031320075 errors=0 rejected=0
+time=2026-11-02T19:45:14.387-03:00 level=INFO msg=progress sent=1079920000 rate=999925.4953950419 errors=0 rejected=0
+time=2026-11-02T19:45:29.387-03:00 level=INFO msg=progress sent=1094960000 rate=999963.0560335708 errors=0 rejected=0
+time=2026-11-02T19:45:44.388-03:00 level=INFO msg=progress sent=1109920000 rate=999926.6664024289 errors=0 rejected=0
+time=2026-11-02T19:45:59.387-03:00 level=INFO msg=progress sent=1124960000 rate=999964.0810432757 errors=0 rejected=0
+time=2026-11-02T19:46:14.388-03:00 level=INFO msg=progress sent=1139920000 rate=999928.7622405951 errors=0 rejected=0
+time=2026-11-02T19:46:29.387-03:00 level=INFO msg=progress sent=1154960000 rate=999964.8790795084 errors=0 rejected=0
+time=2026-11-02T19:46:44.388-03:00 level=INFO msg=progress sent=1169920000 rate=999930.4228852806 errors=0 rejected=0
+time=2026-11-02T19:46:59.387-03:00 level=INFO msg=progress sent=1184960000 rate=999965.7142654451 errors=0 rejected=0
+time=2026-11-02T19:47:14.387-03:00 level=INFO msg=progress sent=1199920000 rate=999932.4718148474 errors=0 rejected=0
+time=2026-11-02T19:47:29.387-03:00 level=INFO msg=progress sent=1214960000 rate=999966.7226233553 errors=0 rejected=0
+time=2026-11-02T19:47:44.387-03:00 level=INFO msg=progress sent=1229920000 rate=999934.0392159813 errors=0 rejected=0
+time=2026-11-02T19:47:59.387-03:00 level=INFO msg=progress sent=1244960000 rate=999966.9236490226 errors=0 rejected=0
+time=2026-11-02T19:48:14.388-03:00 level=INFO msg=progress sent=1259920000 rate=999934.9706753704 errors=0 rejected=0
+time=2026-11-02T19:48:29.387-03:00 level=INFO msg=progress sent=1274960000 rate=999968.1286849164 errors=0 rejected=0
+time=2026-11-02T19:48:44.387-03:00 level=INFO msg=progress sent=1289920000 rate=999937.1930869184 errors=0 rejected=0
+time=2026-11-02T19:48:59.387-03:00 level=INFO msg=progress sent=1304960000 rate=999968.6834913294 errors=0 rejected=0
+time=2026-11-02T19:49:14.387-03:00 level=INFO msg=progress sent=1319920000 rate=999938.7412801351 errors=0 rejected=0
+time=2026-11-02T19:49:29.387-03:00 level=INFO msg=progress sent=1334960000 rate=999969.3432257777 errors=0 rejected=0
+time=2026-11-02T19:49:44.387-03:00 level=INFO msg=progress sent=1349920000 rate=999940.1799742877 errors=0 rejected=0
+time=2026-11-02T19:49:59.388-03:00 level=INFO msg=progress sent=1364960000 rate=999969.8054942875 errors=0 rejected=0
+time=2026-11-02T19:50:14.387-03:00 level=INFO msg=progress sent=1379920000 rate=999941.5289437325 errors=0 rejected=0
+time=2026-11-02T19:50:29.387-03:00 level=INFO msg=progress sent=1394960000 rate=999971.1862577947 errors=0 rejected=0
+time=2026-11-02T19:50:44.387-03:00 level=INFO msg=progress sent=1409920000 rate=999942.506317232 errors=0 rejected=0
+time=2026-11-02T19:50:59.387-03:00 level=INFO msg=progress sent=1424960000 rate=999971.1442198629 errors=0 rejected=0
+time=2026-11-02T19:51:14.387-03:00 level=INFO msg=progress sent=1439920000 rate=999943.8173005144 errors=0 rejected=0
+time=2026-11-02T19:51:29.387-03:00 level=INFO msg=progress sent=1454960000 rate=999971.7290955771 errors=0 rejected=0
+time=2026-11-02T19:51:44.387-03:00 level=INFO msg=progress sent=1469920000 rate=999945.2636457916 errors=0 rejected=0
+time=2026-11-02T19:51:59.387-03:00 level=INFO msg=progress sent=1484960000 rate=999972.6794818853 errors=0 rejected=0
+time=2026-11-02T19:52:14.387-03:00 level=INFO msg=progress sent=1499920000 rate=999946.4379062535 errors=0 rejected=0
+time=2026-11-02T19:52:29.387-03:00 level=INFO msg=progress sent=1514960000 rate=999972.8517205735 errors=0 rejected=0
+time=2026-11-02T19:52:44.387-03:00 level=INFO msg=progress sent=1529920000 rate=999947.2002995902 errors=0 rejected=0
+time=2026-11-02T19:52:59.387-03:00 level=INFO msg=progress sent=1544960000 rate=999973.3836957082 errors=0 rejected=0
+time=2026-11-02T19:53:14.387-03:00 level=INFO msg=progress sent=1559920000 rate=999948.10367547 errors=0 rejected=0
+time=2026-11-02T19:53:29.387-03:00 level=INFO msg=progress sent=1574960000 rate=999974.297487857 errors=0 rejected=0
+time=2026-11-02T19:53:44.388-03:00 level=INFO msg=progress sent=1589920000 rate=999948.9137520081 errors=0 rejected=0
+time=2026-11-02T19:53:59.387-03:00 level=INFO msg=progress sent=1604960000 rate=999974.859729472 errors=0 rejected=0
+time=2026-11-02T19:54:14.387-03:00 level=INFO msg=progress sent=1619920000 rate=999950.1055255352 errors=0 rejected=0
+time=2026-11-02T19:54:29.387-03:00 level=INFO msg=progress sent=1634960000 rate=999975.1933106213 errors=0 rejected=0
+time=2026-11-02T19:54:44.387-03:00 level=INFO msg=progress sent=1649920000 rate=999950.893748092 errors=0 rejected=0
+time=2026-11-02T19:54:59.387-03:00 level=INFO msg=progress sent=1664960000 rate=999975.2917400298 errors=0 rejected=0
+time=2026-11-02T19:55:14.387-03:00 level=INFO msg=progress sent=1679920000 rate=999952.0012307271 errors=0 rejected=0
+time=2026-11-02T19:55:29.387-03:00 level=INFO msg=progress sent=1694960000 rate=999975.9297936476 errors=0 rejected=0
+time=2026-11-02T19:55:44.387-03:00 level=INFO msg=progress sent=1709920000 rate=999952.6281015531 errors=0 rejected=0
+time=2026-11-02T19:55:59.387-03:00 level=INFO msg=progress sent=1724960000 rate=999976.1910588326 errors=0 rejected=0
+time=2026-11-02T19:56:14.387-03:00 level=INFO msg=progress sent=1739920000 rate=999953.5304516247 errors=0 rejected=0
+time=2026-11-02T19:56:29.387-03:00 level=INFO msg=progress sent=1754960000 rate=999977.0926938091 errors=0 rejected=0
+time=2026-11-02T19:56:44.388-03:00 level=INFO msg=progress sent=1769920000 rate=999953.9681728596 errors=0 rejected=0
+time=2026-11-02T19:56:59.387-03:00 level=INFO msg=progress sent=1784960000 rate=999977.1712465582 errors=0 rejected=0
+time=2026-11-02T19:57:14.387-03:00 level=INFO msg=progress sent=1799920000 rate=999954.9655865702 errors=0 rejected=0
+time=2026-11-02T19:57:29.387-03:00 level=INFO msg=progress sent=1814960000 rate=999977.384956288 errors=0 rejected=0
+time=2026-11-02T19:57:44.387-03:00 level=INFO msg=progress sent=1829920000 rate=999955.7996711419 errors=0 rejected=0
+time=2026-11-02T19:57:59.387-03:00 level=INFO msg=progress sent=1844960000 rate=999978.1491218864 errors=0 rejected=0
+time=2026-11-02T19:58:14.388-03:00 level=INFO msg=progress sent=1859920000 rate=999956.3130940564 errors=0 rejected=0
+time=2026-11-02T19:58:29.387-03:00 level=INFO msg=progress sent=1874960000 rate=999978.1945953607 errors=0 rejected=0
+time=2026-11-02T19:58:44.388-03:00 level=INFO msg=progress sent=1889920000 rate=999957.0098295243 errors=0 rejected=0
+time=2026-11-02T19:58:59.387-03:00 level=INFO msg=progress sent=1904960000 rate=999978.3845650658 errors=0 rejected=0
+time=2026-11-02T19:59:14.388-03:00 level=INFO msg=progress sent=1919920000 rate=999957.6238951688 errors=0 rejected=0
+time=2026-11-02T19:59:29.387-03:00 level=INFO msg=progress sent=1934960000 rate=999979.0349115746 errors=0 rejected=0
+time=2026-11-02T19:59:44.387-03:00 level=INFO msg=progress sent=1949920000 rate=999958.7177259794 errors=0 rejected=0
+time=2026-11-02T19:59:59.388-03:00 level=INFO msg=progress sent=1964960000 rate=999978.8371580373 errors=0 rejected=0
+time=2026-11-02T20:00:14.387-03:00 level=INFO msg=progress sent=1979920000 rate=999959.0006850129 errors=0 rejected=0
+time=2026-11-02T20:00:29.387-03:00 level=INFO msg=progress sent=1994960000 rate=999979.7592279192 errors=0 rejected=0
+time=2026-11-02T20:00:44.388-03:00 level=INFO msg=progress sent=2009920000 rate=999959.4458325355 errors=0 rejected=0
+time=2026-11-02T20:00:59.387-03:00 level=INFO msg=progress sent=2024960000 rate=999980.0556225807 errors=0 rejected=0
+time=2026-11-02T20:01:14.387-03:00 level=INFO msg=progress sent=2039920000 rate=999960.5230191391 errors=0 rejected=0
+time=2026-11-02T20:01:29.387-03:00 level=INFO msg=progress sent=2054960000 rate=999980.3626909805 errors=0 rejected=0
+time=2026-11-02T20:01:44.388-03:00 level=INFO msg=progress sent=2069920000 rate=999960.3141692341 errors=0 rejected=0
+time=2026-11-02T20:01:59.387-03:00 level=INFO msg=progress sent=2084960000 rate=999980.51484998 errors=0 rejected=0
+time=2026-11-02T20:02:14.387-03:00 level=INFO msg=progress sent=2099920000 rate=999961.4441310939 errors=0 rejected=0
+time=2026-11-02T20:02:29.387-03:00 level=INFO msg=progress sent=2114960000 rate=999980.5911708621 errors=0 rejected=0
+time=2026-11-02T20:02:44.388-03:00 level=INFO msg=progress sent=2129920000 rate=999961.6076263747 errors=0 rejected=0
+time=2026-11-02T20:02:59.387-03:00 level=INFO msg=progress sent=2144960000 rate=999980.8785358598 errors=0 rejected=0
+time=2026-11-02T20:03:14.387-03:00 level=INFO msg=progress sent=2159920000 rate=999962.7478654205 errors=0 rejected=0
+time=2026-11-02T20:03:29.386-03:00 level=INFO msg=progress sent=2174960000 rate=999981.5250654625 errors=0 rejected=0
+time=2026-11-02T20:03:44.388-03:00 level=INFO msg=progress sent=2189920000 rate=999962.8545046109 errors=0 rejected=0
+time=2026-11-02T20:03:59.387-03:00 level=INFO msg=progress sent=2204960000 rate=999981.5674393955 errors=0 rejected=0
+time=2026-11-02T20:04:14.387-03:00 level=INFO msg=progress sent=2219920000 rate=999963.5063725556 errors=0 rejected=0
+time=2026-11-02T20:04:29.387-03:00 level=INFO msg=progress sent=2234960000 rate=999981.6748830115 errors=0 rejected=0
+time=2026-11-02T20:04:44.387-03:00 level=INFO msg=progress sent=2249920000 rate=999964.1514580591 errors=0 rejected=0
+time=2026-11-02T20:04:59.387-03:00 level=INFO msg=progress sent=2264960000 rate=999981.9996418875 errors=0 rejected=0
+time=2026-11-02T20:05:14.387-03:00 level=INFO msg=progress sent=2279920000 rate=999964.5540214712 errors=0 rejected=0
+time=2026-11-02T20:05:29.387-03:00 level=INFO msg=progress sent=2294960000 rate=999982.4857975673 errors=0 rejected=0
+time=2026-11-02T20:05:44.387-03:00 level=INFO msg=progress sent=2309920000 rate=999965.0241098625 errors=0 rejected=0
+time=2026-11-02T20:05:59.387-03:00 level=INFO msg=progress sent=2324960000 rate=999982.3324567865 errors=0 rejected=0
+time=2026-11-02T20:06:14.387-03:00 level=INFO msg=progress sent=2339920000 rate=999965.4977715246 errors=0 rejected=0
+time=2026-11-02T20:06:29.387-03:00 level=INFO msg=progress sent=2354960000 rate=999982.584699636 errors=0 rejected=0
+time=2026-11-02T20:06:44.387-03:00 level=INFO msg=progress sent=2369920000 rate=999966.0778951109 errors=0 rejected=0
+time=2026-11-02T20:06:59.387-03:00 level=INFO msg=progress sent=2384960000 rate=999982.8074827102 errors=0 rejected=0
+time=2026-11-02T20:07:14.387-03:00 level=INFO msg=progress sent=2399920000 rate=999966.3512085319 errors=0 rejected=0
+time=2026-11-02T20:07:29.387-03:00 level=INFO msg=progress sent=2414960000 rate=999983.2031894322 errors=0 rejected=0
+time=2026-11-02T20:07:44.387-03:00 level=INFO msg=progress sent=2429920000 rate=999966.7095052783 errors=0 rejected=0
+time=2026-11-02T20:07:59.388-03:00 level=INFO msg=progress sent=2444960000 rate=999983.1489526525 errors=0 rejected=0
+time=2026-11-02T20:08:14.387-03:00 level=INFO msg=progress sent=2459920000 rate=999967.2053655003 errors=0 rejected=0
+time=2026-11-02T20:08:29.387-03:00 level=INFO msg=progress sent=2474960000 rate=999983.7320073871 errors=0 rejected=0
+time=2026-11-02T20:08:44.387-03:00 level=INFO msg=progress sent=2489920000 rate=999967.6193418999 errors=0 rejected=0
+time=2026-11-02T20:08:59.387-03:00 level=INFO msg=progress sent=2504960000 rate=999983.8176629485 errors=0 rejected=0
+time=2026-11-02T20:09:14.387-03:00 level=INFO msg=progress sent=2519920000 rate=999967.9049044576 errors=0 rejected=0
+time=2026-11-02T20:09:29.387-03:00 level=INFO msg=progress sent=2534960000 rate=999983.9655642522 errors=0 rejected=0
+time=2026-11-02T20:09:44.387-03:00 level=INFO msg=progress sent=2549920000 rate=999968.4092394427 errors=0 rejected=0
+time=2026-11-02T20:09:59.387-03:00 level=INFO msg=progress sent=2564960000 rate=999984.314074338 errors=0 rejected=0
+time=2026-11-02T20:10:14.387-03:00 level=INFO msg=progress sent=2579920000 rate=999968.7920081872 errors=0 rejected=0
+time=2026-11-02T20:10:29.387-03:00 level=INFO msg=progress sent=2594960000 rate=999984.393680454 errors=0 rejected=0
+time=2026-11-02T20:10:44.387-03:00 level=INFO msg=progress sent=2609920000 rate=999968.9811439672 errors=0 rejected=0
+time=2026-11-02T20:10:59.387-03:00 level=INFO msg=progress sent=2624960000 rate=999984.602587215 errors=0 rejected=0
+time=2026-11-02T20:11:14.387-03:00 level=INFO msg=progress sent=2639920000 rate=999969.3938998064 errors=0 rejected=0
+time=2026-11-02T20:11:29.387-03:00 level=INFO msg=progress sent=2654960000 rate=999984.7689038343 errors=0 rejected=0
+time=2026-11-02T20:11:44.388-03:00 level=INFO msg=progress sent=2669920000 rate=999969.5869687573 errors=0 rejected=0
+time=2026-11-02T20:11:59.387-03:00 level=INFO msg=progress sent=2684960000 rate=999984.8260645287 errors=0 rejected=0
+time=2026-11-02T20:12:14.387-03:00 level=INFO msg=progress sent=2699920000 rate=999970.2135298571 errors=0 rejected=0
+time=2026-11-02T20:12:29.387-03:00 level=INFO msg=progress sent=2714960000 rate=999984.9829652236 errors=0 rejected=0
+time=2026-11-02T20:12:44.387-03:00 level=INFO msg=progress sent=2729920000 rate=999970.402213823 errors=0 rejected=0
+time=2026-11-02T20:12:59.387-03:00 level=INFO msg=progress sent=2744960000 rate=999985.2885689009 errors=0 rejected=0
+time=2026-11-02T20:13:14.387-03:00 level=INFO msg=progress sent=2759920000 rate=999970.8398181371 errors=0 rejected=0
+time=2026-11-02T20:13:29.387-03:00 level=INFO msg=progress sent=2774960000 rate=999985.2185686685 errors=0 rejected=0
+time=2026-11-02T20:13:44.387-03:00 level=INFO msg=progress sent=2789920000 rate=999970.9052635009 errors=0 rejected=0
+time=2026-11-02T20:13:59.387-03:00 level=INFO msg=progress sent=2804960000 rate=999985.5380981035 errors=0 rejected=0
+time=2026-11-02T20:14:14.388-03:00 level=INFO msg=progress sent=2819920000 rate=999971.1410992508 errors=0 rejected=0
+time=2026-11-02T20:14:29.387-03:00 level=INFO msg=progress sent=2834960000 rate=999985.5919559792 errors=0 rejected=0
+time=2026-11-02T20:14:44.388-03:00 level=INFO msg=progress sent=2849920000 rate=999971.4983919461 errors=0 rejected=0
+time=2026-11-02T20:14:59.387-03:00 level=INFO msg=progress sent=2864960000 rate=999985.9027823654 errors=0 rejected=0
+time=2026-11-02T20:15:14.387-03:00 level=INFO msg=progress sent=2879920000 rate=999971.9509770529 errors=0 rejected=0
+time=2026-11-02T20:15:29.386-03:00 level=INFO msg=progress sent=2894960000 rate=999986.1250550365 errors=0 rejected=0
+time=2026-11-02T20:15:44.387-03:00 level=INFO msg=progress sent=2909920000 rate=999972.2692550907 errors=0 rejected=0
+time=2026-11-02T20:15:59.387-03:00 level=INFO msg=progress sent=2924960000 rate=999985.9680863727 errors=0 rejected=0
+time=2026-11-02T20:16:14.387-03:00 level=INFO msg=progress sent=2939920000 rate=999972.4371634426 errors=0 rejected=0
+time=2026-11-02T20:16:29.387-03:00 level=INFO msg=progress sent=2954960000 rate=999986.0650691749 errors=0 rejected=0
+time=2026-11-02T20:16:44.387-03:00 level=INFO msg=progress sent=2969920000 rate=999972.8971112566 errors=0 rejected=0
+time=2026-11-02T20:16:59.387-03:00 level=INFO msg=progress sent=2984960000 rate=999986.2029193768 errors=0 rejected=0
+time=2026-11-02T20:17:14.387-03:00 level=INFO msg=progress sent=2999920000 rate=999973.0919591618 errors=0 rejected=0
+time=2026-11-02T20:17:29.387-03:00 level=INFO msg=progress sent=3014960000 rate=999986.3843559908 errors=0 rejected=0
+time=2026-11-02T20:17:44.387-03:00 level=INFO msg=progress sent=3029920000 rate=999973.2178517486 errors=0 rejected=0
+time=2026-11-02T20:17:59.387-03:00 level=INFO msg=progress sent=3044960000 rate=999986.7958715033 errors=0 rejected=0
+time=2026-11-02T20:18:14.388-03:00 level=INFO msg=progress sent=3059920000 rate=999973.4309358093 errors=0 rejected=0
+time=2026-11-02T20:18:29.387-03:00 level=INFO msg=progress sent=3074960000 rate=999986.9187593304 errors=0 rejected=0
+time=2026-11-02T20:18:44.388-03:00 level=INFO msg=progress sent=3089920000 rate=999973.7225664925 errors=0 rejected=0
+time=2026-11-02T20:18:59.387-03:00 level=INFO msg=progress sent=3104960000 rate=999986.9450006423 errors=0 rejected=0
+time=2026-11-02T20:19:14.388-03:00 level=INFO msg=progress sent=3119920000 rate=999973.9603517264 errors=0 rejected=0
+time=2026-11-02T20:19:29.387-03:00 level=INFO msg=progress sent=3134960000 rate=999987.118876212 errors=0 rejected=0
+time=2026-11-02T20:19:44.387-03:00 level=INFO msg=progress sent=3149920000 rate=999974.234378074 errors=0 rejected=0
+time=2026-11-02T20:19:59.387-03:00 level=INFO msg=progress sent=3164960000 rate=999987.1577748157 errors=0 rejected=0
+time=2026-11-02T20:20:14.387-03:00 level=INFO msg=progress sent=3179920000 rate=999974.4886656377 errors=0 rejected=0
+time=2026-11-02T20:20:29.387-03:00 level=INFO msg=progress sent=3194960000 rate=999987.2268157591 errors=0 rejected=0
+time=2026-11-02T20:20:44.387-03:00 level=INFO msg=progress sent=3209920000 rate=999974.905984376 errors=0 rejected=0
+time=2026-11-02T20:20:59.387-03:00 level=INFO msg=progress sent=3224960000 rate=999987.438005717 errors=0 rejected=0
+time=2026-11-02T20:21:14.387-03:00 level=INFO msg=progress sent=3239920000 rate=999975.0503851472 errors=0 rejected=0
+time=2026-11-02T20:21:29.387-03:00 level=INFO msg=progress sent=3254960000 rate=999987.6471123126 errors=0 rejected=0
+time=2026-11-02T20:21:44.387-03:00 level=INFO msg=progress sent=3269920000 rate=999975.3813429308 errors=0 rejected=0
+time=2026-11-02T20:21:59.387-03:00 level=INFO msg=progress sent=3284960000 rate=999987.703535721 errors=0 rejected=0
+time=2026-11-02T20:22:14.387-03:00 level=INFO msg=progress sent=3299920000 rate=999975.4778856466 errors=0 rejected=0
+time=2026-11-02T20:22:29.387-03:00 level=INFO msg=progress sent=3314960000 rate=999987.8677790796 errors=0 rejected=0
+time=2026-11-02T20:22:44.387-03:00 level=INFO msg=progress sent=3329920000 rate=999975.7385393943 errors=0 rejected=0
+time=2026-11-02T20:22:59.387-03:00 level=INFO msg=progress sent=3344960000 rate=999987.9793460428 errors=0 rejected=0
+time=2026-11-02T20:23:14.387-03:00 level=INFO msg=progress sent=3359920000 rate=999975.9923610063 errors=0 rejected=0
+time=2026-11-02T20:23:29.387-03:00 level=INFO msg=progress sent=3374960000 rate=999988.0717692074 errors=0 rejected=0
+time=2026-11-02T20:23:44.387-03:00 level=INFO msg=progress sent=3389920000 rate=999976.2923046461 errors=0 rejected=0
+time=2026-11-02T20:23:59.388-03:00 level=INFO msg=progress sent=3404960000 rate=999987.8940037536 errors=0 rejected=0
+time=2026-11-02T20:24:14.388-03:00 level=INFO msg=progress sent=3419920000 rate=999976.1268325443 errors=0 rejected=0
+time=2026-11-02T20:24:29.387-03:00 level=INFO msg=progress sent=3434960000 rate=999988.1412371803 errors=0 rejected=0
+time=2026-11-02T20:24:44.387-03:00 level=INFO msg=progress sent=3449920000 rate=999976.5492676012 errors=0 rejected=0
+time=2026-11-02T20:24:59.387-03:00 level=INFO msg=progress sent=3464960000 rate=999988.2907825982 errors=0 rejected=0
+time=2026-11-02T20:25:14.387-03:00 level=INFO msg=progress sent=3479920000 rate=999976.8208426376 errors=0 rejected=0
+time=2026-11-02T20:25:29.387-03:00 level=INFO msg=progress sent=3494960000 rate=999988.316647421 errors=0 rejected=0
+time=2026-11-02T20:25:44.387-03:00 level=INFO msg=progress sent=3509920000 rate=999976.9355598446 errors=0 rejected=0
+time=2026-11-02T20:25:59.387-03:00 level=INFO msg=progress sent=3524960000 rate=999988.5534173042 errors=0 rejected=0
+time=2026-11-02T20:26:14.387-03:00 level=INFO msg=progress sent=3539920000 rate=999977.2923036013 errors=0 rejected=0
+time=2026-11-02T20:26:29.387-03:00 level=INFO msg=progress sent=3554960000 rate=999988.5855461609 errors=0 rejected=0
+time=2026-11-02T20:26:44.387-03:00 level=INFO msg=progress sent=3569920000 rate=999977.3228391353 errors=0 rejected=0
+time=2026-11-02T20:26:59.387-03:00 level=INFO msg=progress sent=3584960000 rate=999988.5501729415 errors=0 rejected=0
+time=2026-11-02T20:27:14.387-03:00 level=INFO msg=progress sent=3599920000 rate=999977.6541699844 errors=0 rejected=0
+time=2026-11-02T20:27:15.330-03:00 level=INFO msg="load finished" sent=3600000000 achieved=999737.999214901 errors=0 rejected=0
+vmloadgen: pass mode=load series=1000000 rate=1000000/s sent=3600000000 achieved=999738/s errors=0 rejected=0 p95=13.1ms
+[23:27:15] series visible: 1000006 (target 1000000)
+[23:27:15] 20 MetricsQL queries over 24h windows
+vmquerybench: m01 pass series=200 p50=616.7ms p95=757.0ms errors=0
+vmquerybench: m02 pass series=1 p50=576.1ms p95=608.2ms errors=0
+vmquerybench: m03 pass series=10 p50=574.0ms p95=586.6ms errors=0
+vmquerybench: m04 pass series=10 p50=582.4ms p95=651.3ms errors=0
+vmquerybench: m05 pass series=200 p50=782.2ms p95=799.5ms errors=0
+vmquerybench: m06 pass series=1 p50=485.9ms p95=659.7ms errors=0
+vmquerybench: m07 pass series=96 p50=506.3ms p95=545.7ms errors=0
+vmquerybench: m08 pass series=1 p50=7.0ms p95=7.2ms errors=0
+vmquerybench: m09 pass series=96 p50=99.6ms p95=104.7ms errors=0
+vmquerybench: m10 pass series=10 p50=677.9ms p95=706.5ms errors=0
+vmquerybench: m11 pass series=334 p50=87.8ms p95=98.6ms errors=0
+vmquerybench: m12 pass series=10 p50=709.7ms p95=788.9ms errors=0
+vmquerybench: m13 pass series=1 p50=122.4ms p95=199.5ms errors=0
+vmquerybench: m14 pass series=2 p50=1203.1ms p95=1305.2ms errors=0
+vmquerybench: m15 pass series=1 p50=553.7ms p95=657.6ms errors=0
+vmquerybench: m16 pass series=300 p50=231.1ms p95=305.1ms errors=0
+vmquerybench: m17 pass series=50 p50=182.5ms p95=277.5ms errors=0
+vmquerybench: m18 pass series=200 p50=654.4ms p95=720.7ms errors=0
+vmquerybench: m19 pass series=1 p50=622.4ms p95=686.1ms errors=0
+vmquerybench: m20 pass series=1 p50=625.8ms p95=688.8ms errors=0
+vmquerybench: pass queries=20 p50=573.9ms p95=799.5ms p99=1216.7ms errors=0
+[23:28:31] cardinality: tenant-a limit=150000, tenant-b limit=100000
+[23:28:31] neighbor load: tenant-b 50000 series at 50000/s
+time=2026-11-02T20:28:31.906-03:00 level=INFO msg="starting load" mode=probe series=50000 rate=50000 duration=1m0s workers=8 batch_series=100
+[23:28:40] neighbor baseline query
+time=2026-11-02T20:28:46.906-03:00 level=INFO msg=progress sent=749600 rate=49970.625791572944 errors=0 rejected=0
+vmquerybench: pass expr="sum by (series_id) (rate(observaki_cardinality_probe_total{tenant_id=\"tenant-b\"}[5m]))" series=50000 p50=513.0ms p95=584.5ms errors=0
+[23:28:47] tenant-a violation: 250000 series at 10000/s for 30s
+time=2026-11-02T20:28:47.625-03:00 level=INFO msg="starting load" mode=probe series=250000 rate=10000 duration=30s workers=8 batch_series=100
+time=2026-11-02T20:29:01.906-03:00 level=INFO msg=progress sent=1499400 rate=49978.58480805853 errors=0 rejected=0
+time=2026-11-02T20:29:02.625-03:00 level=INFO msg=progress sent=149600 rate=9972.977266131405 errors=0 rejected=0
+[23:29:03] neighbor query during the violation
+vmquerybench: pass expr="sum by (series_id) (rate(observaki_cardinality_probe_total{tenant_id=\"tenant-b\"}[5m]))" series=50000 p50=540.4ms p95=612.6ms errors=0
+time=2026-11-02T20:29:16.906-03:00 level=INFO msg=progress sent=2249600 rate=49990.19396768382 errors=0 rejected=0
+time=2026-11-02T20:29:17.625-03:00 level=INFO msg=progress sent=299200 rate=9973.157286828467 errors=0 rejected=100400
+time=2026-11-02T20:29:17.627-03:00 level=INFO msg="load finished" sent=300000 achieved=9999.096935559905 errors=0 rejected=100400
+vmloadgen: pass mode=probe series=250000 rate=10000/s sent=300000 achieved=9999/s errors=0 rejected=100400 p95=3.0ms
+time=2026-11-02T20:29:31.906-03:00 level=INFO msg=progress sent=2999200 rate=49986.260507472434 errors=0 rejected=0
+time=2026-11-02T20:29:31.907-03:00 level=INFO msg="load finished" sent=3000000 achieved=49998.67665335919 errors=0 rejected=0
+vmloadgen: pass mode=probe series=50000 rate=50000/s sent=3000000 achieved=49999/s errors=0 rejected=0 p95=2.3ms
+[23:29:32] report: /home/kaike/Github/observaki/bench/victoriametrics/results/2026-11-02-local-1m-1h/report.md (status pass)

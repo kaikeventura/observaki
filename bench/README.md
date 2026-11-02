@@ -10,6 +10,7 @@ O harness reproduzível da Fase 0. Componentes:
 | Relatório `report.md`/`report.json` | 2.3 | Coleta CPU/RAM/disco, normaliza as métricas e compara repetições com variância documentada |
 | Ambiente reproduzível e baseline | 2.4 | Perfil T1, Terraform, custo/cleanup e protocolo de baseline; execução T1 pendente |
 | `bench/clickhouse` | 3.1 | Schema ClickHouse de logs, carga sintética, compressão, `q03` e TTL 7/15 dias em container local |
+| `bench/victoriametrics` | 3.4 | 1M séries a 1M amostras/s, 20 consultas MetricsQL em 24 h e admissão de cardinalidade por tenant |
 
 ### Story 3.1 — ClickHouse logs
 
@@ -25,6 +26,21 @@ a consulta `q03` em 1B linhas e valida o TTL de 7/15 dias.
 
 O run local é evidência de schema, não do G1: não há gateway, NATS, Query
 Service, row policies nem réplica.
+
+### Story 3.4 — VictoriaMetrics
+
+O spike de métricas fica em [`victoriametrics/`](victoriametrics/README.md).
+Ele sobe um VictoriaMetrics 1.148 LTS descartável, valida `rate`,
+`histogram_quantile` e agregação por label, envia 1M séries a 1M amostras/s
+por 1 h, roda as 20 consultas MetricsQL em janelas de 24 h e testa o limite de
+séries por tenant com um proxy de admissão (AD-33).
+
+```bash
+./bench/victoriametrics/run.sh --smoke                 # smoke
+./bench/victoriametrics/run.sh --reset                 # run publicado
+```
+
+O run é single-node e local; não substitui o baseline T1 (P-07) nem o G1.
 
 ## Workload de referência
 

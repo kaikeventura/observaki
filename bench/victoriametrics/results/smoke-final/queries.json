@@ -1,0 +1,417 @@
+{
+  "errors": 0,
+  "overall_latency_ms": {
+    "count": 40,
+    "p50_ms": 8.114226,
+    "p95_ms": 15.703698,
+    "p99_ms": 15.938165,
+    "max_ms": 15.938165
+  },
+  "queries": [
+    {
+      "id": "m01",
+      "surface": "Dashboard",
+      "description": "Request rate by service",
+      "expr": "sum by (service) (rate(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 20,
+      "cold_latency_ms": 40.038912,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 9.627253,
+        "p95_ms": 10.841676,
+        "p99_ms": 10.841676,
+        "max_ms": 10.841676
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m02",
+      "surface": "Dashboard",
+      "description": "Total request rate",
+      "expr": "sum(rate(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 1,
+      "cold_latency_ms": 7.25028,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 6.743536,
+        "p95_ms": 8.114226,
+        "p99_ms": 8.114226,
+        "max_ms": 8.114226
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m03",
+      "surface": "Dashboard",
+      "description": "Request rate by status",
+      "expr": "sum by (status) (rate(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 10,
+      "cold_latency_ms": 7.3147,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 8.079193,
+        "p95_ms": 14.583727,
+        "p99_ms": 14.583727,
+        "max_ms": 14.583727
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m04",
+      "surface": "Dashboard",
+      "description": "Top 10 services by request rate",
+      "expr": "topk(10, sum by (service) (rate(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m])))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 10,
+      "cold_latency_ms": 10.051374,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 7.968005,
+        "p95_ms": 11.624515,
+        "p99_ms": 11.624515,
+        "max_ms": 11.624515
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m05",
+      "surface": "Dashboard",
+      "description": "Error ratio by service",
+      "expr": "sum by (service) (rate(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\",status=~\"5..\"}[5m])) / sum by (service) (rate(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 20,
+      "cold_latency_ms": 15.172002,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 11.020382,
+        "p95_ms": 12.279266,
+        "p99_ms": 12.279266,
+        "max_ms": 12.279266
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m06",
+      "surface": "Dashboard",
+      "description": "p95 latency from histogram buckets",
+      "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m])))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 1,
+      "cold_latency_ms": 32.44006,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 7.418882,
+        "p95_ms": 8.394146,
+        "p99_ms": 8.394146,
+        "max_ms": 8.394146
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m07",
+      "surface": "Dashboard",
+      "description": "p99 latency by service",
+      "expr": "histogram_quantile(0.99, sum by (le, service) (rate(http_request_duration_seconds_bucket{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m])))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 10,
+      "cold_latency_ms": 9.80393,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 7.871501,
+        "p95_ms": 8.760369,
+        "p99_ms": 8.760369,
+        "max_ms": 8.760369
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m08",
+      "surface": "Dashboard",
+      "description": "p50 latency for one service",
+      "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{tenant_id=\"tenant-a\",project_id=\"project-0\",service=\"svc-007\"}[5m])))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 1,
+      "cold_latency_ms": 3.988445,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 1.159556,
+        "p95_ms": 1.255848,
+        "p99_ms": 1.255848,
+        "max_ms": 1.255848
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m09",
+      "surface": "Dashboard",
+      "description": "Average latency from _sum and _count",
+      "expr": "sum by (service) (rate(http_request_duration_seconds_sum{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m])) / sum by (service) (rate(http_request_duration_seconds_count{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 10,
+      "cold_latency_ms": 7.476376,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 2.514833,
+        "p95_ms": 2.637019,
+        "p99_ms": 2.637019,
+        "max_ms": 2.637019
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m10",
+      "surface": "Services",
+      "description": "Span rate by status",
+      "expr": "sum by (status) (rate(span_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 10,
+      "cold_latency_ms": 30.820101,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 11.303571,
+        "p95_ms": 14.94446,
+        "p99_ms": 14.94446,
+        "max_ms": 14.94446
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m11",
+      "surface": "Services",
+      "description": "Span error rate by service",
+      "expr": "sum by (service) (rate(span_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\",status=\"ERROR\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 34,
+      "cold_latency_ms": 3.928806,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 2.20511,
+        "p95_ms": 2.433878,
+        "p99_ms": 2.433878,
+        "max_ms": 2.433878
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m12",
+      "surface": "Services",
+      "description": "Top 10 service operations",
+      "expr": "topk(10, sum by (service, operation) (rate(span_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m])))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 10,
+      "cold_latency_ms": 17.503661,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 15.466861,
+        "p95_ms": 15.703698,
+        "p99_ms": 15.703698,
+        "max_ms": 15.703698
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m13",
+      "surface": "Services",
+      "description": "p95 span latency",
+      "expr": "histogram_quantile(0.95, sum by (le) (rate(span_duration_seconds_bucket{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m])))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 1,
+      "cold_latency_ms": 7.597613,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 3.839608,
+        "p95_ms": 5.115257,
+        "p99_ms": 5.115257,
+        "max_ms": 5.115257
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m14",
+      "surface": "Explorer/Metrics",
+      "description": "Request rate by tenant (operator)",
+      "expr": "sum by (tenant_id) (rate(http_requests_total{project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 2,
+      "cold_latency_ms": 32.179158,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 15.868428,
+        "p95_ms": 15.938165,
+        "p99_ms": 15.938165,
+        "max_ms": 15.938165
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m15",
+      "surface": "Explorer/Metrics",
+      "description": "Active series by project (operator)",
+      "expr": "count by (project_id) (http_requests_total{tenant_id=\"tenant-a\"})",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 1,
+      "cold_latency_ms": 7.533548,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 7.879903,
+        "p95_ms": 12.071951,
+        "p99_ms": 12.071951,
+        "max_ms": 12.071951
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m16",
+      "surface": "Dashboard",
+      "description": "CPU rate by service",
+      "expr": "sum by (service) (rate(process_cpu_seconds_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 30,
+      "cold_latency_ms": 8.894919,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 3.920798,
+        "p95_ms": 5.303209,
+        "p99_ms": 5.303209,
+        "max_ms": 5.303209
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m17",
+      "surface": "Dashboard",
+      "description": "Memory by instance",
+      "expr": "avg by (instance) (process_resident_memory_bytes{tenant_id=\"tenant-a\",project_id=\"project-0\"})",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 50,
+      "cold_latency_ms": 11.991008,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 5.546348,
+        "p95_ms": 7.281393,
+        "p99_ms": 7.281393,
+        "max_ms": 7.281393
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m18",
+      "surface": "Dashboard",
+      "description": "Peak counter value by service over the window",
+      "expr": "max by (service) (max_over_time(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 20,
+      "cold_latency_ms": 7.564314,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 8.937742,
+        "p95_ms": 10.473672,
+        "p99_ms": 10.473672,
+        "max_ms": 10.473672
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m19",
+      "surface": "Dashboard",
+      "description": "Request increase per step across the window",
+      "expr": "sum(increase(http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}[5m]))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 1,
+      "cold_latency_ms": 10.213661,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 7.425144,
+        "p95_ms": 11.150895,
+        "p99_ms": 11.150895,
+        "max_ms": 11.150895
+      },
+      "status": "pass"
+    },
+    {
+      "id": "m20",
+      "surface": "Explorer/Metrics",
+      "description": "Service cardinality",
+      "expr": "count(count by (service) (http_requests_total{tenant_id=\"tenant-a\",project_id=\"project-0\"}))",
+      "window": "24h0m0s",
+      "step": "5m0s",
+      "runs": 2,
+      "errors": 0,
+      "result_series": 1,
+      "cold_latency_ms": 10.751565,
+      "latency_ms": {
+        "count": 2,
+        "p50_ms": 8.512423,
+        "p95_ms": 10.593257,
+        "p99_ms": 10.593257,
+        "max_ms": 10.593257
+      },
+      "status": "pass"
+    }
+  ],
+  "runs": 2,
+  "status": "pass",
+  "step": "5m",
+  "warmup": 0,
+  "window": "24h"
+}

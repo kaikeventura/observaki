@@ -1,0 +1,29 @@
+{
+  "mode": "load",
+  "status": "pass",
+  "target_rate": 100000,
+  "duration_seconds": 10,
+  "series": 100000,
+  "tenants": [
+    "tenant-a",
+    "tenant-b"
+  ],
+  "workers": 8,
+  "batch_series": 5000,
+  "started_at": "2026-11-02T23:37:09.358277697Z",
+  "finished_at": "2026-11-02T23:37:19.365556909Z",
+  "elapsed_seconds": 10.007258669,
+  "sent_samples": 1000000,
+  "achieved_rate": 99927.46596005872,
+  "requests": 200,
+  "compressed_bytes": 20760487,
+  "errors": 0,
+  "rejected_samples": 0,
+  "latency_ms": {
+    "count": 200,
+    "p50_ms": 5.77351,
+    "p95_ms": 62.740378,
+    "p99_ms": 83.619397,
+    "max_ms": 84.943152
+  }
+}

@@ -1,9 +1,11 @@
 # Observaki — Benchmarks
 
 > **Status (2026-11-02):** pré-baseline local do harness, spikes locais de
-> armazenamento de logs (1B linhas) e traces (1B spans) e o caminho de ingestão
-> ClickHouse (400k/s, 60 s) publicados; baseline T1 **não executado**. Nenhum número deste arquivo é evidência do Gate G1 até a
-> execução no cluster T1 com gateway, armazenamento e o commit registrados.
+> armazenamento de logs (1B linhas) e traces (1B spans), o caminho de ingestão
+> ClickHouse (400k/s, 60 s) e o spike de VictoriaMetrics (1M séries, 1M/s,
+> 1 h) publicados; baseline T1 **não executado**. Nenhum número deste arquivo é
+> evidência do Gate G1 até a execução no cluster T1 com gateway, armazenamento
+> e o commit registrados.
 
 Este arquivo segue o ADR-0006: todo número publicado declara commit, hardware,
 configuração, seed, duração e veredito; falhas e limitações ficam visíveis; e
@@ -17,6 +19,7 @@ benchmark de fornecedor não entra sem reprodução própria.
 | Schema ClickHouse de logs (1B linhas, local) | ✅ publicado; 6,98x, `q03` p95 263 ms e TTL 7/15 ok; **não é G1** |
 | Schema ClickHouse de traces (1B spans, local) | ✅ publicado; 7,52x, trace lookup p95 328 ms, serviço/status p95 178 ms e correlação ok; **não é G1** |
 | Ingestão ClickHouse + dedupe (400k/s, 60 s, local) | ✅ publicado; 399.994/s, lag p95 1,4 s, 24M linhas, dedupe e recuperação ok; **não é G1** |
+| VictoriaMetrics + cardinalidade (1M séries, 1M/s, 1 h, local) | ✅ publicado; 999.738/s, p95 de carga 13 ms, 20 consultas p95 799,5 ms, drift do vizinho 4,82%; **não é G1** |
 | Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.2–3.5/4.1–4.5 |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
@@ -268,6 +271,61 @@ cluster T1 (6 ClickHouse + 6 writers) e o caminho gateway → NATS → writer
 (Stories 4.1/4.3), além de P-07. O WAL do run local é o spool de arquivos
 permitido pelo AD-4 no modo single-node.
 
+## Story 3.4 — VictoriaMetrics, MetricsQL e cardinalidade (local, 1M séries)
+
+**O que é:** o spike da Story 3.4 em um VictoriaMetrics 1.148 LTS
+single-node local: 1M séries ativas a 1M amostras/s por 1 h via Prometheus
+remote write, 20 consultas MetricsQL em janelas de 24 h e admissão de
+cardinalidade por tenant com um proxy de spike (AD-33). **Não é o gateway,
+não usa vmauth/Query Service e não é evidência do Gate G1.**
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Commit do harness | `c153046` + harness da Story 3.4 (working tree `dirty: true`; o commit de publicação é o desta sessão) |
+| Run (UTC) | 2026-11-02T22:27:01Z a 23:29:32Z |
+| Workload | 1M séries, 1M amostras/s, 1 h, 2 tenants × 2 projetos; remote write protobuf + snappy |
+| Consultas | 20 MetricsQL em 24 h, step 5 m, `nocache=1`, 5 execuções + 1 warm-up |
+| Cardinalidade | limite tenant-a 150k, tenant-b 100k; probe de 250k/50k séries; drift do vizinho |
+| Hardware | `kabuntu-zenbook`, 22 CPUs, 15,0 GiB de RAM; VictoriaMetrics 1.148.0 |
+| Artefatos | [`report.md`](bench/victoriametrics/results/2026-11-02-local-1m-1h/report.md), [`report.json`](bench/victoriametrics/results/2026-11-02-local-1m-1h/report.json), [`handoff`](docs/dev/story-3.4-handoff.md) |
+
+### Resultados
+
+| Métrica | Valor |
+|---|---:|
+| Amostras enviadas | 3.600.000.000 |
+| Throughput | **999.737,99/s** (99,974% de 1M/s) |
+| Erros / rejeições | 0 / 0 |
+| Latência de request p50 / p95 / p99 | 7,13 / **13,09** / 21,28 ms |
+| Séries ativas após a carga | 1.000.006 (1M do catálogo + 6 da verificação) |
+| Séries ativas após a cardinalidade | 1.200.006 |
+| RSS máximo | 1,24 GiB (1.331.040.256 B) |
+| Tamanho do diretório | 15,27 GiB (16.390.650.204 B) |
+| 20 consultas p50 / p95 / p99 | 573,95 / **799,50** / 1.216,71 ms |
+| Consultas com erro | 0 |
+| Correção (`rate`, `histogram_quantile`, labels) | 7/7 checks |
+| Tenant-a rejeitado | 100.000 séries (1.004 requests) |
+| Tenant-b rejeitado | 0 |
+| Drift do vizinho | **4,82%** (alvo < 10%) |
+
+### Veredito
+
+**Pass local para o spike de métricas.** O VictoriaMetrics sustentou 999.738
+amostras/s com 1M séries ativas por 1 h, sem erro de ingestão, com RSS máximo
+de 1,24 GiB (bem dentro do orçamento de 32 GiB do nó T1). As 20 consultas
+MetricsQL em janelas de 24 h ficaram com p95 agregado de **799,50 ms** (alvo
+< 1 s), 0 erros e 20/20 consultas com resultado; `m14` (visão de operador) foi
+a única acima de 1 s, com 1.305 ms. O proxy de admissão rejeitou as 100.000
+séries excedentes do tenant-a com `429 cardinality_limit_exceeded` e manteve o
+tenant-b sem rejeições; o p95 do vizinho variou **4,82%** (alvo < 10%).
+
+**Não é o G1.** O run é single-node e local; o perfil T1 tem 16 vCPU e 64 GiB.
+O `m14` acima de 1 s é uma visão de operador cross-tenant; as 19 consultas de
+dashboard ficaram abaixo de 1 s. O baseline T1 continua bloqueado por **P-07**
+e pelas Stories 4.1/4.3/4.5.
+
 ## Cluster de referência T1 (pendente)
 
 O perfil está em [`bench/env/t1.json`](bench/env/t1.json) e a documentação de
@@ -352,7 +410,9 @@ sem cluster com `--dry-run`.
 3. **Ingestão ClickHouse (Story 3.3)** para medir lag e perda confirmada; o
    writer/spool/dedupe foi validado localmente a 400k/s, mas o número de 1M/s
    por 1 h precisa do cluster T1 e do caminho gateway → NATS → writer.
-4. **VictoriaMetrics e cardinalidade (Story 3.4)** para as métricas e o RED.
+4. **VictoriaMetrics e cardinalidade (Story 3.4)** validadas localmente
+   (1M séries, 1M/s, p95 799,5 ms, drift 4,82%); falta o RED do gateway
+   (AD-21) e o vmauth no cluster T1.
 5. **Query Service (Story 3.5)** para as 20 consultas de dashboard.
 6. **Automação de caos (Story 4.5)** para o teste de falha e DLQ.
 7. **Validação do protocolo de rampa no cluster:** o `baseline.sh` executa fases
@@ -378,6 +438,19 @@ done
 
 O `bench-sink` é um receptor descartável: aceita qualquer POST, drena o corpo e
 devolve 200. Ele não é o gateway e não deve ser usado como um.
+
+### Spikes locais de armazenamento
+
+```bash
+# ClickHouse: logs, traces e ingestão
+./bench/clickhouse/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5
+./bench/clickhouse/traces/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5 --stop-merges
+./bench/clickhouse/ingest/run.sh --smoke
+
+# VictoriaMetrics: 1M séries, 1M/s, 1 h
+make bench-victoriametrics-check
+make bench-victoriametrics
+```
 
 ### Cluster T1
 

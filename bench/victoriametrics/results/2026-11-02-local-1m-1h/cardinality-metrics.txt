@@ -1,0 +1,24 @@
+# HELP observaki_cardinality_active_series Active series admitted per tenant.
+# TYPE observaki_cardinality_active_series gauge
+# HELP observaki_cardinality_limit Series limit per tenant.
+# TYPE observaki_cardinality_limit gauge
+# HELP observaki_cardinality_accepted_requests_total Remote write requests admitted.
+# TYPE observaki_cardinality_accepted_requests_total counter
+# HELP observaki_cardinality_rejected_requests_total Remote write requests rejected by the series limit.
+# TYPE observaki_cardinality_rejected_requests_total counter
+# HELP observaki_cardinality_rejected_series_total Series observations rejected by the series limit.
+# TYPE observaki_cardinality_rejected_series_total counter
+# HELP observaki_cardinality_rejected_unique_series Unique series rejected by the series limit.
+# TYPE observaki_cardinality_rejected_unique_series gauge
+observaki_cardinality_active_series{tenant_id="tenant-a"} 150000
+observaki_cardinality_limit{tenant_id="tenant-a"} 150000
+observaki_cardinality_accepted_requests_total{tenant_id="tenant-a"} 1996
+observaki_cardinality_rejected_requests_total{tenant_id="tenant-a"} 1004
+observaki_cardinality_rejected_series_total{tenant_id="tenant-a"} 100000
+observaki_cardinality_rejected_unique_series{tenant_id="tenant-a"} 100000
+observaki_cardinality_active_series{tenant_id="tenant-b"} 50000
+observaki_cardinality_limit{tenant_id="tenant-b"} 100000
+observaki_cardinality_accepted_requests_total{tenant_id="tenant-b"} 30000
+observaki_cardinality_rejected_requests_total{tenant_id="tenant-b"} 0
+observaki_cardinality_rejected_series_total{tenant_id="tenant-b"} 0
+observaki_cardinality_rejected_unique_series{tenant_id="tenant-b"} 0

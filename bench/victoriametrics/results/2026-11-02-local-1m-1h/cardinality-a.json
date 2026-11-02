@@ -1,0 +1,29 @@
+{
+  "mode": "probe",
+  "status": "pass",
+  "target_rate": 10000,
+  "duration_seconds": 30,
+  "series": 250000,
+  "tenants": [
+    "tenant-a"
+  ],
+  "workers": 8,
+  "batch_series": 100,
+  "started_at": "2026-11-02T23:28:47.625178069Z",
+  "finished_at": "2026-11-02T23:29:17.628060269Z",
+  "elapsed_seconds": 30.002725358,
+  "sent_samples": 300000,
+  "achieved_rate": 9999.091629854462,
+  "requests": 3000,
+  "compressed_bytes": 5810657,
+  "errors": 0,
+  "rejected_samples": 100400,
+  "latency_ms": {
+    "count": 3000,
+    "p50_ms": 1.55568,
+    "p95_ms": 2.966115,
+    "p99_ms": 7.18373,
+    "max_ms": 31.840237
+  },
+  "allow_rejections": true
+}

@@ -3,8 +3,10 @@
 `dashboard.tsv` é o contrato das 20 consultas de dashboard exigidas pelo
 ADR-0006 (Q-03). Ele é independente de engine e de schema: descreve a pergunta,
 a superfície do produto, o sinal, a janela e os datasets em que a consulta se
-aplica. O SQL do ClickHouse e o MetricsQL do VictoriaMetrics são vinculados na
-Story 3.5, quando o schema (3.1/3.2) e o Query Service existirem.
+aplica. O SQL do ClickHouse é vinculado na Story 3.5, quando o schema
+(3.1/3.2) e o Query Service existirem. O MetricsQL do VictoriaMetrics está
+vinculado na Story 3.4 em
+[`bench/victoriametrics/queries/catalog.tsv`](../victoriametrics/queries/catalog.tsv).
 
 ## Formato
 
@@ -40,3 +42,6 @@ Colunas separadas por tabulação:
    separadamente (ADR-0006, regra 10).
 5. Mudanças no catálogo exigem atualização do relatório e justificativa; não se
    remove uma consulta para melhorar a média.
+6. O catálogo MetricsQL cobre as perguntas de métricas (`q16`–`q19`) e as
+   consultas de rate/erro/latência/cardinalidade; `m14`/`m15` são visões de
+   operador e as demais são escopadas por `tenant_id`/`project_id`.

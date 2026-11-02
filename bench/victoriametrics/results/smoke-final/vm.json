@@ -1,0 +1,11 @@
+{
+  "series_count": 150006,
+  "main_series_count": 100006,
+  "rss_max_bytes": 265527296,
+  "rss_mean_bytes": 154904576,
+  "rows_inserted": 2494526,
+  "data_size_bytes": 39497685,
+  "slow_queries": 0,
+  "rows_ignored_too_many_labels": 0,
+  "disk_free_bytes": 152733425664
+}

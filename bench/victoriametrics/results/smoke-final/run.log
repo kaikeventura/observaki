@@ -1,0 +1,57 @@
+[23:36:57] Story 3.4 VictoriaMetrics spike
+[23:36:57] series=100000 rate=100000 duration=10s workers=8 batch=5000 runs=2
+[23:36:57] results=/home/kaike/Github/observaki/bench/victoriametrics/results/20261102T233657Z
+[23:36:59] building vmloadgen/vmquerybench/vmadmission (v0.0.1-alpha-37-gc153046-dirty/c153046)
+[23:37:00] correctness: rate, histogram_quantile and label aggregation
+vmquerybench: verify rate_alpha pass want=0.666666667 got=0.666666667
+vmquerybench: verify rate_beta pass want=0.333333333 got=0.333333333
+vmquerybench: verify increase_alpha pass want=200.000000000 got=200.000000000
+vmquerybench: verify label_aggregation_200 pass want=200.000000000 got=200.000000000
+vmquerybench: verify label_aggregation_500 pass want=100.000000000 got=100.000000000
+vmquerybench: verify histogram_quantile_p95 pass want=0.475000000 got=0.475000000
+vmquerybench: verify histogram_quantile_p50 pass want=0.250000000 got=0.250000000
+vmquerybench: verify pass checks=7
+[23:37:09] sustained load: 100000/s for 10s with 100000 series
+time=2026-11-02T20:37:09.358-03:00 level=INFO msg="starting load" mode=load series=100000 rate=100000 duration=10s workers=8 batch_series=5000
+time=2026-11-02T20:37:19.365-03:00 level=INFO msg="load finished" sent=1000000 achieved=99927.8054781452 errors=0 rejected=0
+vmloadgen: pass mode=load series=100000 rate=100000/s sent=1000000 achieved=99927/s errors=0 rejected=0 p95=62.7ms
+[23:37:19] series visible: 100006 (target 100000)
+[23:37:19] 20 MetricsQL queries over 24h windows
+vmquerybench: m01 pass series=20 p50=9.6ms p95=10.8ms errors=0
+vmquerybench: m02 pass series=1 p50=6.7ms p95=8.1ms errors=0
+vmquerybench: m03 pass series=10 p50=8.1ms p95=14.6ms errors=0
+vmquerybench: m04 pass series=10 p50=8.0ms p95=11.6ms errors=0
+vmquerybench: m05 pass series=20 p50=11.0ms p95=12.3ms errors=0
+vmquerybench: m06 pass series=1 p50=7.4ms p95=8.4ms errors=0
+vmquerybench: m07 pass series=10 p50=7.9ms p95=8.8ms errors=0
+vmquerybench: m08 pass series=1 p50=1.2ms p95=1.3ms errors=0
+vmquerybench: m09 pass series=10 p50=2.5ms p95=2.6ms errors=0
+vmquerybench: m10 pass series=10 p50=11.3ms p95=14.9ms errors=0
+vmquerybench: m11 pass series=34 p50=2.2ms p95=2.4ms errors=0
+vmquerybench: m12 pass series=10 p50=15.5ms p95=15.7ms errors=0
+vmquerybench: m13 pass series=1 p50=3.8ms p95=5.1ms errors=0
+vmquerybench: m14 pass series=2 p50=15.9ms p95=15.9ms errors=0
+vmquerybench: m15 pass series=1 p50=7.9ms p95=12.1ms errors=0
+vmquerybench: m16 pass series=30 p50=3.9ms p95=5.3ms errors=0
+vmquerybench: m17 pass series=50 p50=5.5ms p95=7.3ms errors=0
+vmquerybench: m18 pass series=20 p50=8.9ms p95=10.5ms errors=0
+vmquerybench: m19 pass series=1 p50=7.4ms p95=11.2ms errors=0
+vmquerybench: m20 pass series=1 p50=8.5ms p95=10.6ms errors=0
+vmquerybench: pass queries=20 p50=8.1ms p95=15.7ms p99=15.9ms errors=0
+[23:37:20] cardinality: tenant-a limit=20000, tenant-b limit=60000
+[23:37:20] neighbor load: tenant-b 30000 series at 30000/s
+time=2026-11-02T20:37:20.080-03:00 level=INFO msg="starting load" mode=probe series=30000 rate=30000 duration=40s workers=8 batch_series=100
+[23:37:29] neighbor baseline query
+time=2026-11-02T20:37:35.081-03:00 level=INFO msg=progress sent=449600 rate=29971.781903986637 errors=0 rejected=0
+vmquerybench: pass expr="sum by (series_id) (rate(observaki_cardinality_probe_total{tenant_id=\"tenant-b\"}[5m]))" series=30000 p50=255.4ms p95=284.7ms errors=0
+[23:37:37] tenant-a violation: 30000 series at 30000/s for 15s
+time=2026-11-02T20:37:37.494-03:00 level=INFO msg="starting load" mode=probe series=30000 rate=30000 duration=15s workers=8 batch_series=100
+[23:37:38] neighbor query during the violation
+vmquerybench: pass expr="sum by (series_id) (rate(observaki_cardinality_probe_total{tenant_id=\"tenant-b\"}[5m]))" series=30000 p50=273.3ms p95=305.6ms errors=0
+time=2026-11-02T20:37:50.081-03:00 level=INFO msg=progress sent=899200 rate=29972.343818381887 errors=0 rejected=0
+time=2026-11-02T20:37:52.494-03:00 level=INFO msg=progress sent=449600 rate=29971.539173059147 errors=0 rejected=155200
+time=2026-11-02T20:37:52.495-03:00 level=INFO msg="load finished" sent=450000 achieved=29997.224568791036 errors=0 rejected=155600
+vmloadgen: pass mode=probe series=30000 rate=30000/s sent=450000 achieved=29997/s errors=0 rejected=155600 p95=6.7ms
+time=2026-11-02T20:38:00.081-03:00 level=INFO msg="load finished" sent=1200000 achieved=29998.891363970644 errors=0 rejected=0
+vmloadgen: pass mode=probe series=30000 rate=30000/s sent=1200000 achieved=29999/s errors=0 rejected=0 p95=6.2ms
+[23:38:00] report: /home/kaike/Github/observaki/bench/victoriametrics/results/20261102T233657Z/report.md (status pass)

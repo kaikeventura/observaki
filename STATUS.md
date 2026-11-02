@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E3
 epic_name: Spikes de armazenamento, consulta e tenancy
-story: "3.3"
-story_name: Ingestão ClickHouse com dedupe
+story: "3.4"
+story_name: VictoriaMetrics, MetricsQL e cardinalidade
 task: "AC1–AC3"
-task_name: Throughput local, dedupe por event_id e recuperação após crash
+task_name: 1M/s por 1h, 20 consultas p95 <1s e limite por tenant
 status: done        # not_started | in_progress | blocked | done
 updated: 2026-11-02
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "f45c5dd"
-next_action: "Story 3.4 — VictoriaMetrics, MetricsQL e cardinalidade; o baseline T1 da 2.4 continua bloqueado por P-07 e 3.4–3.5/4.1–4.5"
+last_commit: "fc2f0c1"
+next_action: "Story 3.5 — benchmark de consulta, retenção e row policies; o baseline T1 da 2.4 continua bloqueado por P-07 e 3.5/4.1–4.5"
 blocked_by: []
-last_session: "Story 3.3: writer ClickHouse RowBinary com spool/checkpoint, dedupe por event_id e token, DLQ e métricas; run local de 400k/s por 60s (24M eventos, lag p95 1,4s, 18 parts, 0 Too many parts), dedupe de 50k e recuperação de 100k após crash; não é G1; evidência em docs/dev/story-3.3-handoff.md. Sessão seguinte: diagramas de arquitetura em drawio (6 páginas) com deploy AWS de referência em docs/architecture/ e, depois, ERD da spine alinhado a AD-28."
+last_session: "Story 3.4: gerador remote write, catálogo de 1M séries, 20 consultas MetricsQL e proxy de admissão de cardinalidade (AD-33); run local de 1M/s por 1h (3,6B amostras, 999.738/s, p95 de carga 13ms, RSS 1,24GiB, 15,27GiB), consultas p95 799,5ms (20/20, 7/7 checks; m14 1.305ms), tenant-a 100k séries rejeitadas, tenant-b 0, drift 4,82%; não é G1; evidência em docs/dev/story-3.4-handoff.md e bench/victoriametrics/results/2026-11-02-local-1m-1h/."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E3 — Spikes de armazenamento, consulta e tenancy** |
-| Story | **3.3 — Ingestão ClickHouse com dedupe** |
-| Task | **AC1–AC3 — throughput local, dedupe por `event_id` e recuperação após crash** |
+| Story | **3.4 — VictoriaMetrics, MetricsQL e cardinalidade** |
+| Task | **AC1–AC3 — 1M/s por 1h, 20 consultas p95 <1s e limite por tenant** |
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `f45c5dd` |
-| Próxima ação | Story 3.4 — VictoriaMetrics, MetricsQL e cardinalidade |
-| Bloqueios | 2.4 (T1): P-07, 3.4–3.5/4.1–4.5 e rampa contínua; não bloqueia a 3.4 |
-| Última sessão | Story 3.3: 400k/s locais por 60s, 24M eventos, lag p95 1,4s, dedupe 50k e recuperação 100k; não é G1 |
+| Último commit | `fc2f0c1` |
+| Próxima ação | Story 3.5 — benchmark de consulta, retenção e row policies |
+| Bloqueios | 2.4 (T1): P-07, 3.5/4.1–4.5 e rampa contínua; não bloqueia a 3.5 |
+| Última sessão | Story 3.4: 1M/s por 1h, 3,6B amostras, p95 de carga 13ms, RSS 1,24GiB, consultas p95 799,5ms, drift 4,82%; não é G1 |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -89,7 +89,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E3 | 3.1 | Schema ClickHouse para logs | `done` | DDL com partição/TTL por `ingested_at`, ordem tenant/projeto/serviço/tempo e codecs; 1B linhas locais em 24 h, **6,98x**, `q03` p95 **263 ms**, TTL 7/15 pass; `make smoke` verde; não é G1; evidência em `docs/dev/story-3.1-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b/` |
 | P0-E3 | 3.2 | Schema ClickHouse para traces | `done` | DDL com partição/TTL por `ingested_at`, ordem tenant/projeto/serviço/status/tempo, bloom filters e sem MV de RED; 1B spans locais em 24 h, **7,52x**, trace lookup p95 **328 ms**, serviço/status p95 **178 ms**, service map 9/9 e correlação log↔trace ok; `make smoke` verde; não é G1; evidência em `docs/dev/story-3.2-handoff.md` e `bench/clickhouse/traces/results/2026-11-02-local-1b/` |
 | P0-E3 | 3.3 | Ingestão ClickHouse + dedupe | `done` | Writer RowBinary com spool/checkpoint, dedupe por `event_id` e token, DLQ e métricas; run local 400k/s por 60s, **24M eventos**, lag p95 **1,4s**, 18 parts, 0 `Too many parts`, dedupe 50k e recuperação 100k após crash; 1M/s/1h no T1 pendente (P-07/4.1/4.3); não é G1; evidência em `docs/dev/story-3.3-handoff.md` e `bench/clickhouse/ingest/results/2026-11-02-local-400k/` |
-| P0-E3 | 3.4 | VictoriaMetrics + cardinalidade | `todo` | Depende de 3.1 |
+| P0-E3 | 3.4 | VictoriaMetrics + cardinalidade | `done` | 1M séries a 1M/s por 1h (999.738/s, p95 de carga 13ms, RSS 1,24GiB, 15,27GiB), 20 consultas em 24h (p95 799,5ms, 20/20, 7/7 checks) e admissão por tenant (100k rejeitadas no tenant-a, 0 no tenant-b, drift 4,82%); `m14` 1.305ms; não é G1; evidência em `docs/dev/story-3.4-handoff.md` e `bench/victoriametrics/results/2026-11-02-local-1m-1h/` |
 | P0-E3 | 3.5 | Query/retenção/row policies | `todo` | Depende de 3.1-3.4 |
 | P0-E4 | 4.1 | Gateway OTLP | `todo` | Depende de 1.1 |
 | P0-E4 | 4.2 | Auth/quotas | `todo` | Depende de 4.1 |
@@ -117,13 +117,14 @@ Atalho no OpenCode: `/continue`.
 - [ ] p95 < 1s em 1B linhas/24h (logs local: `q03` p95 263 ms; traces local: trace lookup p95 328 ms; T1/gateway pendentes)
 - [ ] p95 < 3s em 10B linhas/7d
 - [ ] Compressão ≥ 5x em logs e traces (logs local 6,98x; traces local 7,52x; T1 pendente)
+- [x] Métricas: 1M séries a 1M/s por 1h e 20 consultas p95 <1s em 24h (local: 999.738/s, p95 799,5ms; T1 pendente)
 - [ ] Retenção/row policies/quotas validadas (TTL 7/15 local pass; row policies/quotas na 3.5)
 - [ ] Compose single-node < 15 min; Helm em 3 nós; upgrade/rollback
 - [ ] 100k pontos < 100ms; bundle inicial < 180 KB gzip
 - [ ] 3 design partners com dados reais
 - [x] ADRs aprovadas (storage, gateway, fila, frontend, tenancy, benchmark)
-- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; T1 pendente)
-- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3 locais e pré-baseline publicados; baseline T1 pendente de P-07 e 3.4–3.5/4.1–4.5)
+- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; 3.4: go local; T1 pendente)
+- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3/3.4 locais e pré-baseline publicados; baseline T1 pendente de P-07 e 3.5/4.1–4.5)
 
 **Só depois de todos os itens:** atualizar `phase: 1` e começar o detalhamento da Fase 1.
 
@@ -159,6 +160,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-02 | Story 3.3 | P0 / 3.3 / AC1–AC3 | Writer ClickHouse (`internal/adapters/clickhouse/writer`) com batches RowBinary, spool local durável (`fsync`+checkpoint), dedupe por `event_id`, `insert_deduplication_token` estável, retry, DLQ e métricas; migration `0003_ingest_dedupe.sql`; `chloadgen` com `--dedupe-test`, `--recover`, `--crash-after-insert` e dry-run; `bench/clickhouse/ingest/run.sh` e alvos `make bench-clickhouse-ingest*`; run local de **400k/s por 60s** (24M eventos, lag p95 **1,4s**, 18 parts, 0 `Too many parts`, 0 erros de insert), dedupe de 50k e recuperação de 100k após crash; `make fmt/lint/test/build` e `make smoke` verdes; **não é G1**; 1M/s/1h no T1 pendente; evidência em `docs/dev/story-3.3-handoff.md` e `bench/clickhouse/ingest/results/2026-11-02-local-400k/` | `1c6af25` | Story 3.4 |
 | 2026-11-02 | Diagramas de arquitetura | — | Pacote drawio de 6 páginas renderizado da spine (contexto C4 L1, containers C4 L2, deploy AWS multi-AZ, ingestão com fronteira de ack, consulta com contexto assinado, ERD do control plane), com o AD citado em cada nó/aresta e PNGs exportados; data plane segue self-hosted em EKS (AD-5/AD-12/AD-18) e a AWS entra como hospedagem; divergência `PANEL` do ERD da spine × AD-28 registrada em `docs/architecture/README.md`; nenhum AD novo, nenhuma story alterada | `58f4a68` | Story 3.4 |
 | 2026-11-02 | Correção do ERD da spine | — | ERD do control plane alinhado a AD-28 e ao DDL canônico do addendum: `PANEL` removido, canais via `alert_rule_channel`, retenção só em `retention_policies`, `silences` e `audit_events` com o dono correto e `error_budgets` 1:1 com `slos`; nenhum AD novo e AD-28 inalterado (correção de seed, registrada no log de decisões da spine); `lint_spine.py` com **0 achados**; página 6 do drawio atualizada e reexportada | `f45c5dd` | Story 3.4 |
+| 2026-11-02 | Story 3.4 | P0 / 3.4 / AC1–AC3 | Gerador remote write protobuf+snappy, catálogo determinístico de 1M séries (2 tenants), 20 consultas MetricsQL e proxy de admissão por tenant (AD-33); run local de 1M/s por 1h (**3,6B amostras**, 999.738/s, p95 de carga 13ms, RSS 1,24GiB, 15,27GiB), consultas p95 **799,5ms** (20/20, 7/7 checks; `m14` 1.305ms), tenant-a 100k séries rejeitadas, tenant-b 0, drift **4,82%**; `make fmt/lint/test/build`, `make smoke` e `make bench-victoriametrics-check` verdes; **não é G1**; evidência em `docs/dev/story-3.4-handoff.md` e `bench/victoriametrics/results/2026-11-02-local-1m-1h/` | `fc2f0c1` | Story 3.5 |
 
 ## Regras de atualização
 

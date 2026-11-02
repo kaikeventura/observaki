@@ -1,0 +1,17 @@
+{
+  "errors": 0,
+  "expr": "sum by (series_id) (rate(observaki_cardinality_probe_total{tenant_id=\"tenant-b\"}[5m]))",
+  "latency_ms": {
+    "count": 10,
+    "p50_ms": 513.04878,
+    "p95_ms": 584.492741,
+    "p99_ms": 584.492741,
+    "max_ms": 584.492741
+  },
+  "result_series": 50000,
+  "runs": 10,
+  "status": "pass",
+  "step": "5m0s",
+  "warmup": 2,
+  "window": "24h0m0s"
+}

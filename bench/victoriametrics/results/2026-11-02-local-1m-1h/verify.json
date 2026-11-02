@@ -1,0 +1,54 @@
+{
+  "checks": [
+    {
+      "name": "rate_alpha",
+      "query": "sum(rate(observaki_verify_requests_total{service=\"alpha\"}[5m]))",
+      "want": 0.6666666666666666,
+      "got": 0.6666666666666666,
+      "pass": true
+    },
+    {
+      "name": "rate_beta",
+      "query": "sum by (service) (rate(observaki_verify_requests_total[5m]))",
+      "want": 0.3333333333333333,
+      "got": 0.3333333333333333,
+      "pass": true
+    },
+    {
+      "name": "increase_alpha",
+      "query": "sum(increase(observaki_verify_requests_total{service=\"alpha\"}[5m]))",
+      "want": 200,
+      "got": 200,
+      "pass": true
+    },
+    {
+      "name": "label_aggregation_200",
+      "query": "sum by (status) (observaki_verify_requests_total)",
+      "want": 200,
+      "got": 200,
+      "pass": true
+    },
+    {
+      "name": "label_aggregation_500",
+      "query": "sum by (status) (observaki_verify_requests_total)",
+      "want": 100,
+      "got": 100,
+      "pass": true
+    },
+    {
+      "name": "histogram_quantile_p95",
+      "query": "histogram_quantile(0.95, sum by (le) (rate(observaki_verify_duration_seconds_bucket[5m])))",
+      "want": 0.475,
+      "got": 0.475,
+      "pass": true
+    },
+    {
+      "name": "histogram_quantile_p50",
+      "query": "histogram_quantile(0.50, sum by (le) (rate(observaki_verify_duration_seconds_bucket[5m])))",
+      "want": 0.25,
+      "got": 0.25,
+      "pass": true
+    }
+  ],
+  "status": "pass"
+}
