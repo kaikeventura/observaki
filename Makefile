@@ -19,6 +19,9 @@ BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -X github.com/observaki/observaki/internal/version.Version=$(VERSION) \
 	-X github.com/observaki/observaki/internal/version.Commit=$(COMMIT) \
 	-X github.com/observaki/observaki/internal/version.Date=$(BUILD_DATE)
+BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.Version=$(VERSION) \
+	-X github.com/observaki/observaki/bench/internal/benchversion.Commit=$(COMMIT) \
+	-X github.com/observaki/observaki/bench/internal/benchversion.Date=$(BUILD_DATE)
 
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
@@ -66,8 +69,8 @@ test: ## run Go, web and Rust tests
 build: ## build the Go binary, the load generator, the web app and the agent
 	@mkdir -p $(BIN_DIR)
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/observaki
-	$(GO) build -trimpath -o $(LOADGEN) ./bench/cmd/otlploadgen
-	$(GO) build -trimpath -o $(BENCHCTL) ./bench/cmd/benchctl
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(LOADGEN) ./bench/cmd/otlploadgen
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(BENCHCTL) ./bench/cmd/benchctl
 	$(PNPM) --dir $(WEB_DIR) build
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 

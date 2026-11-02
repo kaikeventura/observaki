@@ -7,7 +7,7 @@ O harness reproduzível da Fase 0. Componentes:
 | `bench/loadgen` + `otlploadgen` | 2.1 | Gera o workload OTLP determinístico (60/30/10) com taxa, backpressure e métricas próprias |
 | `bench/scenarios` + `bench/run.sh` | 2.2 | Define cenários de throughput, query, cardinalidade e caos; valida pré-requisitos e grava resultados |
 | `bench/queries` | 2.2 | Catálogo das 20 consultas representativas de dashboard |
-| Relatório `report.md`/`report.json` | 2.3 | Coleta e comparação dos resultados |
+| Relatório `report.md`/`report.json` | 2.3 | Coleta CPU/RAM/disco, normaliza as métricas e compara repetições com variância documentada |
 | Ambiente reproduzível e baseline | 2.4 | Cluster de referência, provisionamento e primeira execução publicada |
 
 ## Workload de referência
@@ -76,6 +76,7 @@ make build                 # inclui bin/benchctl e bin/otlploadgen
 ./bench/run.sh list        # inventário dos cenários
 ./bench/run.sh check       # valida contratos e o catálogo de consultas
 ./bench/run.sh queries     # imprime as 20 consultas
+./bench/run.sh report      # consolida bench/results em report.md + report.json
 ```
 
 Executar um cenário:
@@ -126,15 +127,90 @@ Cada execução grava uma pasta com timestamp UTC e o nome do cenário:
 ```text
 bench/results/20261102T003723Z-throughput-100k/
   run.json          # metadados, checks, comandos, shards e agregado
+  resources.json    # amostras de CPU/RAM/disco e uso dos processos do loadgen
   scenario.env      # cópia exata do contrato usado
   loadgen-00.json   # resumo do gerador
   loadgen-00.log    # log estruturado
 ```
 
-`run.json` inclui commit e estado sujo do git, host (CPU/RAM/SO), versão do
-cenário, checks de pré-requisitos, opções resolvidas, comandos exatos e o
-agregado de taxa. `bench/results/` e `bench/.tmp/` não são versionados; o
-relatório consolidado entra na Story 2.3.
+`run.json` inclui commit e estado sujo do git, host (CPU/RAM/SO), versão,
+`config_hash`, checks de pré-requisitos, opções resolvidas, comandos exatos e o
+agregado de taxa. `resources.json` amostra CPU, memória e disco a cada segundo
+(Linux) e registra CPU/RSS acumulados dos processos do gerador. `bench/results/`,
+`bench/reports/` e `bench/.tmp/` não são versionados.
+
+### Relatório
+
+O gerador consolida uma ou mais execuções em `report.md` (leitura humana) e
+`report.json` (dados brutos):
+
+```bash
+# todas as execuções de bench/results, saída com timestamp em bench/reports/
+./bench/run.sh report
+
+# somente um cenário
+./bench/run.sh report --scenario throughput-100k
+
+# pastas explícitas e destino fixo
+./bench/run.sh report \
+  --results-dir bench/results \
+  --out bench/reports/2026-11-01-throughput \
+  bench/results/20261101T120000Z-throughput-100k \
+  bench/results/20261101T130000Z-throughput-100k
+```
+
+O `report.json` contém `hardware`, `versions`, `config_hash`, métricas
+normalizadas, o status de **cada métrica declarada no cenário** e os resultados
+brutos (`run.json`, resumos do loadgen, `resources.json` e a medição de payload).
+O `report.md` repete a leitura humana, a metodologia, a variância observada e as
+limitações.
+
+**Config hash.** SHA-256 sobre o contrato do workload: cenário, taxa, duração,
+shards, seeds, protocolo, compressão, dataset/query set e parâmetros do gerador
+(mix, batch, payload). Endpoint, host e `--start-time` ficam de fora; o mesmo
+workload em outra máquina produz o mesmo hash.
+
+**Métricas e fontes.**
+
+| Métrica | Fonte | Disponibilidade |
+|---|---|---|
+| `events_per_second`, `bytes_per_second` | agregado dos shards e resumo do loadgen | throughput hoje |
+| latência de envio p50/p95/p99 | loadgen (pior shard) | throughput hoje |
+| CPU, RAM, disco | `resources.json` (1 Hz) | Linux hoje |
+| CPU/RSS do gerador | `getrusage(RUSAGE_CHILDREN)` | Linux hoje |
+| `error_rate`, `dropped_events`, backpressure, pacing lag | resumo do loadgen | throughput hoje |
+| `compression_ratio` | bytes protobuf / bytes no fio (HTTP) ou payload determinístico | throughput hoje; compressão de storage entra na 3.1-3.3 |
+| `ingest_lag_*`, `confirmed_lost_events` | gateway/WAL | a partir da 4.3-4.5; reportado como `not_collected` até lá |
+| `query_latency_*`, `rows_read`, `cache_hit_ratio` | Query Service | 3.5; reportado como `not_collected` até lá |
+| `series_active`, `neighbor_p95_drift_percent` | gerador de séries | 3.4; reportado como `not_collected` até lá |
+| `recovery_seconds`, `dlq_events` | automação de caos | 4.5; reportado como `not_collected` até lá |
+
+O relatório **não inventa** métricas que a stack da Fase 0 ainda não mede: cada
+métrica declarada aparece como `collected` ou `not_collected` com o motivo e a
+story que a habilita.
+
+**Variância documentada.** A comparação agrupa execuções com o mesmo cenário e
+`config_hash`; a variância só é avaliada quando todas são do mesmo commit. As
+tolerâncias são:
+
+| Métrica | Tolerância | Mínimo de execuções |
+|---|---|---|
+| `events_per_second`, `bytes_per_second` | ±5% | 2 |
+| latência de envio p50/p95/p99 | ±10% | 3 |
+| CPU média, RAM média | ±10% | 2 |
+| `compression_ratio` | ±5% | 2 |
+| `error_rate` | ±0,1 ponto percentual | 2 |
+
+O ADR-0006 permite uma execução contínua de 1h para o gate de throughput; nesse
+caso a variância não é avaliada e o relatório diz isso explicitamente. Execuções
+que atravessam commits são listadas, mas não julgadas como repetição. Toda
+execução entra no relatório, inclusive `failed` e `blocked`; só `status: ok` e
+`mode: run` entram na comparação.
+
+**Custo.** O relatório publica os insumos de volume (eventos/dia, TB/dia bruto,
+no fio e no payload de referência). O preço por TB/dia, fator de réplica e horas
+de operação continuam pendentes de decisão do fundador (Q-07 do ADR-0006); o
+relatório marca o modelo como `not_configured` em vez de inventar preços.
 
 ## Datasets de consulta
 
@@ -309,6 +385,17 @@ o alvo de 134 B/event é medido pelo `--check-payload`.
   evidência do gate G1.
 - **Query/cardinalidade/caos:** o contrato e o plano existem; a execução
   depende de ClickHouse/Query Service (3.4/3.5) e da automação de falhas (4.5).
+  O relatório marca as métricas dessas famílias como `not_collected` com a story
+  que as habilita.
+- **Ingest lag:** o relatório mede latência de envio do loadgen, não o lag de
+  ingestão durável. `ingest_lag_*` e `confirmed_lost_events` ficam
+  `not_collected` até o gateway/WAL (4.3-4.5).
+- **Compressão:** `compression_ratio` é a razão no fio (HTTP) ou a razão
+  determinística do payload de referência. A compressão de armazenamento do
+  ClickHouse/VictoriaMetrics entra nas Stories 3.1-3.4.
+- **Recursos:** a amostragem é de host, a 1 Hz, em Linux. Em outras plataformas
+  CPU/RAM aparecem como indisponíveis; o disco e o RSS do gerador também podem
+  variar por SO.
 - **Cardinalidade:** o gerador atual ainda não varia séries além dos 32
   conjuntos de atributos; o gerador de séries e os guardrails entram na 3.4.
 - **5M/s em um processo** não se sustenta nesta máquina de desenvolvimento;
@@ -318,8 +405,8 @@ o alvo de 134 B/event é medido pelo `--check-payload`.
 
 ## Artefatos
 
-`bench/results/` e `bench/.tmp/` não são versionados. O relatório
-`BENCHMARKS.md` e o JSON consolidado entram na Story 2.3; o provisionamento e o
-baseline entram na Story 2.4. O contrato de cada cenário (`bench/scenarios/`),
-o catálogo de consultas (`bench/queries/`) e o runner (`bench/run.sh`) são
-versionados.
+`bench/results/`, `bench/reports/` e `bench/.tmp/` não são versionados. O
+relatório `BENCHMARKS.md` e o JSON consolidado do baseline entram na Story 2.4; o
+gerador de `report.md`/`report.json` desta story é o mecanismo que a 2.4 usa. O
+contrato de cada cenário (`bench/scenarios/`), o catálogo de consultas
+(`bench/queries/`) e o runner (`bench/run.sh`) são versionados.

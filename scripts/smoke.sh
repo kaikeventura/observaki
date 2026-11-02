@@ -21,6 +21,7 @@ find_free_port() {
 
 port="${SMOKE_PORT:-$(find_free_port)}"
 log="$(mktemp -t observaki-smoke.XXXXXX.log)"
+bench_tmp="$(mktemp -d -t observaki-bench.XXXXXX)"
 pid=""
 
 cleanup() {
@@ -29,6 +30,7 @@ cleanup() {
 		wait "$pid" 2>/dev/null || true
 	fi
 	rm -f "$log"
+	rm -rf "$bench_tmp"
 }
 trap cleanup EXIT
 
@@ -81,4 +83,13 @@ grep -q "Observaki" web/build/index.html || {
 
 ./bin/benchctl check >/dev/null
 
-echo "Smoke: OK (healthz, api health, web build, version, loadgen payload, bench scenarios)"
+./bin/benchctl run throughput-100k --plan --results-dir "$bench_tmp/results" >/dev/null
+./bin/benchctl report --results-dir "$bench_tmp/results" --out "$bench_tmp/report" >/dev/null
+for artifact in report.md report.json; do
+	[ -f "$bench_tmp/report/$artifact" ] || {
+		echo "Smoke: benchmark $artifact is missing" >&2
+		exit 1
+	}
+done
+
+echo "Smoke: OK (healthz, api health, web build, version, loadgen payload, bench scenarios, benchmark report)"

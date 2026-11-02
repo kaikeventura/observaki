@@ -86,6 +86,50 @@ func TestDryRunThroughputRunsEveryShard(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(record.ResultDir, "run.json")); err != nil {
 		t.Fatalf("run.json missing: %v", err)
 	}
+	if record.ConfigHash == "" || !strings.HasPrefix(record.ConfigHash, "sha256:") {
+		t.Fatalf("config hash = %q, want sha256", record.ConfigHash)
+	}
+	if record.Versions.Go == "" || record.Versions.Benchctl == "" {
+		t.Fatalf("versions = %+v, want benchctl and Go versions", record.Versions)
+	}
+	if record.Host.CPUs <= 0 || record.Host.OS == "" {
+		t.Fatalf("host = %+v, want hardware details", record.Host)
+	}
+	if record.Resources == nil {
+		t.Fatal("resources summary is nil")
+	}
+	if _, err := os.Stat(filepath.Join(record.ResultDir, "resources.json")); err != nil {
+		t.Fatalf("resources.json missing: %v", err)
+	}
+}
+
+func TestConfigHashIgnoresEndpointAndChangesWithWorkload(t *testing.T) {
+	definition := scenario.Definition{
+		Name:        "fake-throughput",
+		Kind:        scenario.KindThroughput,
+		Rate:        2000,
+		Shards:      2,
+		Protocol:    "http",
+		Compression: "none",
+		Duration:    scenario.Duration(time.Minute),
+		Requires:    []string{"loadgen"},
+	}
+	base := Options{Endpoint: "http://127.0.0.1:4318"}
+	first := configHash(definition, base)
+	second := configHash(definition, Options{Endpoint: "http://10.0.0.1:4318"})
+	if first == "" || first != second {
+		t.Fatalf("config hash changed with the endpoint: %q != %q", first, second)
+	}
+	changed := definition
+	changed.Rate = 4000
+	if third := configHash(changed, base); third == first {
+		t.Fatal("config hash did not change with the workload rate")
+	}
+	changed = definition
+	changed.Compression = "gzip"
+	if fourth := configHash(changed, base); fourth == first {
+		t.Fatal("config hash did not change with compression")
+	}
 }
 
 func TestRunFailsWhenEndpointIsDown(t *testing.T) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -76,5 +77,37 @@ func TestRunPlanQueryIsBlockedButPlanned(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "--event-time-rate 11574") {
 		t.Fatalf("query plan does not contain the event-time rate:\n%s", stdout.String())
+	}
+}
+
+func TestReportFromPlannedRun(t *testing.T) {
+	results := t.TempDir()
+	out := t.TempDir()
+	var stdout, stderr bytes.Buffer
+	args := []string{"--root", repoRoot(t), "run", "throughput-100k", "--plan", "--results-dir", results}
+	if code := run(args, &stdout, &stderr); code != 0 {
+		t.Fatalf("run --plan exit = %d, stderr = %s", code, stderr.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	args = []string{"--root", repoRoot(t), "report", "--results-dir", results, "--out", out}
+	if code := run(args, &stdout, &stderr); code != 0 {
+		t.Fatalf("report exit = %d, stderr = %s", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "report: 1 run(s)") {
+		t.Fatalf("unexpected report output:\n%s", stdout.String())
+	}
+	if _, err := os.Stat(filepath.Join(out, "report.json")); err != nil {
+		t.Fatalf("report.json missing: %v", err)
+	}
+	markdown, err := os.ReadFile(filepath.Join(out, "report.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"# Observaki benchmark report", "throughput-100k", "planned run; no workload was executed"} {
+		if !strings.Contains(string(markdown), want) {
+			t.Errorf("report.md is missing %q", want)
+		}
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/observaki/observaki/bench/internal/benchversion"
 	"github.com/observaki/observaki/bench/loadgen"
 )
 
@@ -89,7 +90,7 @@ Flags:
 		return fmt.Errorf("unexpected arguments: %s", strings.Join(flags.Args(), " "))
 	}
 	if showVersion {
-		_, err := fmt.Fprintln(stdout, "otlploadgen 0.1.0 (phase 0)")
+		_, err := fmt.Fprintln(stdout, benchversion.String("otlploadgen"))
 		return err
 	}
 

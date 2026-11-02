@@ -170,6 +170,19 @@ harness e a primeira execução de referência.
   `bench/queries/dashboard.tsv`; o SQL/MetricsQL é vinculado na Story 3.5,
   quando o schema existir.
 
+**Resolvidas na Story 2.3 (2026-11-01):**
+
+- **Q-04:** o relatório publica p50/p95/p99 (além de média, mínimo, máximo e
+  desvio padrão) para throughput, latência de envio e recursos; a variância
+  observada é comparada com a tolerância documentada e o número de execuções é
+  explícito. Latência exige ≥3 execuções, throughput ≥2 (uma execução contínua
+  de 1h continua permitida pelo item 10). O mecanismo está em
+  `bench/internal/report` e a saída em `report.md` + `report.json`.
+- **Q-07 (parcial):** o relatório publica os insumos de volume (eventos/dia,
+  TB/dia bruto, no fio e no payload de referência) e marca o modelo de custo
+  como `not_configured`. O preço por TB/dia, o fator de réplica e as horas de
+  operação continuam pendentes de decisão do fundador.
+
 ## Referências
 
 - PRD: NFR-1, NFR-2, NFR-13; SM-3, SM-4, SM-6, SM-7; §10.1, §10.3.
@@ -184,3 +197,4 @@ harness e a primeira execução de referência.
 |---|---|---|
 | 2026-10-31 | Criação (Story 1.4) | OpenCode |
 | 2026-11-01 | Q-02/Q-03 resolvidas pelos artefatos da Story 2.2 | OpenCode |
+| 2026-11-01 | Q-04 resolvida e Q-07 parcialmente endereçada pelo gerador de relatório da Story 2.3 | OpenCode |

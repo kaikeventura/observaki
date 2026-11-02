@@ -24,6 +24,9 @@ import (
 type SendResult struct {
 	// Bytes is the uncompressed protobuf size of the request.
 	Bytes int
+	// CompressedBytes is the request size after transport compression. It is
+	// zero when the transport does not expose it (for example gRPC/gzip).
+	CompressedBytes int
 	// Rejected is the number of events rejected by the receiver through the
 	// OTLP partial-success response.
 	Rejected int
@@ -63,10 +66,11 @@ func (discardSender) Send(_ context.Context, batch *Batch) (SendResult, error) {
 func (discardSender) Close() error { return nil }
 
 type grpcSender struct {
-	conn    *grpc.ClientConn
-	logs    logscollectorpb.LogsServiceClient
-	metrics metricscollectorpb.MetricsServiceClient
-	traces  tracecollectorpb.TraceServiceClient
+	conn       *grpc.ClientConn
+	logs       logscollectorpb.LogsServiceClient
+	metrics    metricscollectorpb.MetricsServiceClient
+	traces     tracecollectorpb.TraceServiceClient
+	compressed bool
 }
 
 func newGRPCSender(cfg Config) (*grpcSender, error) {
@@ -81,15 +85,21 @@ func newGRPCSender(cfg Config) (*grpcSender, error) {
 		return nil, fmt.Errorf("create gRPC client: %w", err)
 	}
 	return &grpcSender{
-		conn:    conn,
-		logs:    logscollectorpb.NewLogsServiceClient(conn),
-		metrics: metricscollectorpb.NewMetricsServiceClient(conn),
-		traces:  tracecollectorpb.NewTraceServiceClient(conn),
+		conn:       conn,
+		logs:       logscollectorpb.NewLogsServiceClient(conn),
+		metrics:    metricscollectorpb.NewMetricsServiceClient(conn),
+		traces:     tracecollectorpb.NewTraceServiceClient(conn),
+		compressed: cfg.Compression == CompressionGzip,
 	}, nil
 }
 
 func (s *grpcSender) Send(ctx context.Context, batch *Batch) (SendResult, error) {
 	result := SendResult{Bytes: batch.Size()}
+	if !s.compressed {
+		// Without transport compression the wire size equals the protobuf
+		// size. gRPC does not expose the compressed frame size.
+		result.CompressedBytes = result.Bytes
+	}
 	switch batch.Signal {
 	case Logs:
 		response, err := s.logs.Export(ctx, batch.Logs)
@@ -179,7 +189,7 @@ func (s *httpSender) Send(ctx context.Context, batch *Batch) (SendResult, error)
 		return SendResult{}, fmt.Errorf("HTTP %d: %s", response.StatusCode, truncate(string(payload), 256))
 	}
 
-	result := SendResult{Bytes: len(raw)}
+	result := SendResult{Bytes: len(raw), CompressedBytes: len(body)}
 	if len(payload) == 0 {
 		return result, nil
 	}

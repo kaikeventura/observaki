@@ -1,6 +1,7 @@
 package scenario_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -201,6 +202,31 @@ func TestParseAcceptsDayDurations(t *testing.T) {
 	}
 	if got, want := time.Duration(definition.Duration), 48*time.Hour; got != want {
 		t.Fatalf("duration = %s, want %s", got, want)
+	}
+}
+
+func TestDurationJSONRoundTrip(t *testing.T) {
+	duration, err := scenario.ParseDuration("7d")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(duration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded scenario.Duration
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded != duration {
+		t.Fatalf("decoded = %s, want %s", decoded, duration)
+	}
+	var raw scenario.Duration
+	if err := json.Unmarshal([]byte("1000000000"), &raw); err != nil {
+		t.Fatal(err)
+	}
+	if time.Duration(raw) != time.Second {
+		t.Fatalf("raw = %s, want 1s", raw)
 	}
 }
 

@@ -15,12 +15,13 @@ type RunMetrics struct {
 	startedAtUnixNano atomic.Int64
 	targetRate        int
 
-	generated [3]atomic.Int64
-	sent      [3]atomic.Int64
-	failed    [3]atomic.Int64
-	rejected  [3]atomic.Int64
-	requests  [3]atomic.Int64
-	bytes     [3]atomic.Int64
+	generated  [3]atomic.Int64
+	sent       [3]atomic.Int64
+	failed     [3]atomic.Int64
+	rejected   [3]atomic.Int64
+	requests   [3]atomic.Int64
+	bytes      [3]atomic.Int64
+	compressed [3]atomic.Int64
 
 	backpressureEvents    atomic.Int64
 	backpressureWaitNanos atomic.Int64
@@ -89,6 +90,9 @@ func (m *RunMetrics) Record(signal Signal, events int, result SendResult, err er
 	}
 	m.sent[signal].Add(int64(accepted))
 	m.bytes[signal].Add(int64(result.Bytes))
+	if result.CompressedBytes > 0 {
+		m.compressed[signal].Add(int64(result.CompressedBytes))
+	}
 	if result.Rejected > 0 {
 		m.rejected[signal].Add(int64(result.Rejected))
 	}
@@ -96,13 +100,14 @@ func (m *RunMetrics) Record(signal Signal, events int, result SendResult, err er
 
 // SignalMetrics is the per-signal snapshot.
 type SignalMetrics struct {
-	Signal    string `json:"signal"`
-	Generated int64  `json:"generated"`
-	Sent      int64  `json:"sent"`
-	Failed    int64  `json:"failed"`
-	Rejected  int64  `json:"rejected"`
-	Requests  int64  `json:"requests"`
-	Bytes     int64  `json:"bytes"`
+	Signal          string `json:"signal"`
+	Generated       int64  `json:"generated"`
+	Sent            int64  `json:"sent"`
+	Failed          int64  `json:"failed"`
+	Rejected        int64  `json:"rejected"`
+	Requests        int64  `json:"requests"`
+	Bytes           int64  `json:"bytes"`
+	CompressedBytes int64  `json:"compressed_bytes"`
 }
 
 // MetricsSnapshot is a point-in-time view of a run.
@@ -115,6 +120,8 @@ type MetricsSnapshot struct {
 	Sent                    int64           `json:"sent"`
 	Failed                  int64           `json:"failed"`
 	Rejected                int64           `json:"rejected"`
+	Bytes                   int64           `json:"bytes"`
+	CompressedBytes         int64           `json:"compressed_bytes"`
 	BackpressureEvents      int64           `json:"backpressure_events"`
 	BackpressureWaitSeconds float64         `json:"backpressure_wait_seconds"`
 	PacingLagEvents         int64           `json:"pacing_lag_events"`
@@ -144,18 +151,21 @@ func (m *RunMetrics) Snapshot() MetricsSnapshot {
 	}
 	for _, signal := range AllSignals {
 		item := SignalMetrics{
-			Signal:    signal.String(),
-			Generated: m.generated[signal].Load(),
-			Sent:      m.sent[signal].Load(),
-			Failed:    m.failed[signal].Load(),
-			Rejected:  m.rejected[signal].Load(),
-			Requests:  m.requests[signal].Load(),
-			Bytes:     m.bytes[signal].Load(),
+			Signal:          signal.String(),
+			Generated:       m.generated[signal].Load(),
+			Sent:            m.sent[signal].Load(),
+			Failed:          m.failed[signal].Load(),
+			Rejected:        m.rejected[signal].Load(),
+			Requests:        m.requests[signal].Load(),
+			Bytes:           m.bytes[signal].Load(),
+			CompressedBytes: m.compressed[signal].Load(),
 		}
 		snapshot.Generated += item.Generated
 		snapshot.Sent += item.Sent
 		snapshot.Failed += item.Failed
 		snapshot.Rejected += item.Rejected
+		snapshot.Bytes += item.Bytes
+		snapshot.CompressedBytes += item.CompressedBytes
 		snapshot.Signals = append(snapshot.Signals, item)
 	}
 	if snapshot.ElapsedSeconds > 0 {
@@ -204,6 +214,12 @@ func (m *RunMetrics) Handler() http.Handler {
 		builder.WriteString("# TYPE observaki_loadgen_bytes_total counter\n")
 		for _, signal := range AllSignals {
 			fmt.Fprintf(&builder, "observaki_loadgen_bytes_total{signal=%q} %d\n", signal.String(), metricFor(snapshot, signal).Bytes)
+		}
+
+		builder.WriteString("# HELP observaki_loadgen_compressed_bytes_total Request bytes after transport compression (0 when unavailable).\n")
+		builder.WriteString("# TYPE observaki_loadgen_compressed_bytes_total counter\n")
+		for _, signal := range AllSignals {
+			fmt.Fprintf(&builder, "observaki_loadgen_compressed_bytes_total{signal=%q} %d\n", signal.String(), metricFor(snapshot, signal).CompressedBytes)
 		}
 
 		builder.WriteString("# HELP observaki_loadgen_send_latency_seconds OTLP export request latency.\n")

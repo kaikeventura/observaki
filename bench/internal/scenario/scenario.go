@@ -33,6 +33,29 @@ func (d Duration) String() string { return time.Duration(d).String() }
 // MarshalJSON renders the duration as a Go duration string.
 func (d Duration) MarshalJSON() ([]byte, error) { return json.Marshal(d.String()) }
 
+// UnmarshalJSON accepts the human-readable duration string written by
+// MarshalJSON, plus nanoseconds for backward compatibility with raw numbers.
+func (d *Duration) UnmarshalJSON(data []byte) error {
+	if len(data) > 0 && data[0] == '"' {
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		parsed, err := ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = parsed
+		return nil
+	}
+	var nanoseconds int64
+	if err := json.Unmarshal(data, &nanoseconds); err != nil {
+		return err
+	}
+	*d = Duration(time.Duration(nanoseconds))
+	return nil
+}
+
 // Definition is one benchmark scenario. Fields that only apply to some kinds
 // are zero for the others.
 type Definition struct {

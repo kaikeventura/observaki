@@ -45,6 +45,7 @@ tmp/
 
 # Bench artifacts
 bench/results/
+bench/reports/
 bench/.tmp/
 
 # OS generated

@@ -3,6 +3,8 @@ package runner
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/observaki/observaki/bench/internal/benchversion"
+	"github.com/observaki/observaki/bench/internal/resources"
 	"github.com/observaki/observaki/bench/internal/scenario"
 	"github.com/observaki/observaki/bench/loadgen"
 )
@@ -112,6 +116,7 @@ type Record struct {
 	SchemaVersion   int                 `json:"schema_version"`
 	Scenario        scenario.Definition `json:"scenario"`
 	Resolved        Resolved            `json:"resolved"`
+	ConfigHash      string              `json:"config_hash"`
 	Mode            Mode                `json:"mode"`
 	Status          Status              `json:"status"`
 	StartedAt       time.Time           `json:"started_at"`
@@ -119,12 +124,16 @@ type Record struct {
 	DurationSeconds float64             `json:"duration_seconds"`
 	Git             GitInfo             `json:"git"`
 	Host            HostInfo            `json:"host"`
+	Versions        Versions            `json:"versions"`
 	Checks          []Check             `json:"checks"`
 	Plan            []string            `json:"plan,omitempty"`
 	Dataset         *DatasetPlan        `json:"dataset,omitempty"`
 	Commands        []string            `json:"commands,omitempty"`
 	Shards          []ShardResult       `json:"shards,omitempty"`
 	Aggregate       *Aggregate          `json:"aggregate,omitempty"`
+	Resources       *resources.Summary  `json:"resources,omitempty"`
+	ResourcesFile   string              `json:"resources_file,omitempty"`
+	Warnings        []string            `json:"warnings,omitempty"`
 	ResultDir       string              `json:"result_dir"`
 	Error           string              `json:"error,omitempty"`
 }
@@ -147,8 +156,19 @@ type HostInfo struct {
 	Hostname    string `json:"hostname"`
 	OS          string `json:"os"`
 	Arch        string `json:"arch"`
+	Kernel      string `json:"kernel,omitempty"`
+	CPUModel    string `json:"cpu_model,omitempty"`
 	CPUs        int    `json:"cpus"`
 	MemoryBytes uint64 `json:"memory_bytes,omitempty"`
+}
+
+// Versions records the software that produced a run.
+type Versions struct {
+	Benchctl string `json:"benchctl"`
+	Go       string `json:"go"`
+	OS       string `json:"os"`
+	Arch     string `json:"arch"`
+	Kernel   string `json:"kernel,omitempty"`
 }
 
 // Check is one prerequisite validation.
@@ -232,12 +252,14 @@ func Run(ctx context.Context, definition scenario.Definition, options Options) (
 			Duration: scenario.Duration(scenarioDuration(definition, options)),
 			Rate:     scenarioRate(definition, options),
 		},
-		Mode:      options.Mode,
-		Status:    StatusRunning,
-		StartedAt: started,
-		Git:       gitInfo(options.RepoRoot),
-		Host:      hostInfo(),
-		ResultDir: resultDir,
+		ConfigHash: configHash(definition, options),
+		Mode:       options.Mode,
+		Status:     StatusRunning,
+		StartedAt:  started,
+		Git:        gitInfo(options.RepoRoot),
+		Host:       hostInfo(),
+		Versions:   versions(),
+		ResultDir:  resultDir,
 	}
 
 	if err := writeRecord(resultDir, record); err != nil {
@@ -288,7 +310,20 @@ func Run(ctx context.Context, definition scenario.Definition, options Options) (
 	if err := writeRecord(resultDir, record); err != nil {
 		return record, err
 	}
+
+	collector := resources.NewCollector(resultDir)
+	collector.Start()
+	childrenBefore := resources.ReadChildren()
 	runErr := executeThroughput(ctx, definition, options, record, resultDir)
+	childrenAfter := resources.ReadChildren()
+	summary := collector.Stop()
+	summary.Children = childrenBefore.Delta(childrenAfter, aggregateElapsed(record), runtime.NumCPU())
+	record.Resources = &summary
+	if path, err := resources.Write(resultDir, summary, collector.Samples()); err != nil {
+		record.Warnings = append(record.Warnings, "resource sampling: "+err.Error())
+	} else {
+		record.ResourcesFile = filepath.Base(path)
+	}
 	finish(record, options)
 	return record, writeFinal(resultDir, record, runErr)
 }
@@ -777,8 +812,123 @@ func gitInfo(root string) GitInfo {
 	return info
 }
 
+func versions() Versions {
+	return Versions{
+		Benchctl: benchversion.Version,
+		Go:       runtime.Version(),
+		OS:       runtime.GOOS,
+		Arch:     runtime.GOARCH,
+		Kernel:   kernelRelease(),
+	}
+}
+
+// CurrentHost describes the machine running the benchmark tooling.
+func CurrentHost() HostInfo {
+	return hostInfo()
+}
+
+func aggregateElapsed(record *Record) time.Duration {
+	if record == nil || record.Aggregate == nil || record.Aggregate.MaxShardDurationSeconds <= 0 {
+		return 0
+	}
+	return time.Duration(record.Aggregate.MaxShardDurationSeconds * float64(time.Second))
+}
+
+// configHash pins the workload configuration. It deliberately excludes the
+// endpoint, host and start time so that the same workload on another machine
+// produces the same hash.
+func configHash(definition scenario.Definition, options Options) string {
+	defaults := loadgen.DefaultConfig()
+	protocol := definition.Protocol
+	if protocol == "" {
+		protocol = "http"
+	}
+	compression := definition.Compression
+	if compression == "" {
+		compression = "none"
+	}
+	shards := definition.Shards
+	if definition.Kind == scenario.KindQuery {
+		shards = definition.SeedShards
+	}
+	if shards < 1 {
+		shards = 1
+	}
+	seeds := make([]int64, 0, shards)
+	for index := 1; index <= shards; index++ {
+		seeds = append(seeds, int64(index))
+	}
+	eventTimeRate := int64(0)
+	if definition.Kind == scenario.KindQuery {
+		eventTimeRate = definition.EventTimeRate()
+	}
+	fingerprint := struct {
+		Name             string               `json:"name"`
+		Kind             scenario.Kind        `json:"kind"`
+		Rate             int                  `json:"rate"`
+		Duration         string               `json:"duration"`
+		Shards           int                  `json:"shards"`
+		Protocol         string               `json:"protocol"`
+		Compression      string               `json:"compression"`
+		EventTimeRate    int64                `json:"event_time_rate,omitempty"`
+		DatasetEvents    int64                `json:"dataset_events,omitempty"`
+		DatasetWindow    scenario.Duration    `json:"dataset_window,omitempty"`
+		SeedRate         int                  `json:"seed_rate,omitempty"`
+		SeedShards       int                  `json:"seed_shards,omitempty"`
+		QuerySet         string               `json:"query_set,omitempty"`
+		QueryRepetitions int                  `json:"query_repetitions,omitempty"`
+		Series           int64                `json:"series,omitempty"`
+		Tenants          int                  `json:"tenants,omitempty"`
+		SampleRate       int                  `json:"sample_rate,omitempty"`
+		Failure          string               `json:"failure,omitempty"`
+		Outage           scenario.Duration    `json:"outage,omitempty"`
+		Seeds            []int64              `json:"seeds"`
+		BatchSize        int                  `json:"batch_size"`
+		Workers          int                  `json:"workers"`
+		Mix              loadgen.Mix          `json:"mix"`
+		Payload          loadgen.PayloadSizes `json:"payload"`
+	}{
+		Name:             definition.Name,
+		Kind:             definition.Kind,
+		Rate:             scenarioRate(definition, options),
+		Duration:         scenarioDuration(definition, options).String(),
+		Shards:           definition.Shards,
+		Protocol:         protocol,
+		Compression:      compression,
+		EventTimeRate:    eventTimeRate,
+		DatasetEvents:    definition.DatasetEvents,
+		DatasetWindow:    definition.DatasetWindow,
+		SeedRate:         definition.SeedRate,
+		SeedShards:       definition.SeedShards,
+		QuerySet:         definition.QuerySet,
+		QueryRepetitions: definition.QueryRepetitions,
+		Series:           definition.Series,
+		Tenants:          definition.Tenants,
+		SampleRate:       definition.SampleRate,
+		Failure:          definition.Failure,
+		Outage:           definition.Outage,
+		Seeds:            seeds,
+		BatchSize:        defaults.BatchSize,
+		Workers:          defaults.Workers,
+		Mix:              defaults.Mix,
+		Payload:          defaults.Payload,
+	}
+	data, err := json.Marshal(fingerprint)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(data)
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
 func hostInfo() HostInfo {
-	info := HostInfo{OS: runtime.GOOS, Arch: runtime.GOARCH, CPUs: runtime.NumCPU()}
+	info := HostInfo{
+		OS:       runtime.GOOS,
+		Arch:     runtime.GOARCH,
+		CPUs:     runtime.NumCPU(),
+		Kernel:   kernelRelease(),
+		CPUModel: cpuModel(),
+	}
 	if hostname, err := os.Hostname(); err == nil {
 		info.Hostname = hostname
 	}
@@ -802,4 +952,29 @@ func hostInfo() HostInfo {
 		break
 	}
 	return info
+}
+
+func kernelRelease() string {
+	data, err := os.ReadFile("/proc/sys/kernel/osrelease")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func cpuModel() string {
+	data, err := os.ReadFile("/proc/cpuinfo")
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		key, value, ok := strings.Cut(line, ":")
+		if !ok {
+			continue
+		}
+		if strings.TrimSpace(key) == "model name" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }

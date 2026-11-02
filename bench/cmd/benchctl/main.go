@@ -17,6 +17,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/observaki/observaki/bench/internal/benchversion"
+	"github.com/observaki/observaki/bench/internal/report"
 	"github.com/observaki/observaki/bench/internal/runner"
 	"github.com/observaki/observaki/bench/internal/scenario"
 )
@@ -57,10 +59,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return check(root, remaining[1:], stdout, stderr)
 	case "queries":
 		return queries(root, stdout, stderr)
+	case "report":
+		return generateReport(root, remaining[1:], stdout, stderr)
 	case "run":
 		return runScenario(root, remaining[1:], stdout, stderr)
 	case "version":
-		_, _ = fmt.Fprintln(stdout, "benchctl 0.1.0 (phase 0)")
+		_, _ = fmt.Fprintln(stdout, benchversion.String("benchctl"))
 		return 0
 	case "help":
 		usage(stdout)
@@ -80,6 +84,12 @@ Usage:
   bench/run.sh [--root DIR] check [scenario...]
   bench/run.sh [--root DIR] queries
   bench/run.sh [--root DIR] run <scenario> [flags]
+  bench/run.sh [--root DIR] report [run-dir...] [flags]
+
+Report flags:
+  --results-dir DIR        scan this results root (default: bench/results)
+  --out DIR                output directory (default: bench/reports/<UTC>-report)
+  --scenario NAME          include only one scenario
 
 Run flags:
   --plan                   validate and record the plan without starting a workload
@@ -265,6 +275,53 @@ func queries(root string, stdout, stderr io.Writer) int {
 	if err := writer.Flush(); err != nil {
 		_, _ = fmt.Fprintf(stderr, "benchctl: %v\n", err)
 		return 1
+	}
+	return 0
+}
+
+func generateReport(root string, args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("report", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	resultsDir := flags.String("results-dir", "", "results root to scan")
+	outputDir := flags.String("out", "", "output directory")
+	scenarioFilter := flags.String("scenario", "", "include only one scenario")
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 1
+	}
+
+	resultsRoot := *resultsDir
+	if resultsRoot == "" {
+		resultsRoot = filepath.Join(root, "bench", "results")
+	}
+	now := time.Now().UTC()
+	out := *outputDir
+	if out == "" {
+		out = filepath.Join(filepath.Dir(resultsRoot), "reports", now.Format("20060102T150405Z")+"-report")
+	}
+
+	benchReport, err := report.Build(report.Options{
+		RunDirs:     flags.Args(),
+		ResultsRoot: resultsRoot,
+		Scenario:    *scenarioFilter,
+		Now:         func() time.Time { return now },
+	})
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "benchctl: %v\n", err)
+		return 1
+	}
+	jsonPath, markdownPath, err := benchReport.Write(out)
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "benchctl: %v\n", err)
+		return 1
+	}
+	_, _ = fmt.Fprintf(stdout, "report: %d run(s), %d comparison group(s)\n", len(benchReport.Runs), len(benchReport.Comparisons))
+	_, _ = fmt.Fprintf(stdout, "report: %s\n", jsonPath)
+	_, _ = fmt.Fprintf(stdout, "report: %s\n", markdownPath)
+	for _, warning := range benchReport.Warnings {
+		_, _ = fmt.Fprintf(stdout, "warning: %s\n", warning)
 	}
 	return 0
 }

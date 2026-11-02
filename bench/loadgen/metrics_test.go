@@ -12,7 +12,7 @@ func TestRunMetricsRecord(t *testing.T) {
 	metrics := NewRunMetrics(1000)
 	metrics.MarkStart(time.Now().Add(-time.Second))
 	metrics.AddGenerated(Metrics, 10)
-	metrics.Record(Metrics, 10, SendResult{Bytes: 100, Rejected: 2}, nil, 5*time.Millisecond)
+	metrics.Record(Metrics, 10, SendResult{Bytes: 100, CompressedBytes: 40, Rejected: 2}, nil, 5*time.Millisecond)
 	metrics.AddGenerated(Logs, 5)
 	metrics.Record(Logs, 5, SendResult{}, errors.New("receiver unavailable"), 2*time.Millisecond)
 
@@ -22,6 +22,12 @@ func TestRunMetricsRecord(t *testing.T) {
 	}
 	if snapshot.Sent != 8 {
 		t.Fatalf("Sent = %d, want 8", snapshot.Sent)
+	}
+	if snapshot.Bytes != 100 {
+		t.Fatalf("Bytes = %d, want 100", snapshot.Bytes)
+	}
+	if snapshot.CompressedBytes != 40 {
+		t.Fatalf("CompressedBytes = %d, want 40", snapshot.CompressedBytes)
 	}
 	if snapshot.Rejected != 2 {
 		t.Fatalf("Rejected = %d, want 2", snapshot.Rejected)
@@ -80,7 +86,7 @@ func TestLatencyRecorderReservoir(t *testing.T) {
 func TestRunMetricsHandler(t *testing.T) {
 	metrics := NewRunMetrics(1000)
 	metrics.AddGenerated(Metrics, 10)
-	metrics.Record(Metrics, 10, SendResult{Bytes: 100}, nil, time.Millisecond)
+	metrics.Record(Metrics, 10, SendResult{Bytes: 100, CompressedBytes: 40}, nil, time.Millisecond)
 
 	recorder := httptest.NewRecorder()
 	metrics.Handler().ServeHTTP(recorder, httptest.NewRequest("GET", "/metrics", nil))
@@ -95,6 +101,8 @@ func TestRunMetricsHandler(t *testing.T) {
 	for _, expected := range []string{
 		`observaki_loadgen_events_generated_total{signal="metrics"} 10`,
 		`observaki_loadgen_events_sent_total{signal="metrics"} 10`,
+		`observaki_loadgen_bytes_total{signal="metrics"} 100`,
+		`observaki_loadgen_compressed_bytes_total{signal="metrics"} 40`,
 		`observaki_loadgen_target_rate 1000`,
 		`observaki_loadgen_send_latency_seconds{quantile="0.5"}`,
 	} {
