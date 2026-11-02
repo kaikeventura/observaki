@@ -41,6 +41,17 @@ por bucket continua para a Story 3.5. O run local parou merges de background
 para caber no disco e **não é evidência do G1**. A Q-02 do ADR-0005 continua
 aberta para reconciliação por projeto, row policies e isolamento.
 
+**Story 3.2 (2026-11-02):** o schema de traces foi validado localmente com 1B
+spans (`bench/clickhouse/traces/results/2026-11-02-local-1b/`): 7,52x de
+compressão, trace lookup p95 328 ms, serviço/status/24h p95 178 ms, service map
+9 nós/9 arestas e correlação log↔trace nos dois sentidos. A ordem
+`tenant/projeto/serviço/status/tempo` e os bloom filters de trace/span/parent
+foram escolhidos para as consultas do spike; o service map do spike é derivado
+dos spans brutos com amostra de 1% das traces, e a fonte de produção continua
+sendo o RED do gateway no VictoriaMetrics (AD-21). O run local parou merges de
+background e **não é evidência do G1**. A Q-02 do ADR-0005 continua aberta para
+reconciliação por projeto, row policies e isolamento.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.
