@@ -42,6 +42,7 @@ Após o scaffold da Story 1.1: `make bootstrap`, `make ci`, `make dev`, `make sm
 - `_bmad-output/planning-artifacts/ux-designs/.../DESIGN.md` e `EXPERIENCE.md` — UX.
 - `_bmad-output/planning-artifacts/DECISIONS.md` — decisões e pendências.
 - `BENCHMARKS.md` — pré-baseline, spikes locais das Stories 3.1/3.2/3.3, perfil T1 e bloqueios do G1.
+- `docs/architecture/README.md` — diagramas de arquitetura (drawio, 6 páginas), convenções visuais e o mapa de deploy AWS de referência.
 - `bench/env/README.md` — provisionamento, custo e protocolo do baseline.
 - `bench/clickhouse/README.md` — schema, carga, compressão, `q03` e TTL do spike 3.1; o spike de traces fica em `bench/clickhouse/traces/README.md` e o caminho de ingestão em `bench/clickhouse/ingest/README.md`.
 - `docs/dev/story-2.4-handoff.md` — evidência e pendências da Story 2.4.

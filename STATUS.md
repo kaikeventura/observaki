@@ -12,10 +12,10 @@ status: done        # not_started | in_progress | blocked | done
 updated: 2026-11-02
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "1c6af25"
+last_commit: "58f4a68"
 next_action: "Story 3.4 — VictoriaMetrics, MetricsQL e cardinalidade; o baseline T1 da 2.4 continua bloqueado por P-07 e 3.4–3.5/4.1–4.5"
 blocked_by: []
-last_session: "Story 3.3: writer ClickHouse RowBinary com spool/checkpoint, dedupe por event_id e token, DLQ e métricas; run local de 400k/s por 60s (24M eventos, lag p95 1,4s, 18 parts, 0 Too many parts), dedupe de 50k e recuperação de 100k após crash; não é G1; evidência em docs/dev/story-3.3-handoff.md."
+last_session: "Story 3.3: writer ClickHouse RowBinary com spool/checkpoint, dedupe por event_id e token, DLQ e métricas; run local de 400k/s por 60s (24M eventos, lag p95 1,4s, 18 parts, 0 Too many parts), dedupe de 50k e recuperação de 100k após crash; não é G1; evidência em docs/dev/story-3.3-handoff.md. Sessão seguinte: diagramas de arquitetura em drawio (6 páginas) com deploy AWS de referência em docs/architecture/."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -63,7 +63,7 @@ Atalho no OpenCode: `/continue`.
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `1c6af25` |
+| Último commit | `58f4a68` |
 | Próxima ação | Story 3.4 — VictoriaMetrics, MetricsQL e cardinalidade |
 | Bloqueios | 2.4 (T1): P-07, 3.4–3.5/4.1–4.5 e rampa contínua; não bloqueia a 3.4 |
 | Última sessão | Story 3.3: 400k/s locais por 60s, 24M eventos, lag p95 1,4s, dedupe 50k e recuperação 100k; não é G1 |
@@ -157,6 +157,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-02 | Story 3.1 | P0 / 3.1 / AC1–AC3 | Schema ClickHouse de logs (`0001_otel_logs.sql`) com partição/TTL por `ingested_at`, `ORDER BY` tenant/projeto/serviço/tempo, TTL por `retention_days` e codecs; teste de contrato no `make test`; dataset local de 1B linhas em 24 h (20×50M) em 40 min 20 s, **6,98x** de compressão, `q03` p95 **263 ms**/p99 299 ms, TTL 7/15 pass; merges parados no run local para caber no disco; `make fmt/lint/test/build/smoke` verdes; **não é G1**; evidência em `docs/dev/story-3.1-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b/` | `494391a` | Story 3.2 |
 | 2026-11-02 | Story 3.2 | P0 / 3.2 / AC1–AC4 | Schema ClickHouse de traces (`0002_otel_traces.sql`) com partição/TTL por `ingested_at`, `ORDER BY` tenant/projeto/serviço/status/tempo, bloom filters em trace/span/parent, `set` de serviço e nenhuma MV de RED (AD-21); teste de contrato no `make test`; dataset local de 1B spans (100M traces de 10 spans, 20×50M) em 32 min 31 s, **7,52x** de compressão, trace lookup p95 **328 ms**, serviço/status/24h p95 **178 ms**, service map 9 nós/9 arestas e correlação log↔trace nos dois sentidos; merges parados no run local; `make fmt/lint/test/build/smoke` verdes; **não é G1**; evidência em `docs/dev/story-3.2-handoff.md` e `bench/clickhouse/traces/results/2026-11-02-local-1b/` | `03f01e7` | Story 3.3 |
 | 2026-11-02 | Story 3.3 | P0 / 3.3 / AC1–AC3 | Writer ClickHouse (`internal/adapters/clickhouse/writer`) com batches RowBinary, spool local durável (`fsync`+checkpoint), dedupe por `event_id`, `insert_deduplication_token` estável, retry, DLQ e métricas; migration `0003_ingest_dedupe.sql`; `chloadgen` com `--dedupe-test`, `--recover`, `--crash-after-insert` e dry-run; `bench/clickhouse/ingest/run.sh` e alvos `make bench-clickhouse-ingest*`; run local de **400k/s por 60s** (24M eventos, lag p95 **1,4s**, 18 parts, 0 `Too many parts`, 0 erros de insert), dedupe de 50k e recuperação de 100k após crash; `make fmt/lint/test/build` e `make smoke` verdes; **não é G1**; 1M/s/1h no T1 pendente; evidência em `docs/dev/story-3.3-handoff.md` e `bench/clickhouse/ingest/results/2026-11-02-local-400k/` | `1c6af25` | Story 3.4 |
+| 2026-11-02 | Diagramas de arquitetura | — | Pacote drawio de 6 páginas renderizado da spine (contexto C4 L1, containers C4 L2, deploy AWS multi-AZ, ingestão com fronteira de ack, consulta com contexto assinado, ERD do control plane), com o AD citado em cada nó/aresta e PNGs exportados; data plane segue self-hosted em EKS (AD-5/AD-12/AD-18) e a AWS entra como hospedagem; divergência `PANEL` do ERD da spine × AD-28 registrada em `docs/architecture/README.md`; nenhum AD novo, nenhuma story alterada | `58f4a68` | Story 3.4 |
 
 ## Regras de atualização
 
