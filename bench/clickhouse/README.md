@@ -1,8 +1,12 @@
-# bench/clickhouse — Story 3.1 storage spike
+# bench/clickhouse — ClickHouse storage spikes
 
 Este diretório mede o schema ClickHouse de logs da Story 3.1: compressão,
 latência da consulta `q03` (serviço + janela de 1 h) e expiração dos buckets
 de retenção de 7 e 15 dias.
+
+O spike de traces da Story 3.2 fica em [`traces/`](traces/README.md): schema
+`otel_traces`, busca por `trace_id`, busca por serviço/status/24 h, compressão,
+service map e correlação log↔trace.
 
 > **Não é evidência do G1.** O run padrão é single-node, local e usa SQL para
 > gerar o dataset; não passa pelo gateway, NATS, Query Service ou row policies.

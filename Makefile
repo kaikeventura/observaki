@@ -30,7 +30,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -104,5 +104,11 @@ bench-clickhouse: ## run the ClickHouse logs storage spike (ROWS=1B by default)
 
 bench-clickhouse-check: ## validate the ClickHouse logs schema on a 10M-row smoke
 	./bench/clickhouse/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5
+
+bench-clickhouse-traces: ## run the ClickHouse traces storage spike (ROWS=1B by default)
+	./bench/clickhouse/traces/run.sh --rows $(ROWS) --chunk-rows $(CHUNK_ROWS) --runs $(RUNS) --stop-merges
+
+bench-clickhouse-traces-check: ## validate the ClickHouse traces schema on a 10M-span smoke
+	./bench/clickhouse/traces/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5 --stop-merges
 
 ci: bootstrap lint test build ## run the full local CI suite

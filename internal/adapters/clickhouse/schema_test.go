@@ -99,6 +99,106 @@ func TestLogsMigrationContract(t *testing.T) {
 	}
 }
 
+func TestTracesMigrationContract(t *testing.T) {
+	migration := findMigration(t, "otel_traces")
+	ddl := migration.SQL
+
+	if !strings.Contains(ddl, "CREATE TABLE IF NOT EXISTS otel_traces") {
+		t.Fatal("traces migration must create otel_traces idempotently")
+	}
+	if !strings.Contains(ddl, "ENGINE = MergeTree") {
+		t.Fatal("traces migration must use MergeTree")
+	}
+
+	for _, column := range []string{
+		"tenant_id",
+		"project_id",
+		"timestamp",
+		"ingested_at",
+		"trace_id",
+		"span_id",
+		"parent_span_id",
+		"service_name",
+		"operation_name",
+		"duration_ns",
+		"status_code",
+		"attributes",
+		"events",
+		"links",
+		"event_id",
+		"retention_days",
+	} {
+		if !hasColumn(ddl, column) {
+			t.Errorf("traces migration is missing column %q", column)
+		}
+	}
+
+	partition := clause(ddl, "PARTITION BY")
+	if !strings.Contains(partition, "ingested_at") {
+		t.Errorf("PARTITION BY = %q, want a clause based on ingested_at", partition)
+	}
+
+	orderBy := clause(ddl, "ORDER BY")
+	wantOrder := []string{"tenant_id", "project_id", "service_name", "status_code", "timestamp"}
+	previous := -1
+	for _, column := range wantOrder {
+		index := strings.Index(orderBy, column)
+		if index < 0 {
+			t.Fatalf("ORDER BY = %q, want column %q", orderBy, column)
+		}
+		if index <= previous {
+			t.Fatalf("ORDER BY = %q, want %s in tenant/project/service/status/time order", orderBy, strings.Join(wantOrder, ", "))
+		}
+		previous = index
+	}
+
+	ttl := clause(ddl, "TTL")
+	for _, fragment := range []string{"ingested_at", "retention_days", "INTERVAL"} {
+		if !strings.Contains(ttl, fragment) {
+			t.Errorf("TTL = %q, want %q", ttl, fragment)
+		}
+	}
+
+	for _, index := range []string{"idx_trace", "idx_span", "idx_parent", "idx_service"} {
+		if !strings.Contains(ddl, index) {
+			t.Errorf("traces migration is missing index %q", index)
+		}
+	}
+	for _, codec := range []string{"ZSTD(3)", "Delta(8)"} {
+		if !strings.Contains(ddl, codec) {
+			t.Errorf("traces migration is missing codec %q", codec)
+		}
+	}
+
+	// AD-21: RED belongs to the gateway and VictoriaMetrics. The traces table
+	// must not grow a span_metrics/RED materialized view in ClickHouse. Check
+	// only the statements; the header comment explains the rule.
+	statements := sqlWithoutComments(ddl)
+	lowerStatements := strings.ToLower(statements)
+	for _, forbidden := range []string{"materialized view", "span_metrics"} {
+		if strings.Contains(lowerStatements, forbidden) {
+			t.Errorf("traces migration must not contain %q (AD-21)", forbidden)
+		}
+	}
+	if strings.Contains(strings.ToUpper(statements), "SELECT *") {
+		t.Error("traces migration must not contain SELECT *")
+	}
+}
+
+// sqlWithoutComments removes whole-line SQL comments. It is enough for the
+// migration files, which use -- comments outside string literals.
+func sqlWithoutComments(ddl string) string {
+	var statements strings.Builder
+	for _, line := range strings.Split(ddl, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "--") {
+			continue
+		}
+		statements.WriteString(line)
+		statements.WriteByte('\n')
+	}
+	return statements.String()
+}
+
 func TestParseMigrationName(t *testing.T) {
 	tests := []struct {
 		file    string
