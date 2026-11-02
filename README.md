@@ -41,6 +41,10 @@ make build
 O workload de referência e as limitações de taxa estão em
 [`bench/README.md`](bench/README.md).
 
+O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
+em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em
+[`bench/clickhouse/README.md`](bench/clickhouse/README.md#limpeza-importante).
+
 ## Estrutura do repositório
 
 ```text

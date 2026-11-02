@@ -53,6 +53,33 @@ pelo script. Para recriar o container com o perfil atual:
 ./bench/clickhouse/run.sh --recreate --rows 10000000 --chunk-rows 10000000 --runs 5
 ```
 
+## Limpeza (importante)
+
+O run de 1B **não apaga** o container nem os dados. Ao final, ficam:
+
+- container `observaki-ch31` (pode ser removido com `docker rm -f`);
+- ~78 GiB em `/tmp/opencode/observaki-ch31` (dataset de 1B linhas).
+
+O relatório publicado fica em `bench/clickhouse/results/2026-11-02-local-1b/`
+e não depende do container. Para liberar o espaço:
+
+```bash
+# 1) remove o container
+docker rm -f observaki-ch31
+
+# 2) remove os dados (irreversível); o container é descartável e roda como root
+docker run --rm --user root -v /tmp/opencode/observaki-ch31:/data \
+  --entrypoint /bin/sh clickhouse/clickhouse-server:26.8 -c 'rm -rf /data/*'
+
+# 3) confira o espaço
+df -h /tmp/opencode
+```
+
+O `--cleanup` do `run.sh` remove apenas o container; ele **não** apaga o
+diretório de dados. Se você rodar outro benchmark, o `--recreate` recria o
+container, mas reaproveita o diretório; use a limpeza acima antes de um run novo
+se quiser começar do zero.
+
 ## Decisões do schema
 
 - **Partição diária por `ingested_at`.** Mantém o número de parts sob controle
