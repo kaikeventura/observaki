@@ -160,6 +160,16 @@ harness e a primeira execução de referência.
 | Q-06 | Como medir bundle/LCP/INP de forma estável no CI? | S0.5 / Story 6.4 | Frontend | Semana 4 | Budget.json + Lighthouse em runner dedicado |
 | Q-07 | Qual o modelo de custo por TB/dia e horas de operação? | Story 2.3 | Fundador + Benchmark | Semana 4 | TCO conservador com premissas publicadas |
 
+**Resolvidas na Story 2.2 (2026-11-01):**
+
+- **Q-02:** datasets sintéticos determinísticos por seed, com
+  `--event-time-rate` para separar o avanço dos timestamps da taxa de envio.
+  Especificação e matemática em `bench/scenarios/query-*.env` e
+  `bench/README.md`.
+- **Q-03:** 20 consultas representativas de Explore/Dashboard em
+  `bench/queries/dashboard.tsv`; o SQL/MetricsQL é vinculado na Story 3.5,
+  quando o schema existir.
+
 ## Referências
 
 - PRD: NFR-1, NFR-2, NFR-13; SM-3, SM-4, SM-6, SM-7; §10.1, §10.3.
@@ -173,3 +183,4 @@ harness e a primeira execução de referência.
 | Data | Mudança | Autor |
 |---|---|---|
 | 2026-10-31 | Criação (Story 1.4) | OpenCode |
+| 2026-11-01 | Q-02/Q-03 resolvidas pelos artefatos da Story 2.2 | OpenCode |
