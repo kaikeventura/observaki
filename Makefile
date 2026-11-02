@@ -12,11 +12,18 @@ LOADGEN := $(BIN_DIR)/otlploadgen
 BENCHCTL := $(BIN_DIR)/benchctl
 BENCH_SINK := $(BIN_DIR)/bench-sink
 CHLOADGEN := $(BIN_DIR)/chloadgen
+VM_LOADGEN := $(BIN_DIR)/vmloadgen
+VM_QUERYBENCH := $(BIN_DIR)/vmquerybench
+VM_ADMISSION := $(BIN_DIR)/vmadmission
 WEB_DIR := web
 AGENT_MANIFEST := agent/Cargo.toml
 ROWS ?= 1000000000
 CHUNK_ROWS ?= 50000000
 RUNS ?= 20
+VM_SERIES ?= 1000000
+VM_RATE ?= 1000000
+VM_DURATION ?= 1h
+VM_RUNS ?= 5
 
 VERSION ?= $(shell $(GIT) describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT ?= $(shell $(GIT) rev-parse --short HEAD 2>/dev/null || echo none)
@@ -31,7 +38,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-victoriametrics bench-victoriametrics-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -78,6 +85,9 @@ build: ## build the Go binary, the load generator, the web app and the agent
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(BENCHCTL) ./bench/cmd/benchctl
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(BENCH_SINK) ./bench/cmd/bench-sink
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(CHLOADGEN) ./bench/cmd/chloadgen
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(VM_LOADGEN) ./bench/cmd/vmloadgen
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(VM_QUERYBENCH) ./bench/cmd/vmquerybench
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(VM_ADMISSION) ./bench/cmd/vmadmission
 	$(PNPM) --dir $(WEB_DIR) build
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 
@@ -118,5 +128,11 @@ bench-clickhouse-ingest: ## run the ClickHouse ingestion spike (400k/s local, 60
 
 bench-clickhouse-ingest-check: ## run the short ClickHouse ingestion smoke (100k/s, 5s)
 	./bench/clickhouse/ingest/run.sh --smoke
+
+bench-victoriametrics: ## run the VictoriaMetrics spike (1M series, 1M samples/s, 1h)
+	./bench/victoriametrics/run.sh --reset --series $(VM_SERIES) --rate $(VM_RATE) --duration $(VM_DURATION) --runs $(VM_RUNS)
+
+bench-victoriametrics-check: ## run the short VictoriaMetrics smoke (100k series, 100k/s, 10s)
+	./bench/victoriametrics/run.sh --smoke --reset
 
 ci: bootstrap lint test build ## run the full local CI suite

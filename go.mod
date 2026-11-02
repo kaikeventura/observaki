@@ -3,6 +3,7 @@ module github.com/observaki/observaki
 go 1.27.2
 
 require (
+	github.com/golang/snappy v1.0.0
 	go.opentelemetry.io/proto/otlp v1.11.1
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12

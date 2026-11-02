@@ -1,0 +1,29 @@
+# Story 3.4 — 20 representative MetricsQL dashboard queries.
+# Columns: id, surface, description, expr, window, step.
+# The window is the dashboard time range; the expression uses its own range
+# selector. Every query runs as /api/v1/query_range over the window.
+#
+# Tenant-scoped queries carry the tenant_id/project_id filters that the Query
+# Service injects in production (AD-2/AD-17). m14/m15 are operator views over
+# the whole instance; they are the only cross-tenant queries in the catalog.
+id	surface	description	expr	window	step
+m01	Dashboard	Request rate by service	sum by (service) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m02	Dashboard	Total request rate	sum(rate(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m03	Dashboard	Request rate by status	sum by (status) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m04	Dashboard	Top 10 services by request rate	topk(10, sum by (service) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m])))	24h	5m
+m05	Dashboard	Error ratio by service	sum by (service) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0",status=~"5.."}[5m])) / sum by (service) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m06	Dashboard	p95 latency from histogram buckets	histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{tenant_id="tenant-a",project_id="project-0"}[5m])))	24h	5m
+m07	Dashboard	p99 latency by service	histogram_quantile(0.99, sum by (le, service) (rate(http_request_duration_seconds_bucket{tenant_id="tenant-a",project_id="project-0"}[5m])))	24h	5m
+m08	Dashboard	p50 latency for one service	histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{tenant_id="tenant-a",project_id="project-0",service="svc-007"}[5m])))	24h	5m
+m09	Dashboard	Average latency from _sum and _count	sum by (service) (rate(http_request_duration_seconds_sum{tenant_id="tenant-a",project_id="project-0"}[5m])) / sum by (service) (rate(http_request_duration_seconds_count{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m10	Services	Span rate by status	sum by (status) (rate(span_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m11	Services	Span error rate by service	sum by (service) (rate(span_requests_total{tenant_id="tenant-a",project_id="project-0",status="ERROR"}[5m]))	24h	5m
+m12	Services	Top 10 service operations	topk(10, sum by (service, operation) (rate(span_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m])))	24h	5m
+m13	Services	p95 span latency	histogram_quantile(0.95, sum by (le) (rate(span_duration_seconds_bucket{tenant_id="tenant-a",project_id="project-0"}[5m])))	24h	5m
+m14	Explorer/Metrics	Request rate by tenant (operator)	sum by (tenant_id) (rate(http_requests_total{project_id="project-0"}[5m]))	24h	5m
+m15	Explorer/Metrics	Active series by project (operator)	count by (project_id) (http_requests_total{tenant_id="tenant-a"})	24h	5m
+m16	Dashboard	CPU rate by service	sum by (service) (rate(process_cpu_seconds_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m17	Dashboard	Memory by instance	avg by (instance) (process_resident_memory_bytes{tenant_id="tenant-a",project_id="project-0"})	24h	5m
+m18	Dashboard	Peak counter value by service over the window	max by (service) (max_over_time(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m19	Dashboard	Request increase per step across the window	sum(increase(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+m20	Explorer/Metrics	Service cardinality	count(count by (service) (http_requests_total{tenant_id="tenant-a",project_id="project-0"}))	24h	5m

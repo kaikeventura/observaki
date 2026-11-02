@@ -85,6 +85,10 @@ grep -q "Observaki" web/build/index.html || {
 
 ./bin/chloadgen --version >/dev/null
 
+./bin/vmloadgen --version >/dev/null
+./bin/vmquerybench --version >/dev/null
+./bin/vmadmission --version >/dev/null
+
 ./bin/benchctl run throughput-100k --plan --results-dir "$bench_tmp/results" >/dev/null
 ./bin/benchctl report --results-dir "$bench_tmp/results" --out "$bench_tmp/report" >/dev/null
 for artifact in report.md report.json; do
