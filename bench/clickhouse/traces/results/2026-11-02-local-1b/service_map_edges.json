@@ -1,0 +1,88 @@
+{
+	"meta":
+	[
+		{
+			"name": "caller",
+			"type": "LowCardinality(String)"
+		},
+		{
+			"name": "callee",
+			"type": "LowCardinality(String)"
+		},
+		{
+			"name": "spans_estimated",
+			"type": "UInt64"
+		},
+		{
+			"name": "errors_estimated",
+			"type": "UInt64"
+		}
+	],
+
+	"data":
+	[
+		{
+			"caller": "payments",
+			"callee": "email",
+			"spans_estimated": 1054400,
+			"errors_estimated": 34400
+		},
+		{
+			"caller": "inventory",
+			"callee": "fraud",
+			"spans_estimated": 1054400,
+			"errors_estimated": 33000
+		},
+		{
+			"caller": "frontend",
+			"callee": "checkout",
+			"spans_estimated": 1054400,
+			"errors_estimated": 33600
+		},
+		{
+			"caller": "checkout",
+			"callee": "payments",
+			"spans_estimated": 1054400,
+			"errors_estimated": 31200
+		},
+		{
+			"caller": "frontend",
+			"callee": "shipping",
+			"spans_estimated": 1054400,
+			"errors_estimated": 32200
+		},
+		{
+			"caller": "shipping",
+			"callee": "inventory",
+			"spans_estimated": 1054400,
+			"errors_estimated": 31800
+		},
+		{
+			"caller": "frontend",
+			"callee": "search",
+			"spans_estimated": 1054400,
+			"errors_estimated": 33700
+		},
+		{
+			"caller": "frontend",
+			"callee": "auth",
+			"spans_estimated": 1054400,
+			"errors_estimated": 32600
+		},
+		{
+			"caller": "checkout",
+			"callee": "inventory",
+			"spans_estimated": 1054400,
+			"errors_estimated": 30900
+		}
+	],
+
+	"rows": 9,
+
+	"statistics":
+	{
+		"elapsed": 0.596790631,
+		"rows_read": 185647104,
+		"bytes_read": 2647025537
+	}
+}

@@ -1,0 +1,101 @@
+{
+	"meta":
+	[
+		{
+			"name": "service_name",
+			"type": "LowCardinality(String)"
+		},
+		{
+			"name": "spans",
+			"type": "UInt64"
+		},
+		{
+			"name": "errors",
+			"type": "UInt64"
+		},
+		{
+			"name": "avg_duration_ms",
+			"type": "Float64"
+		},
+		{
+			"name": "p95_duration_ms",
+			"type": "Float64"
+		}
+	],
+
+	"data":
+	[
+		{
+			"service_name": "inventory",
+			"spans": 2083332,
+			"errors": 62403,
+			"avg_duration_ms": 250.913,
+			"p95_duration_ms": 477.502
+		},
+		{
+			"service_name": "frontend",
+			"spans": 1041666,
+			"errors": 10462,
+			"avg_duration_ms": 2000.663,
+			"p95_duration_ms": 2901.181
+		},
+		{
+			"service_name": "auth",
+			"spans": 1041666,
+			"errors": 31350,
+			"avg_duration_ms": 251.003,
+			"p95_duration_ms": 475.996
+		},
+		{
+			"service_name": "fraud",
+			"spans": 1041666,
+			"errors": 30843,
+			"avg_duration_ms": 250.808,
+			"p95_duration_ms": 476.645
+		},
+		{
+			"service_name": "email",
+			"spans": 1041666,
+			"errors": 31415,
+			"avg_duration_ms": 251.041,
+			"p95_duration_ms": 475.901
+		},
+		{
+			"service_name": "shipping",
+			"spans": 1041666,
+			"errors": 30978,
+			"avg_duration_ms": 250.736,
+			"p95_duration_ms": 477.088
+		},
+		{
+			"service_name": "checkout",
+			"spans": 1041666,
+			"errors": 31111,
+			"avg_duration_ms": 250.869,
+			"p95_duration_ms": 476.784
+		},
+		{
+			"service_name": "search",
+			"spans": 1041666,
+			"errors": 31098,
+			"avg_duration_ms": 251.033,
+			"p95_duration_ms": 478.544
+		},
+		{
+			"service_name": "payments",
+			"spans": 1041666,
+			"errors": 30928,
+			"avg_duration_ms": 251.018,
+			"p95_duration_ms": 475.983
+		}
+	],
+
+	"rows": 9,
+
+	"statistics":
+	{
+		"elapsed": 0.207618922,
+		"rows_read": 92823552,
+		"bytes_read": 868122624
+	}
+}

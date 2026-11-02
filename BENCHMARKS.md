@@ -1,9 +1,9 @@
 # Observaki — Benchmarks
 
-> **Status (2026-11-02):** pré-baseline local do harness e spike local de
-> armazenamento de logs (1B linhas) publicados; baseline T1 **não executado**.
-> Nenhum número deste arquivo é evidência do Gate G1 até a execução no cluster
-> T1 com gateway, armazenamento e o commit registrados.
+> **Status (2026-11-02):** pré-baseline local do harness e spikes locais de
+> armazenamento de logs (1B linhas) e traces (1B spans) publicados; baseline T1
+> **não executado**. Nenhum número deste arquivo é evidência do Gate G1 até a
+> execução no cluster T1 com gateway, armazenamento e o commit registrados.
 
 Este arquivo segue o ADR-0006: todo número publicado declara commit, hardware,
 configuração, seed, duração e veredito; falhas e limitações ficam visíveis; e
@@ -15,6 +15,7 @@ benchmark de fornecedor não entra sem reprodução própria.
 |---|---|
 | Pré-baseline local do harness (100k/s, 3 × 60 s) | ✅ publicada; mecanismo de geração, transporte, coleta e relatório validado |
 | Schema ClickHouse de logs (1B linhas, local) | ✅ publicado; 6,98x, `q03` p95 263 ms e TTL 7/15 ok; **não é G1** |
+| Schema ClickHouse de traces (1B spans, local) | ✅ publicado; 7,52x, trace lookup p95 328 ms, serviço/status p95 178 ms e correlação ok; **não é G1** |
 | Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.2–3.5/4.1–4.5 |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
@@ -149,6 +150,64 @@ cluster T1 e não é evidência do Gate G1.**
 `q03` ficou 3,8x abaixo do alvo de 1 s e os dois buckets de TTL removeram apenas
 o que estava expirado. O run usou SQL para gerar o dataset, parou os merges de
 background para caber no disco local e mediu a tabela com 1.921 partes; esses
+fatos estão nas limitações do relatório.
+
+**Não é um resultado do G1.** Não há gateway, NATS, Query Service, row
+policies, réplica, caos nem o hardware T1. O baseline T1 continua bloqueado por
+P-07 e pelas Stories 3.2–3.5/4.1–4.5.
+
+## Story 3.2 — schema ClickHouse de traces (local, 1B)
+
+**O que é:** o spike de schema da Story 3.2 em um ClickHouse 26.8 single-node
+local, com 1B de spans sintéticos (100M traces de 10 spans) em 24 h. Mede a
+busca de uma trace completa por `trace_id`, a busca por serviço + status em
+24 h, a compressão, um service map básico e a correlação log↔trace. **Não é o
+gateway, não é o cluster T1 e não é evidência do Gate G1.**
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Commit do schema/harness | `f6d6c41` (limpo, sem alterações não commitadas) |
+| Carga (UTC) | 2026-11-02T19:05:20Z a 19:37:51Z (32 min 31 s; ~512 mil spans/s) |
+| Dataset | 1.000.000.000 spans; 100.000.000 traces de 10 spans; 20 chunks × 50M; 24 h ordenadas no tempo |
+| Dimensões | 2 tenants × 4 projetos × 9 serviços × 10 operações; 97/3% OK/ERROR em spans não-raiz e 99/1% em raízes; 10% com event e 5% com link |
+| IDs | CityHash64, aleatórios na aparência e determinísticos |
+| Retenção | 7 e 15 dias por linha (`retention_days`) |
+| Hardware | `kabuntu-zenbook`, 22 CPUs, 15,0 GiB de RAM, disco de 441,1 GiB (66,6 GiB livres ao fim) |
+| ClickHouse | 26.8.36.3 (`clickhouse/clickhouse-server:26.8`) |
+| Schema | [`0002_otel_traces.sql`](internal/adapters/clickhouse/migrations/0002_otel_traces.sql), sha256 `ad5fe2074531bceeed37a01dadb787215931f1e99994923b6a29f3fc5faaeab3` |
+| Artefatos | [`report.md`](bench/clickhouse/traces/results/2026-11-02-local-1b/report.md), [`report.json`](bench/clickhouse/traces/results/2026-11-02-local-1b/report.json), [`handoff`](docs/dev/story-3.2-handoff.md) |
+
+### Resultados
+
+| Métrica | Valor |
+|---|---:|
+| Compressão | **7,52x** (56,38 GiB comprimidos / 423,98 GiB sem compressão) |
+| Bytes comprimidos/span | 60,5 B |
+| Partes ativas | 1.701 (merges de background parados no run local) |
+| Trace lookup p50 | 308,6 ms |
+| Trace lookup p95 | **328,2 ms** (alvo < 1.000 ms) |
+| Trace lookup p99 | 332,4 ms |
+| Trace lookup linhas lidas | 6.430.720 |
+| Trace lookup spans retornados | 10 |
+| Serviço + status + 24h p50 | 169,9 ms |
+| Serviço + status + 24h p95 | **177,8 ms** (alvo < 2.000 ms) |
+| Serviço + status + 24h p99 | 180,5 ms |
+| Serviço + status + 24h linhas lidas | 13.935.188 |
+| Serviço + status + 24h spans retornados | 100 |
+| Service map | 9 nós, 9 arestas; nós 207,6 ms, arestas 596,8 ms (amostra de 1% das traces) |
+| Correlação log→trace | ok (10 spans) |
+| Correlação trace→log | ok (1 log) |
+| RED no ClickHouse | 0 tabelas, 0 MVs (AD-21) |
+
+### Veredito
+
+**Pass local para o schema.** A compressão ficou 50,4% acima do alvo de 5x, a
+busca por trace ficou 3,0x abaixo do alvo de 1 s e a busca por serviço/status
+ficou 11,2x abaixo do alvo de 2 s. O service map e a correlação funcionaram nos
+dois sentidos. O run usou SQL para gerar o dataset, parou os merges de
+background para caber no disco local e mediu a tabela com 1.701 partes; esses
 fatos estão nas limitações do relatório.
 
 **Não é um resultado do G1.** Não há gateway, NATS, Query Service, row

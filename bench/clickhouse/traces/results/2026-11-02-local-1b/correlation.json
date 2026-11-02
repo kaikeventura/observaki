@@ -1,0 +1,9 @@
+{
+  "trace_index": 50000000,
+  "trace_id": "80d31d3a6bc766b73806cb2d982d1548",
+  "root_span_id": "0f93ce6023ed4424",
+  "log_to_trace": true,
+  "trace_to_log": true,
+  "trace_spans": 10,
+  "logs": 1
+}

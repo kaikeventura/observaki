@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-02T19:38:10Z",
+  "commit": "f6d6c41",
+  "dirty": false,
+  "clickhouse": {
+    "version": "26.8.36.3",
+    "image": "clickhouse/clickhouse-server:26.8",
+    "container": "observaki-ch32"
+  },
+  "host": {
+    "hostname": "kabuntu-zenbook",
+    "cpus": 22,
+    "memory_bytes": 16092479488,
+    "disk_total_bytes": 473626828800,
+    "disk_free_bytes": 71504039936,
+    "data_dir": "/tmp/opencode/observaki-ch32"
+  },
+  "schema": {
+    "migration": "0002_otel_traces.sql",
+    "sha256": "ad5fe2074531bceeed37a01dadb787215931f1e99994923b6a29f3fc5faaeab3",
+    "partition_by": "toDate(ingested_at)",
+    "order_by": "(tenant_id, project_id, service_name, status_code, timestamp)",
+    "ttl": "ingested_at + INTERVAL retention_days DAY",
+    "indexes": [
+      "idx_trace bloom_filter",
+      "idx_span bloom_filter",
+      "idx_parent bloom_filter",
+      "idx_service set(1000)"
+    ]
+  },
+  "dataset": {
+    "rows": 1000000000,
+    "traces": 100000000,
+    "chunk_rows": 50000000,
+    "chunks": 20,
+    "base": "2026-11-02 18:00:00",
+    "window_hours": 24,
+    "services": 9,
+    "operations": 10,
+    "tenants": 2,
+    "projects": 4,
+    "status_mix": "97% OK / 3% ERROR on non-root spans, 99% OK / 1% ERROR on roots",
+    "events_percent": 10,
+    "links_percent": 5,
+    "retention_days": [
+      7,
+      15
+    ],
+    "ids": "CityHash64, random-looking and deterministic"
+  },
+  "storage": {
+    "parts": 1701,
+    "merges_stopped": true,
+    "optimized": false,
+    "compressed_bytes": 60538124506,
+    "uncompressed_bytes": 455244613129,
+    "ratio": 7.52,
+    "compressed_bytes_per_row": 60.5
+  },
+  "queries": {
+    "trace_by_id": {
+      "id": "trace_by_id",
+      "description": "Full trace by trace_id",
+      "runs": 20,
+      "p50_ms": 308.595,
+      "p95_ms": 328.211,
+      "p99_ms": 332.394,
+      "rows_read_mean": 6430720,
+      "bytes_read_mean": 238158732,
+      "returned_mean": 10,
+      "target_ms": 1000,
+      "tenant": "tenant-0",
+      "project": "project-0",
+      "trace_id": "80d31d3a6bc766b73806cb2d982d1548"
+    },
+    "service_status_24h": {
+      "id": "service_status_24h",
+      "description": "Spans by service, status and 24h window",
+      "runs": 20,
+      "p50_ms": 169.854,
+      "p95_ms": 177.826,
+      "p99_ms": 180.500,
+      "rows_read_mean": 13935188,
+      "bytes_read_mean": 279060732,
+      "returned_mean": 100,
+      "target_ms": 2000,
+      "tenant": "tenant-0",
+      "project": "project-0",
+      "service": "checkout",
+      "status": "ERROR",
+      "start": "2026-11-01 18:00:00",
+      "end": "2026-11-02 18:00:00"
+    }
+  },
+  "service_map": {
+    "window_minutes": 60,
+    "start": "2026-11-02 17:00:00",
+    "end": "2026-11-02 18:00:00",
+    "sample_percent": 1,
+    "nodes": 9,
+    "edges": 9,
+    "nodes_elapsed_ms": 207.618922,
+    "edges_elapsed_ms": 596.790631,
+    "nodes_data": [
+      {
+        "service_name": "inventory",
+        "spans": 2083332,
+        "errors": 62403,
+        "avg_duration_ms": 250.913,
+        "p95_duration_ms": 477.502
+      },
+      {
+        "service_name": "frontend",
+        "spans": 1041666,
+        "errors": 10462,
+        "avg_duration_ms": 2000.663,
+        "p95_duration_ms": 2901.181
+      },
+      {
+        "service_name": "auth",
+        "spans": 1041666,
+        "errors": 31350,
+        "avg_duration_ms": 251.003,
+        "p95_duration_ms": 475.996
+      },
+      {
+        "service_name": "fraud",
+        "spans": 1041666,
+        "errors": 30843,
+        "avg_duration_ms": 250.808,
+        "p95_duration_ms": 476.645
+      },
+      {
+        "service_name": "email",
+        "spans": 1041666,
+        "errors": 31415,
+        "avg_duration_ms": 251.041,
+        "p95_duration_ms": 475.901
+      },
+      {
+        "service_name": "shipping",
+        "spans": 1041666,
+        "errors": 30978,
+        "avg_duration_ms": 250.736,
+        "p95_duration_ms": 477.088
+      },
+      {
+        "service_name": "checkout",
+        "spans": 1041666,
+        "errors": 31111,
+        "avg_duration_ms": 250.869,
+        "p95_duration_ms": 476.784
+      },
+      {
+        "service_name": "search",
+        "spans": 1041666,
+        "errors": 31098,
+        "avg_duration_ms": 251.033,
+        "p95_duration_ms": 478.544
+      },
+      {
+        "service_name": "payments",
+        "spans": 1041666,
+        "errors": 30928,
+        "avg_duration_ms": 251.018,
+        "p95_duration_ms": 475.983
+      }
+    ],
+    "edges_data": [
+      {
+        "caller": "payments",
+        "callee": "email",
+        "spans_estimated": 1054400,
+        "errors_estimated": 34400
+      },
+      {
+        "caller": "inventory",
+        "callee": "fraud",
+        "spans_estimated": 1054400,
+        "errors_estimated": 33000
+      },
+      {
+        "caller": "frontend",
+        "callee": "checkout",
+        "spans_estimated": 1054400,
+        "errors_estimated": 33600
+      },
+      {
+        "caller": "checkout",
+        "callee": "payments",
+        "spans_estimated": 1054400,
+        "errors_estimated": 31200
+      },
+      {
+        "caller": "frontend",
+        "callee": "shipping",
+        "spans_estimated": 1054400,
+        "errors_estimated": 32200
+      },
+      {
+        "caller": "shipping",
+        "callee": "inventory",
+        "spans_estimated": 1054400,
+        "errors_estimated": 31800
+      },
+      {
+        "caller": "frontend",
+        "callee": "search",
+        "spans_estimated": 1054400,
+        "errors_estimated": 33700
+      },
+      {
+        "caller": "frontend",
+        "callee": "auth",
+        "spans_estimated": 1054400,
+        "errors_estimated": 32600
+      },
+      {
+        "caller": "checkout",
+        "callee": "inventory",
+        "spans_estimated": 1054400,
+        "errors_estimated": 30900
+      }
+    ]
+  },
+  "correlation": {
+    "trace_index": 50000000,
+    "trace_id": "80d31d3a6bc766b73806cb2d982d1548",
+    "root_span_id": "0f93ce6023ed4424",
+    "log_to_trace": true,
+    "trace_to_log": true,
+    "trace_spans": 10,
+    "logs": 1
+  },
+  "red_check": {
+    "span_metrics_tables": 0,
+    "materialized_views": 0,
+    "red_in_clickhouse": false
+  },
+  "verdict": {
+    "status": "pass",
+    "reason": "compression >= 5x, trace lookup p95 < 1000 ms, service+status p95 < 2000 ms, service map and correlation pass",
+    "criteria": {
+      "compression_ge_5x": true,
+      "trace_lookup_p95_lt_1s": true,
+      "service_query_p95_lt_2s": true,
+      "trace_lookup_returned_spans": true,
+      "service_query_returned_spans": true,
+      "service_map_nodes_and_edges": true,
+      "correlation_both_directions": true,
+      "red_not_in_clickhouse": true
+    }
+  },
+  "reproduction": "./bench/clickhouse/traces/run.sh --rows 1000000000 --chunk-rows 50000000 --runs 20 --trace-index 50000000 --map-window-minutes 60 --stop-merges --base \"2026-11-02 18:00:00\"",
+  "limitations": [
+    "single-node local ClickHouse, not the T1 cluster (Story 2.4 profile requires P-07)",
+    "the 1B-span dataset is generated with ClickHouse SQL, not through the OTLP gateway (Story 4.1/3.3)",
+    "the trace-ID lookup uses one known trace; the OS page cache is warm after the warm-up run",
+    "the service map is derived from raw spans with a 1% deterministic trace sample; production RED and the production service map come from the gateway and VictoriaMetrics (AD-21)",
+    "the local host is smaller than the query-1b scenario reference (16 vCPU/64 GB); the report records the real hardware",
+    "no replication, NATS, Query Service, row policies or chaos; those are Stories 3.3/3.5/4.5",
+    "background merges are stopped for the traces table during the local load to bound disk use; the table is measured with unmerged parts"
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "span_metrics_tables": 0,
+  "materialized_views": 0,
+  "red_in_clickhouse": false
+}
