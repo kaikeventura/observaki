@@ -57,6 +57,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return list(root, stdout, stderr)
 	case "check":
 		return check(root, remaining[1:], stdout, stderr)
+	case "env":
+		return envCommand(root, remaining[1:], stdout, stderr)
 	case "queries":
 		return queries(root, stdout, stderr)
 	case "report":
@@ -82,9 +84,17 @@ func usage(writer io.Writer) {
 Usage:
   bench/run.sh [--root DIR] list
   bench/run.sh [--root DIR] check [scenario...]
+  bench/run.sh [--root DIR] env show|check|cost|tfvars [flags]
   bench/run.sh [--root DIR] queries
   bench/run.sh [--root DIR] run <scenario> [flags]
   bench/run.sh [--root DIR] report [run-dir...] [flags]
+
+Env flags:
+  --profile PATH           T1 profile (default: bench/env/t1.json)
+  --prices PATH            price snapshot (default: bench/env/prices.aws-us-east-1.json)
+  --hours N                run duration for the cost estimate (default: 4)
+  --json                   print the estimate as JSON (env cost)
+  --out PATH               write generated Terraform variables (env tfvars)
 
 Report flags:
   --results-dir DIR        scan this results root (default: bench/results)

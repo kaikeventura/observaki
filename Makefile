@@ -10,6 +10,7 @@ BIN_DIR := bin
 BIN := $(BIN_DIR)/observaki
 LOADGEN := $(BIN_DIR)/otlploadgen
 BENCHCTL := $(BIN_DIR)/benchctl
+BENCH_SINK := $(BIN_DIR)/bench-sink
 WEB_DIR := web
 AGENT_MANIFEST := agent/Cargo.toml
 
@@ -26,7 +27,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -71,6 +72,7 @@ build: ## build the Go binary, the load generator, the web app and the agent
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/observaki
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(LOADGEN) ./bench/cmd/otlploadgen
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(BENCHCTL) ./bench/cmd/benchctl
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(BENCH_SINK) ./bench/cmd/bench-sink
 	$(PNPM) --dir $(WEB_DIR) build
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 
@@ -82,5 +84,16 @@ smoke: ## run the full CI suite and smoke-test the built binary
 
 clean: ## remove build artifacts
 	rm -rf $(BIN_DIR) $(WEB_DIR)/build $(WEB_DIR)/.svelte-kit agent/target
+
+bench-env-check: build ## validate the T1 profile, cost model and Terraform module
+	./bin/benchctl env check
+	./bin/benchctl env cost --hours 4
+	@if command -v terraform >/dev/null 2>&1; then \
+		terraform -chdir=bench/env/terraform fmt -check -recursive && \
+		terraform -chdir=bench/env/terraform init -backend=false -input=false >/dev/null && \
+		terraform -chdir=bench/env/terraform validate; \
+	else \
+		echo "terraform not installed; skipping Terraform validation"; \
+	fi
 
 ci: bootstrap lint test build ## run the full local CI suite

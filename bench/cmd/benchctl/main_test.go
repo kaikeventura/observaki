@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/observaki/observaki/bench/internal/envprofile"
 )
 
 func repoRoot(t *testing.T) string {
@@ -77,6 +80,84 @@ func TestRunPlanQueryIsBlockedButPlanned(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "--event-time-rate 11574") {
 		t.Fatalf("query plan does not contain the event-time rate:\n%s", stdout.String())
+	}
+}
+
+func TestEnvShow(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run([]string{"--root", repoRoot(t), "env", "show"}, &stdout, &stderr); code != 0 {
+		t.Fatalf("env show exit = %d, stderr = %s", code, stderr.String())
+	}
+	for _, want := range []string{"profile", "t1", "clickhouse", "m6i.4xlarge", "1M events/s"} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Errorf("env show output is missing %q:\n%s", want, stdout.String())
+		}
+	}
+}
+
+func TestEnvCheck(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run([]string{"--root", repoRoot(t), "env", "check"}, &stdout, &stderr); code != 0 {
+		t.Fatalf("env check exit = %d, stderr = %s", code, stderr.String())
+	}
+	for _, want := range []string{"ok", "6 clickhouse", "headroom", "events/s capacity", "cost"} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Errorf("env check output is missing %q:\n%s", want, stdout.String())
+		}
+	}
+}
+
+func TestEnvCostJSON(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run([]string{"--root", repoRoot(t), "env", "cost", "--json", "--hours", "2"}, &stdout, &stderr); code != 0 {
+		t.Fatalf("env cost exit = %d, stderr = %s", code, stderr.String())
+	}
+	var cost envprofile.Cost
+	if err := json.Unmarshal(stdout.Bytes(), &cost); err != nil {
+		t.Fatalf("decode cost JSON: %v\n%s", err, stdout.String())
+	}
+	if cost.HourlyTotal <= 0 || cost.RunTotal <= 0 || cost.MonthlyTotal <= 0 {
+		t.Fatalf("unexpected cost totals: %+v", cost)
+	}
+	if len(cost.Roles) != 5 {
+		t.Fatalf("role costs = %d, want 5", len(cost.Roles))
+	}
+}
+
+func TestEnvTFVars(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run([]string{"--root", repoRoot(t), "env", "tfvars"}, &stdout, &stderr); code != 0 {
+		t.Fatalf("env tfvars exit = %d, stderr = %s", code, stderr.String())
+	}
+	for _, want := range []string{"clickhouse_count = 6", "gateway_count = 6", `region = "us-east-1"`} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Errorf("env tfvars output is missing %q:\n%s", want, stdout.String())
+		}
+	}
+}
+
+func TestEnvCheckRejectsBadProfile(t *testing.T) {
+	root := repoRoot(t)
+	profile, err := envprofile.LoadProfile(filepath.Join(root, "bench", "env", "t1.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile.Roles[0].Count = 5
+	data, err := json.Marshal(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "bad-profile.json")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if code := run([]string{"--root", root, "env", "check", "--profile", path}, &stdout, &stderr); code != 1 {
+		t.Fatalf("env check exit = %d, want 1; stdout = %s; stderr = %s", code, stdout.String(), stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "clickhouse count = 5") {
+		t.Fatalf("unexpected env check error:\n%s", stderr.String())
 	}
 }
 

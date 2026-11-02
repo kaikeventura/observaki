@@ -1,0 +1,15 @@
+# Operator-owned settings. The cluster shape (region, availability zone, node
+# counts, instance types and data disks) is generated from bench/env/t1.json by
+# ./bench/env/cluster.sh, so do not duplicate those values here.
+#
+# Copy this file to terraform.tfvars and replace both values. terraform.tfvars
+# is ignored by git and must never contain a private key.
+
+admin_cidr     = "203.0.113.10/32"
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI replace-me user@example"
+
+# project     = "observaki-bench"
+# environment = "t1"
+# tags = {
+#   Owner = "benchmark"
+# }

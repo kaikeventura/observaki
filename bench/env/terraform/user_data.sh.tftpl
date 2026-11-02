@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+hostnamectl set-hostname "${hostname}"
+printf '%s\n' "${hostname}" > /etc/hostname
+
+# Data disks are attached but intentionally not formatted here. The component
+# installation step owns the filesystem layout so that a re-run cannot destroy
+# data. See bench/env/README.md.

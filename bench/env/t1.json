@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "name": "t1",
+  "description": "Observaki T1 reference benchmark cluster. The minimum topology that can sustain the 1M events/s reference workload and cover the G1 throughput and query baselines with 7 days of hot retention. The profile is provider-neutral; the AWS Terraform module is the reference implementation.",
+  "region": "us-east-1",
+  "availability_zone": "us-east-1a",
+  "root_disk_gib": 100,
+  "workload": {
+    "events_per_second": 1000000,
+    "retention_hours": 168,
+    "signals": {
+      "metrics": {
+        "share": 0.6,
+        "compressed_bytes_per_event": 40
+      },
+      "logs": {
+        "share": 0.3,
+        "compressed_bytes_per_event": 200
+      },
+      "traces": {
+        "share": 0.1,
+        "compressed_bytes_per_event": 500
+      }
+    },
+    "clickhouse_replication": 2,
+    "victoriametrics_replication": 2,
+    "nats_replication": 2,
+    "nats_buffer_hours": 1,
+    "gateway_events_per_vcpu": 15000,
+    "loadgen_events_per_vcpu": 60000
+  },
+  "roles": [
+    {
+      "name": "clickhouse",
+      "count": 6,
+      "min": 6,
+      "max": 12,
+      "instance_type": "m6i.4xlarge",
+      "vcpus": 16,
+      "memory_gib": 64,
+      "data_disks": 2,
+      "data_disk_gib": 16384,
+      "data_disk_throughput_mbps": 500,
+      "data_disk_iops": 16000,
+      "purpose": "Logs and traces storage/query. 32 TiB raw per node; replication 2 leaves 96 TiB logical, enough for 7 days at 1M events/s with headroom."
+    },
+    {
+      "name": "victoriametrics",
+      "count": 3,
+      "min": 3,
+      "max": 3,
+      "instance_type": "m6i.4xlarge",
+      "vcpus": 16,
+      "memory_gib": 64,
+      "data_disks": 1,
+      "data_disk_gib": 12288,
+      "data_disk_throughput_mbps": 500,
+      "data_disk_iops": 16000,
+      "purpose": "Metrics and RED storage. 12 TiB raw per node; replication 2 leaves 18 TiB logical for the 60% metrics share."
+    },
+    {
+      "name": "gateway",
+      "count": 6,
+      "min": 4,
+      "max": 6,
+      "instance_type": "c6i.4xlarge",
+      "vcpus": 16,
+      "memory_gib": 32,
+      "data_disks": 0,
+      "data_disk_gib": 0,
+      "data_disk_throughput_mbps": 0,
+      "data_disk_iops": 0,
+      "purpose": "OTLP ingest, RED calculation and WAL client. Six nodes give 1.44M events/s at the conservative 15k events/s per vCPU target; NFR-9 targets less than 8 GiB RSS per gateway."
+    },
+    {
+      "name": "nats",
+      "count": 4,
+      "min": 3,
+      "max": 5,
+      "instance_type": "m6i.2xlarge",
+      "vcpus": 8,
+      "memory_gib": 32,
+      "data_disks": 1,
+      "data_disk_gib": 512,
+      "data_disk_throughput_mbps": 250,
+      "data_disk_iops": 6000,
+      "purpose": "JetStream WAL with replication 2. 2 TiB raw covers at least one hour of the full workload during an outage."
+    },
+    {
+      "name": "loadgen",
+      "count": 2,
+      "min": 1,
+      "max": 4,
+      "instance_type": "c6i.4xlarge",
+      "vcpus": 16,
+      "memory_gib": 32,
+      "data_disks": 0,
+      "data_disk_gib": 0,
+      "data_disk_throughput_mbps": 0,
+      "data_disk_iops": 0,
+      "purpose": "OTLP workload generator. Two hosts run the five shards of throughput-5m; the 1M/s gate uses fewer shards."
+    }
+  ],
+  "software": {
+    "os": "Ubuntu 24.04 LTS",
+    "go": "1.27",
+    "clickhouse": "26.8 LTS",
+    "victoriametrics": "1.148 LTS",
+    "nats": "2.15",
+    "postgresql": "18.6"
+  },
+  "notes": [
+    "The profile sizes the full T1 reference (7 days of hot retention), not just the one-hour throughput run. A shorter retention run uses less disk; the difference must be stated in the report.",
+    "The 32 TiB ClickHouse data disk is split into two 16 TiB gp3 volumes because that is the AWS per-volume limit. Other providers can use a single larger volume.",
+    "The cluster is deliberately single-AZ for the benchmark: cross-AZ replication and transfer would change both the latency and the cost. Production HA is a separate topology and is not what this profile measures.",
+    "The profile does not include a PostgreSQL control plane, object storage, backups or a support plan. Those are production costs, not benchmark costs."
+  ]
+}

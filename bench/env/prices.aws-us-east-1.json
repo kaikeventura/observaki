@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "currency": "USD",
+  "as_of": "2026-11-01",
+  "source": "AWS us-east-1 on-demand list-price snapshot, maintained by hand. Verify the current price before approving spend.",
+  "hours_per_month": 730,
+  "instance_hourly": {
+    "m6i.4xlarge": 0.768,
+    "m6i.2xlarge": 0.384,
+    "c6i.4xlarge": 0.68
+  },
+  "ebs_gib_month": 0.08,
+  "ebs_included_throughput_mbps": 125,
+  "ebs_throughput_mbps_month": 0.04,
+  "ebs_included_iops": 3000,
+  "ebs_iops_month": 0.005,
+  "public_ipv4_hourly": 0.005,
+  "max_volume_gib": 16384,
+  "notes": [
+    "gp3 storage is USD 0.08/GiB-month in us-east-1; throughput above 125 MB/s and IOPS above 3,000 are billed separately.",
+    "Every node gets a public IPv4 address for SSH and operator access; AWS bills public IPv4 addresses per hour.",
+    "The estimate excludes data transfer, snapshots, backups, object storage, taxes and support. Intra-VPC traffic is free while the cluster stays in one availability zone.",
+    "Prices are a reviewable snapshot, not a live quote. The founder must approve the provider and the budget before apply."
+  ]
+}

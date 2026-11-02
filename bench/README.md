@@ -8,7 +8,7 @@ O harness reproduzível da Fase 0. Componentes:
 | `bench/scenarios` + `bench/run.sh` | 2.2 | Define cenários de throughput, query, cardinalidade e caos; valida pré-requisitos e grava resultados |
 | `bench/queries` | 2.2 | Catálogo das 20 consultas representativas de dashboard |
 | Relatório `report.md`/`report.json` | 2.3 | Coleta CPU/RAM/disco, normaliza as métricas e compara repetições com variância documentada |
-| Ambiente reproduzível e baseline | 2.4 | Cluster de referência, provisionamento e primeira execução publicada |
+| Ambiente reproduzível e baseline | 2.4 | Perfil T1, Terraform, custo/cleanup e protocolo de baseline; execução T1 pendente |
 
 ## Workload de referência
 
@@ -69,10 +69,36 @@ e é validada pelo `benchctl check`):
 > cenários grava `status: blocked` e sai com código 3; `--plan` grava o plano e
 > sai com 0.
 
+## Ambiente de referência T1
+
+O perfil do cluster T1 está em [`env/t1.json`](env/t1.json) e o provisionamento
+de referência (AWS + Terraform) em [`env/`](env/README.md). O perfil é a fonte
+de verdade de região, contagens, instâncias e discos; o `cluster.sh` gera as
+variáveis do Terraform a partir dele.
+
+```bash
+make build
+./bench/env/cluster.sh check       # valida perfil, preços e capacidade
+./bench/env/cluster.sh cost        # estimativa para 4 h
+./bench/env/cluster.sh plan        # terraform init + plan (não gasta)
+OBSERVAKI_BENCH_ALLOW_SPEND=1 ./bench/env/cluster.sh apply
+./bench/env/cluster.sh destroy
+```
+
+O `apply` é bloqueado sem `OBSERVAKI_BENCH_ALLOW_SPEND=1` e recusa credenciais
+root da AWS. O baseline usa [`env/baseline.sh`](env/baseline.sh): warm-up de
+10 min, ramp de 5 min e 1 h medida. O protocolo pode ser validado localmente com
+`--dry-run`.
+
+O baseline T1 ainda **não foi executado**: dependem dele o gateway (Story 4.1),
+o schema ClickHouse (Story 3.1) e a aprovação de provedor/orçamento. O baseline
+local publicado em [`BENCHMARKS.md`](../BENCHMARKS.md) é uma pré-baseline do
+harness, não evidência do G1.
+
 ## Execução
 
 ```bash
-make build                 # inclui bin/benchctl e bin/otlploadgen
+make build                 # inclui bin/benchctl, bin/otlploadgen e bin/bench-sink
 ./bench/run.sh list        # inventário dos cenários
 ./bench/run.sh check       # valida contratos e o catálogo de consultas
 ./bench/run.sh queries     # imprime as 20 consultas
@@ -379,10 +405,11 @@ o alvo de 134 B/event é medido pelo `--check-payload`.
 
 ## Limitações atuais
 
-- **Rampa e aquecimento:** o gerador executa taxa constante. A rampa exigida
-  pelo ADR-0006 e a janela de regime serão definidas com o cluster de
-  referência na Story 2.4; por isso, os números desta fase ainda não são
-  evidência do gate G1.
+- **Rampa e aquecimento:** o protocolo existe em `bench/env/baseline.sh`
+  (10 min de warm-up, 5 min de ramp em cinco degraus e 1 h medida), mas o
+  gerador executa taxa constante dentro de cada fase. A execução T1 e a
+  validação do protocolo no cluster ainda não ocorreram; os números desta fase
+  não são evidência do gate G1.
 - **Query/cardinalidade/caos:** o contrato e o plano existem; a execução
   depende de ClickHouse/Query Service (3.4/3.5) e da automação de falhas (4.5).
   O relatório marca as métricas dessas famílias como `not_collected` com a story
@@ -406,7 +433,9 @@ o alvo de 134 B/event é medido pelo `--check-payload`.
 ## Artefatos
 
 `bench/results/`, `bench/reports/` e `bench/.tmp/` não são versionados. O
-relatório `BENCHMARKS.md` e o JSON consolidado do baseline entram na Story 2.4; o
-gerador de `report.md`/`report.json` desta story é o mecanismo que a 2.4 usa. O
-contrato de cada cenário (`bench/scenarios/`), o catálogo de consultas
-(`bench/queries/`) e o runner (`bench/run.sh`) são versionados.
+relatório [`BENCHMARKS.md`](../BENCHMARKS.md) publica a pré-baseline local e
+mantém o baseline T1 explicitamente pendente; os artefatos publicados ficam em
+[`bench/baselines/`](baselines/). O gerador de `report.md`/`report.json` é o
+mecanismo usado pela 2.4. O contrato de cada cenário (`bench/scenarios/`), o
+catálogo de consultas (`bench/queries/`), o runner (`bench/run.sh`) e o perfil
+T1 (`bench/env/`) são versionados.

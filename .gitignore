@@ -48,5 +48,16 @@ bench/results/
 bench/reports/
 bench/.tmp/
 
+# Benchmark environment (Terraform local state and operator settings)
+bench/env/terraform/.terraform/
+bench/env/terraform/*.tfstate
+bench/env/terraform/*.tfstate.*
+bench/env/terraform/*.tfplan
+bench/env/terraform/terraform.tfvars
+bench/env/terraform/profile.auto.tfvars
+bench/env/terraform/.observaki-applied-at
+bench/env/terraform/crash.log
+bench/env/terraform/crash.*.log
+
 # OS generated
 .fuse_hidden*
