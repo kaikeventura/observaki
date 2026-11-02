@@ -34,7 +34,9 @@ de retenção de 7 e 15 dias.
 ./bench/clickhouse/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5
 
 # run da story (1B linhas; ≈50–70 min nesta máquina)
-./bench/clickhouse/run.sh --rows 1000000000 --chunk-rows 50000000 --runs 20
+# --stop-merges é necessário no host local: sem ele, as parts inativas dos
+# merges ocupam ~2,5× o tamanho da tabela e estouram o disco.
+./bench/clickhouse/run.sh --rows 1000000000 --chunk-rows 50000000 --runs 20 --stop-merges
 
 # repetir só a medição sobre uma tabela já carregada
 ./bench/clickhouse/run.sh --reuse --rows 1000000000 --runs 20
@@ -68,6 +70,12 @@ pelo script. Para recriar o container com o perfil atual:
   inflar a razão.
 - **Índices.** `tokenbf_v1` no body e `bloom_filter` em `trace_id`/`span_id`.
   Busca textual ampla e dedupe por `event_id` ficam para as Stories 3.3/3.5.
+- **Merges parados no run local de 1B.** O host tem ~126 GiB livres e a tabela
+  comprimida ocupa ~83 GiB; com merges de background, as parts inativas chegam
+  a ~2,5× o tamanho ativo e o disco estoura. `--stop-merges` congela os merges
+  da tabela principal durante a carga; o relatório mede a tabela com parts não
+  consolidadas e registra isso nas limitações. No T1 os merges rodam normal e
+  são parte do comportamento medido.
 
 ## Limitações
 

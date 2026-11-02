@@ -34,6 +34,7 @@ TTL_ONLY=0
 CLEANUP=0
 RECREATE=0
 OPTIMIZE=0
+STOP_MERGES=0
 RESULTS_DIR=""
 
 usage() {
@@ -56,6 +57,9 @@ Options:
   --ttl-only         run only the 7/15-day TTL check and exit
   --optimize         run OPTIMIZE TABLE ... FINAL before measuring
                      (only for small datasets)
+  --stop-merges      stop background merges for the main table during the
+                     load; required for the local 1B run because the merge
+                     overhead otherwise exceeds the free disk
   --recreate         remove the container before starting
   --cleanup          remove the container after writing the report
   --help             show this help
@@ -99,6 +103,7 @@ while [ $# -gt 0 ]; do
 	--skip-load) SKIP_LOAD=1; shift ;;
 	--ttl-only) TTL_ONLY=1; shift ;;
 	--optimize) OPTIMIZE=1; shift ;;
+	--stop-merges) STOP_MERGES=1; shift ;;
 	--recreate) RECREATE=1; shift ;;
 	--cleanup) CLEANUP=1; shift ;;
 	--help | -h) usage; exit 0 ;;
@@ -182,6 +187,15 @@ apply_schema() {
 	docker exec -i "$CONTAINER" clickhouse-client --database "$DATABASE" --multiquery <"$MIGRATION"
 }
 
+stop_merges() {
+	if [ "$STOP_MERGES" != 1 ]; then
+		return
+	fi
+	log "stopping background merges for otel_logs (local 1B disk bound)"
+	ch --query "SYSTEM STOP MERGES observaki_bench.otel_logs"
+	ch --query "ALTER TABLE otel_logs MODIFY SETTING parts_to_delay_insert = 1000, parts_to_throw_insert = 2000"
+}
+
 table_count() {
 	ch --query "SELECT count() FROM otel_logs"
 }
@@ -261,6 +275,7 @@ load() {
 	log "creating a fresh logs table"
 	ch --query "DROP TABLE IF EXISTS otel_logs"
 	apply_schema
+	stop_merges
 
 	while [ "$offset" -lt "$ROWS" ]; do
 		count=$((ROWS - offset))
@@ -334,7 +349,7 @@ write_report() {
 	local p50 p95 p99 rows_read_mean bytes_read_mean returned_mean
 	local compression_pass query_pass query_rows_pass status schema_sha commit dirty
 	local ch_version generated_at hostname cpus memory_bytes disk_total disk_free
-	local limitations verdict_reason
+	local limitations verdict_reason merges_stopped
 
 	IFS=$'\t' read -r rows parts compressed uncompressed body_avg <"$RESULTS_DIR/storage.tsv"
 	ratio=$(awk -v u="$uncompressed" -v c="$compressed" 'BEGIN { printf "%.2f", u / c }')
@@ -379,6 +394,11 @@ write_report() {
 		"the local host is smaller than the query-1b scenario reference (16 vCPU/64 GB); the report records the real hardware",
 		"no replication, NATS, Query Service, row policies or chaos; those are Stories 3.3/3.5/4.5"
 	]'
+	merges_stopped=false
+	if [ "$STOP_MERGES" = 1 ]; then
+		merges_stopped=true
+		limitations=$(printf '%s' "$limitations" | jq '. + ["background merges are stopped for the main table during the local load to bound disk use; the table is measured with unmerged parts"]')
+	fi
 
 	jq -n \
 		--arg generated_at "$generated_at" \
@@ -399,6 +419,7 @@ write_report() {
 		--argjson rows "$rows" \
 		--argjson chunk_rows "$CHUNK_ROWS" \
 		--argjson parts "$parts" \
+		--argjson merges_stopped "$merges_stopped" \
 		--argjson compressed "$compressed" \
 		--argjson uncompressed "$uncompressed" \
 		--argjson ratio "$ratio" \
@@ -432,7 +453,7 @@ write_report() {
 			host: {hostname: $hostname, cpus: $cpus, memory_bytes: $memory_bytes, disk_total_bytes: $disk_total_bytes, disk_free_bytes: $disk_free_bytes, data_dir: $data_dir},
 			schema: {migration: "0001_otel_logs.sql", sha256: $schema_sha, partition_by: "toDate(ingested_at)", order_by: "(tenant_id, project_id, service_name, timestamp)", ttl: "ingested_at + INTERVAL retention_days DAY"},
 			dataset: {rows: $rows, chunk_rows: $chunk_rows, chunks: (($rows / $chunk_rows) | ceil), base: $base, window_hours: 24, body_avg_bytes: $body_avg, tenants: 2, projects: 4, services: 8, severity_mix: "90% INFO / 7% WARN / 3% ERROR", retention_days: [7, 15]},
-			storage: {parts: $parts, compressed_bytes: $compressed, uncompressed_bytes: $uncompressed, ratio: $ratio, compressed_bytes_per_row: $compressed_per_row},
+			storage: {parts: $parts, merges_stopped: $merges_stopped, compressed_bytes: $compressed, uncompressed_bytes: $uncompressed, ratio: $ratio, compressed_bytes_per_row: $compressed_per_row},
 			query: {id: "q03", description: "Filtered log search by service and severity, 1h window", runs: $runs, p50_ms: $p50, p95_ms: $p95, p99_ms: $p99, rows_read_mean: $rows_read_mean, bytes_read_mean: $bytes_read_mean, returned_mean: $returned_mean, tenant: $tenant, project: $project, service: $service, severity: $severity, start: $start, end: $end},
 			ttl: $ttl[0],
 			verdict: {status: $status, reason: $verdict_reason, criteria: {compression_ge_5x: $compression_pass, query_p95_lt_1s: $query_pass, query_returned_rows: $query_rows_pass, ttl_removes_expired: $ttl[0].passed}},
@@ -537,6 +558,7 @@ main() {
 	ensure_container
 	create_database
 	apply_schema
+	stop_merges
 
 	if [ "$TTL_ONLY" = 1 ]; then
 		ttl_test

@@ -100,7 +100,7 @@ bench-env-check: build ## validate the T1 profile, cost model and Terraform modu
 	fi
 
 bench-clickhouse: ## run the ClickHouse logs storage spike (ROWS=1B by default)
-	./bench/clickhouse/run.sh --rows $(ROWS) --chunk-rows $(CHUNK_ROWS) --runs $(RUNS)
+	./bench/clickhouse/run.sh --rows $(ROWS) --chunk-rows $(CHUNK_ROWS) --runs $(RUNS) --stop-merges
 
 bench-clickhouse-check: ## validate the ClickHouse logs schema on a 10M-row smoke
 	./bench/clickhouse/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5
