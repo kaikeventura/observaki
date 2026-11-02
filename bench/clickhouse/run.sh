@@ -364,7 +364,7 @@ write_report() {
 
 	schema_sha=$(sha256sum "$MIGRATION" | awk '{ print $1 }')
 	commit=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)
-	if [ -n "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ]; then dirty=true; else dirty=false; fi
+	if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=no 2>/dev/null)" ]; then dirty=true; else dirty=false; fi
 	ch_version=$(ch --query "SELECT version()")
 	generated_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 	hostname=$(hostname)
