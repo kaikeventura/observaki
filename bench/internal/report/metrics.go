@@ -271,7 +271,7 @@ func payloadMeasurement(reports []loadgen.SizeReport, mix loadgen.Mix) *Compress
 		gzipWeighted += weight * report.GzipBytesPerEvent
 		rawTotal += int64(report.ProtobufBytes)
 		gzipTotal += int64(report.GzipBytes)
-		signals = append(signals, string(report.Signal))
+		signals = append(signals, report.Signal.String())
 	}
 	if gzipWeighted <= 0 {
 		return nil

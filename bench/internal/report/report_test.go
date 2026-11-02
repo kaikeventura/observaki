@@ -214,6 +214,27 @@ func fixedNow() time.Time {
 	return time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
 }
 
+func TestPayloadMeasurementUsesSignalNames(t *testing.T) {
+	reports := []loadgen.SizeReport{
+		{Signal: loadgen.Metrics, ProtobufBytes: 4000, GzipBytes: 400, ProtobufBytesPerEvent: 400, GzipBytesPerEvent: 40},
+		{Signal: loadgen.Logs, ProtobufBytes: 2000, GzipBytes: 200, ProtobufBytesPerEvent: 200, GzipBytesPerEvent: 20},
+		{Signal: loadgen.Traces, ProtobufBytes: 5000, GzipBytes: 500, ProtobufBytesPerEvent: 500, GzipBytesPerEvent: 50},
+	}
+	measurement := payloadMeasurement(reports, loadgen.DefaultMix())
+	if measurement == nil {
+		t.Fatal("payloadMeasurement() = nil")
+	}
+	want := []string{"metrics", "logs", "traces"}
+	if len(measurement.Signals) != len(want) {
+		t.Fatalf("signals = %v, want %v", measurement.Signals, want)
+	}
+	for index := range want {
+		if measurement.Signals[index] != want[index] {
+			t.Fatalf("signals = %v, want %v", measurement.Signals, want)
+		}
+	}
+}
+
 func TestBuildReportWithRepetitions(t *testing.T) {
 	root := t.TempDir()
 	first := defaultFixture()
