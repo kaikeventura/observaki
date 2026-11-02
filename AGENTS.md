@@ -4,10 +4,10 @@ Este repositório é o **Observaki**, uma plataforma de observabilidade open sou
 
 ## Estado atual
 
-- **Fase 0 — em andamento.** Stories 1.1–1.4, 2.1 e 2.2 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway) ainda não começou.
+- **Fase 0 — em andamento.** Stories 1.1–1.4 e 2.1–2.3 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway) ainda não começou.
 - O estado corrente vive em `STATUS.md` (fonte de verdade de onde estamos).
 - O prompt de retomada pronto para novas sessões está em `PROMPT.md`.
-- O próximo trabalho é a **Story 2.3** (`_bmad-output/planning-artifacts/epics.md`): coleta de métricas e gerador de relatório.
+- O próximo trabalho é a **Story 2.4** (`_bmad-output/planning-artifacts/epics.md`): ambiente reproduzível e baseline publicado.
 - O backlog da Fase 0 está em `_bmad-output/planning-artifacts/epics.md`.
 - O plano executivo está em `_bmad-output/planning-artifacts/PROGRAM-PLAN.md`.
 - A arquitetura binding está em `_bmad-output/planning-artifacts/architecture/architecture-observaki-2026-10-31/ARCHITECTURE-SPINE.md` (AD-1..AD-35).
