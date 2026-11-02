@@ -9,6 +9,22 @@ O harness reproduzível da Fase 0. Componentes:
 | `bench/queries` | 2.2 | Catálogo das 20 consultas representativas de dashboard |
 | Relatório `report.md`/`report.json` | 2.3 | Coleta CPU/RAM/disco, normaliza as métricas e compara repetições com variância documentada |
 | Ambiente reproduzível e baseline | 2.4 | Perfil T1, Terraform, custo/cleanup e protocolo de baseline; execução T1 pendente |
+| `bench/clickhouse` | 3.1 | Schema ClickHouse de logs, carga sintética, compressão, `q03` e TTL 7/15 dias em container local |
+
+### Story 3.1 — ClickHouse logs
+
+O spike de schema de logs fica em [`clickhouse/`](clickhouse/README.md). Ele sobe
+um ClickHouse 26.8 descartável, aplica a migração
+`internal/adapters/clickhouse/migrations/0001_otel_logs.sql`, mede compressão,
+a consulta `q03` em 1B linhas e valida o TTL de 7/15 dias.
+
+```bash
+./bench/clickhouse/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5  # smoke
+./bench/clickhouse/run.sh --rows 1000000000 --chunk-rows 50000000 --runs 20
+```
+
+O run local é evidência de schema, não do G1: não há gateway, NATS, Query
+Service, row policies nem réplica.
 
 ## Workload de referência
 

@@ -13,6 +13,9 @@ BENCHCTL := $(BIN_DIR)/benchctl
 BENCH_SINK := $(BIN_DIR)/bench-sink
 WEB_DIR := web
 AGENT_MANIFEST := agent/Cargo.toml
+ROWS ?= 1000000000
+CHUNK_ROWS ?= 50000000
+RUNS ?= 20
 
 VERSION ?= $(shell $(GIT) describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT ?= $(shell $(GIT) rev-parse --short HEAD 2>/dev/null || echo none)
@@ -27,7 +30,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -95,5 +98,11 @@ bench-env-check: build ## validate the T1 profile, cost model and Terraform modu
 	else \
 		echo "terraform not installed; skipping Terraform validation"; \
 	fi
+
+bench-clickhouse: ## run the ClickHouse logs storage spike (ROWS=1B by default)
+	./bench/clickhouse/run.sh --rows $(ROWS) --chunk-rows $(CHUNK_ROWS) --runs $(RUNS)
+
+bench-clickhouse-check: ## validate the ClickHouse logs schema on a 10M-row smoke
+	./bench/clickhouse/run.sh --rows 10000000 --chunk-rows 10000000 --runs 5
 
 ci: bootstrap lint test build ## run the full local CI suite

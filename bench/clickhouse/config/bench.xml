@@ -1,0 +1,24 @@
+<clickhouse>
+  <!-- Local, single-node benchmark profile. The settings keep the container
+       below the host's memory and CPU budget and cap merge size so a 1B-row
+       load cannot fill the disk with one giant merge. -->
+  <listen_host>0.0.0.0</listen_host>
+  <max_server_memory_usage>8589934592</max_server_memory_usage>
+  <logger>
+    <level>warning</level>
+    <console>1</console>
+  </logger>
+  <merge_tree>
+    <number_of_free_entries_in_pool_to_execute_mutation>4</number_of_free_entries_in_pool_to_execute_mutation>
+    <max_bytes_to_merge_at_max_space_in_pool>16000000000</max_bytes_to_merge_at_max_space_in_pool>
+  </merge_tree>
+  <profiles>
+    <default>
+      <max_threads>16</max_threads>
+      <max_insert_threads>8</max_insert_threads>
+      <max_concurrent_queries>8</max_concurrent_queries>
+      <mark_cache_size>1073741824</mark_cache_size>
+      <uncompressed_cache_size>0</uncompressed_cache_size>
+    </default>
+  </profiles>
+</clickhouse>
