@@ -469,6 +469,28 @@ func TestDryRunIsListedButNotCompared(t *testing.T) {
 	}
 }
 
+func TestRunsWithoutConfigHashAreNotCompared(t *testing.T) {
+	root := t.TempDir()
+	first := defaultFixture()
+	first.configHash = ""
+	second := defaultFixture()
+	second.configHash = ""
+	dirs := []string{
+		writeFixtureRun(t, root, "legacy-a", first),
+		writeFixtureRun(t, root, "legacy-b", second),
+	}
+	report, err := Build(Options{RunDirs: dirs, Now: fixedNow})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Runs) != 2 {
+		t.Fatalf("runs = %d, want 2", len(report.Runs))
+	}
+	if len(report.Comparisons) != 0 {
+		t.Fatalf("comparisons = %+v, want none without config hashes", report.Comparisons)
+	}
+}
+
 func TestBuildRejectsEmptyResults(t *testing.T) {
 	if _, err := Build(Options{ResultsRoot: t.TempDir(), Now: fixedNow}); err == nil {
 		t.Fatal("Build() = nil, want an empty-results error")

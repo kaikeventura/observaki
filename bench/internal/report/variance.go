@@ -50,7 +50,7 @@ func compareRuns(runs []Run, rules []VarianceRule) ([]Comparison, []string) {
 	}
 	groups := make(map[string]*group)
 	for _, run := range runs {
-		if run.Status != runner.StatusOK || run.Mode != runner.ModeRun || run.Metrics == nil {
+		if run.Status != runner.StatusOK || run.Mode != runner.ModeRun || run.Metrics == nil || run.ConfigHash == "" {
 			continue
 		}
 		key := run.Scenario + "\x00" + run.ConfigHash
