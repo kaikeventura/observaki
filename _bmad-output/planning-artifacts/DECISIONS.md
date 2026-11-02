@@ -23,8 +23,15 @@
 | P-04 | Frontend: SvelteKit 3 vs React | Fundador + Frontend | Semana 1 | Se o time for React-heavy, React 19 + uPlot |
 | P-05 | Compliance: SOC 2/HIPAA/FedRAMP | Fundador | Antes da Fase 3 | Se um contrato exigir, antecipar trilha |
 | P-06 | Time/prazo: 5-6 engenheiros, ~14 meses | Fundador | Semana 1 | Se o time for menor, cortar Fase 4 e/ou adiar GA |
+| P-07 | Aprovar provedor, teto de gasto e credencial IAM dedicada do cluster T1 (AWS de referência: USD 41,79/h e USD 30.504,49/mês no perfil de 7 dias; ver `BENCHMARKS.md`) | Fundador | Antes do baseline T1 | Se o custo estourar o orçamento, reduzir retenção/discos ou trocar de provedor e atualizar a tabela de preços; o `apply` fica bloqueado até a aprovação |
 
-**ADRs relacionadas:** P-02 é detalhada em [ADR-0005](../../docs/adr/0005-tenancy-e-retencao.md) (mecanismo aprovado; o default 7/15/30 continua pendente); P-04 em [ADR-0004](../../docs/adr/0004-frontend-sveltekit-uplot.md) (SvelteKit é o default; o fallback React 19 permanece como critério de reversão se o time contratado for React-heavy); P-03 em [`docs/governance/open-core.md`](../../docs/governance/open-core.md) (fronteira ainda pendente).
+**ADRs relacionadas:** P-02 é detalhada em [ADR-0005](../../docs/adr/0005-tenancy-e-retencao.md) (mecanismo aprovado; o default 7/15/30 continua pendente); P-04 em [ADR-0004](../../docs/adr/0004-frontend-sveltekit-uplot.md) (SvelteKit é o default; o fallback React 19 permanece como critério de reversão se o time contratado for React-heavy); P-03 em [`docs/governance/open-core.md`](../../docs/governance/open-core.md) (fronteira ainda pendente); P-07 em [ADR-0006](../../docs/adr/0006-metodologia-de-benchmark.md) (perfil T1 e mecanismo de custo entregues pela Story 2.4; a aprovação de gasto continua humana).
+
+**Story 2.4 (2026-11-01):** o perfil T1 está em `bench/env/t1.json` e a
+estimativa de custo em `bench/internal/envprofile` + `bench/env/prices.*.json`.
+`BENCHMARKS.md` publica a pré-baseline local e mantém o baseline T1 pendente. O
+`apply` do cluster é bloqueado sem `OBSERVAKI_BENCH_ALLOW_SPEND=1` e recusa
+credencial root da AWS; falta a decisão P-07.
 
 ## ADRs da Fase 0
 

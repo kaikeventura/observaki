@@ -1,8 +1,8 @@
 # Observaki — Project Context
 
 **Produto:** plataforma de observabilidade open source, self-hosted e OTel-native: métricas, logs, traces, dashboards, alertas e correlação.
-**Estágio:** Fase 0 (fundação/benchmark) em andamento; Stories 1.1–1.4 e 2.1–2.3 concluídas, com gerador OTLP, cenários de benchmark, catálogo de consultas, coleta de recursos e gerador de relatório implementados.
-**Próximo passo:** Story 2.4 — ambiente reproduzível e baseline publicado.
+**Estágio:** Fase 0 (fundação/benchmark) em andamento; Stories 1.1–1.4 e 2.1–2.3 concluídas, com gerador OTLP, cenários de benchmark, catálogo de consultas, coleta de recursos e gerador de relatório implementados. A Story 2.4 entregou o perfil T1, o provisionamento de referência, o custo/cleanup e uma pré-baseline local; a execução T1 está bloqueada por provedor/orçamento e pelas Stories 3.1/4.1.
+**Próximo passo:** aprovar P-07 (provedor, teto de gasto e credencial IAM dedicada) e concluir 3.1/4.1 para executar o baseline T1.
 **Estado corrente:** `STATUS.md` (fonte de verdade de onde estamos; atualizar ao fim de cada sessão).
 **Prompt de retomada:** `PROMPT.md` (mandar `Leia PROMPT.md e execute.`).
 
@@ -27,7 +27,7 @@
 
 ## Comandos
 
-Após o scaffold da Story 1.1: `make bootstrap`, `make ci`, `make dev`, `make smoke`, `make benchmark`.
+Após o scaffold da Story 1.1: `make bootstrap`, `make ci`, `make dev`, `make smoke`, `make benchmark`, `make bench-env-check`. O baseline usa `./bench/env/baseline.sh`; o cluster T1 usa `./bench/env/cluster.sh`.
 
 ## Onde ler
 
@@ -38,3 +38,6 @@ Após o scaffold da Story 1.1: `make bootstrap`, `make ci`, `make dev`, `make sm
 - `_bmad-output/planning-artifacts/architecture/.../ARCHITECTURE-SPINE.md` — AD-1..AD-35.
 - `_bmad-output/planning-artifacts/ux-designs/.../DESIGN.md` e `EXPERIENCE.md` — UX.
 - `_bmad-output/planning-artifacts/DECISIONS.md` — decisões e pendências.
+- `BENCHMARKS.md` — pré-baseline publicada, perfil T1 e bloqueios do G1.
+- `bench/env/README.md` — provisionamento, custo e protocolo do baseline.
+- `docs/dev/story-2.4-handoff.md` — evidência e pendências da Story 2.4.

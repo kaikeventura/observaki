@@ -16,3 +16,6 @@ Regras:
   provisionado e com o commit registrado.
 - `bench/results/` e `bench/reports/` continuam fora do git; só o consolidado
   publicado é copiado para cá.
+- Os caminhos `result_dir` dentro do JSON são os da máquina que executou o
+  baseline. Eles são evidência histórica, não instruções de reprodução; os
+  comandos reproduzíveis ficam em `BENCHMARKS.md`.

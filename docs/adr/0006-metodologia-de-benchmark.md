@@ -139,8 +139,10 @@ harness e a primeira execução de referência.
 
 **Evidência pendente para o G1 (não bloqueia a decisão):**
 
-1. Stories 2.1–2.4 implementarem o harness, os cenários e o relatório;
-2. uma execução completa de referência (baseline) com hardware documentado.
+1. Stories 2.1–2.3 implementaram o harness, os cenários e o relatório;
+2. a Story 2.4 entregou o perfil T1, o provisionamento e a pré-baseline local,
+   mas a execução completa de referência (baseline T1) continua pendente de
+   aprovação de provedor/orçamento e das Stories 3.1–3.5/4.1–4.5.
 
 ## Revisão
 
@@ -152,13 +154,13 @@ harness e a primeira execução de referência.
 
 | ID | Questão | Spike/story da Fase 0 | Dono | Prazo | Fallback |
 |---|---|---|---|---|---|
-| Q-01 | Qual o perfil de hardware e o cluster de referência (6–12 CH, 3 VM, 4–6 gateways)? | Story 2.4 | Benchmark | Semana 3 | Cluster mínimo com headroom; documentar a diferença |
+| Q-01 | Qual o perfil de hardware e o cluster de referência (6–12 CH, 3 VM, 4–6 gateways)? | Story 2.4 — perfil definido em `bench/env/t1.json`; custo/provedor pendente (P-07) | Benchmark | Semana 3 | Cluster mínimo com headroom; documentar a diferença |
 | Q-02 | Como gerar os datasets de 1B/10B/86B linhas de forma reproduzível? | Story 2.2 | Benchmark | Semana 3 | Dados sintéticos por seed + retenção simulada |
 | Q-03 | Qual o conjunto de 20 consultas representativas? | Story 2.2 | Produto + Benchmark | Semana 2 | Consultas do mock de Explore/Dashboard |
 | Q-04 | Como medir latência com variância e outliers sem mascarar a cauda? | Story 2.3 | Benchmark | Semana 3 | p50/p95/p99 + dispersão; publicar todas as execuções |
 | Q-05 | Qual o RPO/RTO real do single-node no teste de caos? | Story 4.5 / Story 2.4 | Arquitetura | Semana 4 | Declarar RPO diferente por topologia; não prometer RPO 0 |
 | Q-06 | Como medir bundle/LCP/INP de forma estável no CI? | S0.5 / Story 6.4 | Frontend | Semana 4 | Budget.json + Lighthouse em runner dedicado |
-| Q-07 | Qual o modelo de custo por TB/dia e horas de operação? | Story 2.3 | Fundador + Benchmark | Semana 4 | TCO conservador com premissas publicadas |
+| Q-07 | Qual o modelo de custo por TB/dia e horas de operação? | Story 2.4 — mecanismo entregue; preço/provedor pendente (P-07) | Fundador + Benchmark | Semana 4 | TCO conservador com premissas publicadas |
 
 **Resolvidas na Story 2.2 (2026-11-01):**
 
@@ -183,6 +185,26 @@ harness e a primeira execução de referência.
   como `not_configured`. O preço por TB/dia, o fator de réplica e as horas de
   operação continuam pendentes de decisão do fundador.
 
+**Resolvidas na Story 2.4 (2026-11-01):**
+
+- **Q-01 (parte técnica):** o perfil T1 está em `bench/env/t1.json`: 6
+  ClickHouse (6–12), 3 VictoriaMetrics, 6 gateways (4–6), 4 NATS e 2 loadgens;
+  1M eventos/s, 134 B/evento, retenção de 168 h, réplica 2. A capacidade e o
+  custo são validados por `benchctl env check/cost`; o provisionamento de
+  referência é Terraform/AWS, com `plan/apply/destroy` idempotentes e guardas de
+  gasto e de credencial root. O perfil é provider-neutral; outro provedor exige
+  um adapter e uma tabela de preços, não um novo perfil.
+- **Q-07 (mecanismo):** `bench/internal/envprofile` e
+  `bench/env/prices.aws-us-east-1.json` calculam custo por hora, por run e por
+  TB/dia a partir de um snapshot de preços revisável. O snapshot de 2026-11-01
+  estima USD 41,79/h e USD 30.504,49/mês para o perfil de 7 dias; o disco do
+  ClickHouse domina o custo. A aprovação do provedor, do teto de gasto e da
+  credencial dedicada continua pendente (P-07 em `DECISIONS.md`); o `apply` não
+  é automático.
+- **Baseline:** `BENCHMARKS.md` publica uma pré-baseline local do harness
+  (`5b6096d`, 3 × 60 s, 99.935 eventos/s, pass) e mantém o baseline T1
+  explicitamente pendente. A pré-baseline não é evidência do G1.
+
 ## Referências
 
 - PRD: NFR-1, NFR-2, NFR-13; SM-3, SM-4, SM-6, SM-7; §10.1, §10.3.
@@ -198,3 +220,4 @@ harness e a primeira execução de referência.
 | 2026-10-31 | Criação (Story 1.4) | OpenCode |
 | 2026-11-01 | Q-02/Q-03 resolvidas pelos artefatos da Story 2.2 | OpenCode |
 | 2026-11-01 | Q-04 resolvida e Q-07 parcialmente endereçada pelo gerador de relatório da Story 2.3 | OpenCode |
+| 2026-11-01 | Q-01 (parte técnica) e o mecanismo de Q-07 entregues pela Story 2.4; baseline T1 fica bloqueado por P-07 e pelas Stories 3.1–3.5/4.1–4.5 | OpenCode |

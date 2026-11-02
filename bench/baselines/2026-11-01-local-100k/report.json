@@ -1,0 +1,4089 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-02T01:52:08.616443207Z",
+  "generator": {
+    "name": "benchctl",
+    "version": "v0.0.1-alpha-17-g5b6096d",
+    "commit": "5b6096d",
+    "built": "2026-11-02T01:49:04Z",
+    "go": "go1.27.2"
+  },
+  "methodology": {
+    "workload": "60% metrics (~40 B), 30% logs (~200 B) and 10% traces (~500 B), weighted average ~134 B/event after gzip; 60/30/10 signal mix.",
+    "definitions": {
+      "bytes_per_second": "Uncompressed protobuf bytes accepted by the receiver divided by the longest shard duration.",
+      "compression_ratio": "Raw protobuf bytes divided by wire bytes when transport compression is measurable; otherwise the deterministic payload ratio from the same seed/config. Wire and payload ratios can differ because the workload interleaves signal indices while the payload calibration uses isolated batches. Storage compression (ClickHouse) lands with Story 3.1-3.3.",
+      "confirmed_lost_events": "Requires gateway/WAL durability accounting (Stories 4.3-4.5); not collected in Phase 0 throughput runs.",
+      "cpu_percent": "Machine-wide CPU busy percentage sampled once per second; 100 means all CPUs busy.",
+      "disk_bytes": "Filesystem total and free bytes on the result path, sampled once per second.",
+      "dropped_events": "Failed plus rejected events reported by the load generator.",
+      "error_rate": "Failed plus rejected events divided by generated events.",
+      "events_per_second": "Events generated divided by the longest load generator shard duration (runner aggregate).",
+      "ingest_lag_ms": "Time between the event timestamp and the durable write. Requires gateway/WAL metrics (Story 4.3); not collected in Phase 0 throughput runs.",
+      "query_latency_ms": "Query Service latency for the 20-query dashboard set. Requires the Query Service (Story 3.5).",
+      "ram_bytes": "Machine memory in use (MemTotal minus MemAvailable), sampled once per second.",
+      "send_latency_ms": "OTLP export request latency measured by the load generator; with multiple shards the report keeps the worst shard's p50/p95/p99."
+    },
+    "variance": [
+      {
+        "metric": "events_per_second",
+        "unit": "events/s",
+        "tolerance_percent": 5,
+        "min_runs": 2,
+        "note": "ADR-0006 allows one continuous 1h gate run; with fewer than two runs the variance is not assessed."
+      },
+      {
+        "metric": "bytes_per_second",
+        "unit": "B/s",
+        "tolerance_percent": 5,
+        "min_runs": 2
+      },
+      {
+        "metric": "send_latency_p50_ms",
+        "unit": "ms",
+        "tolerance_percent": 10,
+        "min_runs": 3
+      },
+      {
+        "metric": "send_latency_p95_ms",
+        "unit": "ms",
+        "tolerance_percent": 10,
+        "min_runs": 3
+      },
+      {
+        "metric": "send_latency_p99_ms",
+        "unit": "ms",
+        "tolerance_percent": 10,
+        "min_runs": 3
+      },
+      {
+        "metric": "cpu_percent_mean",
+        "unit": "%",
+        "tolerance_percent": 10,
+        "min_runs": 2
+      },
+      {
+        "metric": "memory_used_percent_mean",
+        "unit": "%",
+        "tolerance_percent": 10,
+        "min_runs": 2
+      },
+      {
+        "metric": "compression_ratio",
+        "unit": "x",
+        "tolerance_percent": 5,
+        "min_runs": 2
+      },
+      {
+        "metric": "error_rate",
+        "unit": "percentage points",
+        "tolerance_absolute": 0.1,
+        "min_runs": 2
+      }
+    ],
+    "repetitions": [
+      "Latency and error-rate comparisons need at least 3 runs (ADR-0006 rule 10); the report states when the minimum is not met.",
+      "A 1h throughput gate run may be a single continuous execution when stability metrics (backpressure, pacing lag, resource samples) are published.",
+      "Variance is only assessed for runs with the same scenario and config hash. Runs spanning commits are listed but not judged as reruns.",
+      "Every run is listed, including failed and blocked ones; comparisons use only status=ok, mode=run runs."
+    ],
+    "limitations": [
+      "Ingest lag p50/p95/p99 and confirmed lost events require the gateway/WAL (Stories 4.3-4.5); Phase 0 throughput runs report generator send latency instead and mark those metrics not collected.",
+      "Query and cardinality latency require the Query Service and the series generator (Stories 3.4-3.5); their scenarios are reported as plans/blocked until then.",
+      "ClickHouse/VictoriaMetrics storage compression is not measured here; compression_ratio is the wire or deterministic payload ratio, labelled by source.",
+      "Resource sampling is host-level on Linux; other platforms report the metrics as unavailable.",
+      "Pricing assumptions are an open founder decision (ADR-0006 Q-07); the report publishes the volume inputs, not a TCO verdict."
+    ]
+  },
+  "environment": {
+    "hostname": "kabuntu-zenbook",
+    "os": "linux",
+    "arch": "amd64",
+    "kernel": "7.0.0-38-generic",
+    "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+    "cpus": 22,
+    "memory_bytes": 16092491776
+  },
+  "runs": [
+    {
+      "scenario": "throughput-100k",
+      "kind": "throughput",
+      "mode": "run",
+      "status": "ok",
+      "result_dir": "/tmp/opencode/bench-results-story24-final-20261102T014908Z/20261102T014908Z-throughput-100k",
+      "config_hash": "sha256:f6b7069c2aabbb4011b1e06efa1011f2b1e6edf41d6f65a61d31cb2ab59d1978",
+      "commit": "5b6096d",
+      "dirty": false,
+      "started_at": "2026-11-02T01:49:08.284059817Z",
+      "finished_at": "2026-11-02T01:50:08.363588593Z",
+      "duration_seconds": 60.079528776,
+      "hardware": {
+        "hostname": "kabuntu-zenbook",
+        "os": "linux",
+        "arch": "amd64",
+        "kernel": "7.0.0-38-generic",
+        "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+        "cpus": 22,
+        "memory_bytes": 16092491776,
+        "disk_total_bytes": 473626828800
+      },
+      "versions": {
+        "benchctl": "v0.0.1-alpha-17-g5b6096d",
+        "loadgen": "v0.0.1-alpha-17-g5b6096d",
+        "go": "go1.27.2",
+        "os": "linux",
+        "arch": "amd64",
+        "kernel": "7.0.0-38-generic"
+      },
+      "resolved": {
+        "endpoint": "http://127.0.0.1:4318",
+        "duration": "1m0s",
+        "rate": 100000
+      },
+      "metrics": {
+        "events_per_second": 99932.33297260384,
+        "target_rate": 100000,
+        "rate_delta_percent": -0.06766702739616448,
+        "rate_within_tolerance": true,
+        "bytes_per_second": 114298505.22841239,
+        "compressed_bytes_per_second": 17069557.200239655,
+        "send_latency_ms": {
+          "p50_ms": 11.496342,
+          "p95_ms": 38.662192,
+          "p99_ms": 42.254802,
+          "count": 6000,
+          "shards": 1,
+          "basis": "max across load generator shards"
+        },
+        "cpu": {
+          "mean_percent": 9.643616031021558,
+          "p95_percent": 10.877513711151737,
+          "max_percent": 12.305580969807869
+        },
+        "ram": {
+          "total_bytes": 16092491776,
+          "used_bytes_mean": 4980291584,
+          "used_percent_mean": 30.94792064102528,
+          "used_percent_max": 31.906819102170598
+        },
+        "disk": {
+          "total_bytes": 473626828800,
+          "free_bytes_start": 157869445120,
+          "free_bytes_end": 157869338624
+        },
+        "children": {
+          "cpu_percent": 6.956648243320649,
+          "max_rss_bytes": 62816256,
+          "user_seconds": 88.632958,
+          "system_seconds": 3.2569779999999997
+        },
+        "compression": {
+          "ratio": 6.696043950501988,
+          "source": "wire",
+          "wire": {
+            "ratio": 6.696043950501988,
+            "raw_bytes": 6862554000,
+            "compressed_bytes": 1024866929,
+            "signals": [
+              "metrics",
+              "logs",
+              "traces"
+            ]
+          },
+          "payload": {
+            "ratio": 8.647251613195886,
+            "raw_bytes": 4608324,
+            "compressed_bytes": 735977,
+            "bytes_per_event": 132.2685,
+            "signals": [
+              "metrics",
+              "logs",
+              "traces"
+            ]
+          }
+        },
+        "error_rate": 0,
+        "dropped_events": 0,
+        "backpressure_events": 0,
+        "pacing_lag_events": 0,
+        "generated_events": 6000000,
+        "sent_events": 6000000
+      },
+      "metric_status": [
+        {
+          "metric": "events_per_second",
+          "status": "collected"
+        },
+        {
+          "metric": "bytes_per_second",
+          "status": "collected"
+        },
+        {
+          "metric": "ingest_lag_p50_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "ingest_lag_p95_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "ingest_lag_p99_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "error_rate",
+          "status": "collected"
+        },
+        {
+          "metric": "dropped_events",
+          "status": "collected"
+        },
+        {
+          "metric": "confirmed_lost_events",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL durability accounting (Stories 4.3-4.5)"
+        },
+        {
+          "metric": "cpu_percent",
+          "status": "collected"
+        },
+        {
+          "metric": "ram_bytes",
+          "status": "collected"
+        },
+        {
+          "metric": "disk_bytes",
+          "status": "collected"
+        },
+        {
+          "metric": "compression_ratio",
+          "status": "collected",
+          "detail": "source: wire (storage compression lands with Story 3.1-3.3)"
+        },
+        {
+          "metric": "loadgen_backpressure_events",
+          "status": "collected"
+        },
+        {
+          "metric": "loadgen_pacing_lag_events",
+          "status": "collected"
+        }
+      ],
+      "raw": {
+        "run": {
+          "schema_version": 1,
+          "scenario": {
+            "name": "throughput-100k",
+            "kind": "throughput",
+            "title": "Throughput 100k events/s",
+            "description": "Sustained reference workload at 100k events/s for 1 hour, the design-partner tier.",
+            "hardware": "1 loadgen host (8 vCPU, 16 GB); single-node backend (8 vCPU, 32 GB, local NVMe); 1 Gbps network.",
+            "duration": "1h0m0s",
+            "requires": [
+              "loadgen",
+              "otlp",
+              "gateway"
+            ],
+            "metrics": [
+              "events_per_second",
+              "bytes_per_second",
+              "ingest_lag_p50_ms",
+              "ingest_lag_p95_ms",
+              "ingest_lag_p99_ms",
+              "error_rate",
+              "dropped_events",
+              "confirmed_lost_events",
+              "cpu_percent",
+              "ram_bytes",
+              "disk_bytes",
+              "compression_ratio",
+              "loadgen_backpressure_events",
+              "loadgen_pacing_lag_events"
+            ],
+            "expected": "Timestamped folder with one loadgen summary and log; achieved rate within ±5% of 100k/s; zero failed or rejected events; pipeline lag p95 below 10s and zero confirmed events lost.",
+            "rate": 100000,
+            "shards": 1,
+            "protocol": "http",
+            "compression": "gzip"
+          },
+          "resolved": {
+            "endpoint": "http://127.0.0.1:4318",
+            "duration": "1m0s",
+            "rate": 100000
+          },
+          "config_hash": "sha256:f6b7069c2aabbb4011b1e06efa1011f2b1e6edf41d6f65a61d31cb2ab59d1978",
+          "mode": "run",
+          "status": "ok",
+          "started_at": "2026-11-02T01:49:08.284059817Z",
+          "finished_at": "2026-11-02T01:50:08.363588593Z",
+          "duration_seconds": 60.079528776,
+          "git": {
+            "commit": "5b6096d",
+            "dirty": false
+          },
+          "host": {
+            "hostname": "kabuntu-zenbook",
+            "os": "linux",
+            "arch": "amd64",
+            "kernel": "7.0.0-38-generic",
+            "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+            "cpus": 22,
+            "memory_bytes": 16092491776
+          },
+          "versions": {
+            "benchctl": "v0.0.1-alpha-17-g5b6096d",
+            "go": "go1.27.2",
+            "os": "linux",
+            "arch": "amd64",
+            "kernel": "7.0.0-38-generic"
+          },
+          "checks": [
+            {
+              "name": "loadgen",
+              "ok": true,
+              "detail": "/home/kaike/Github/observaki/bin/otlploadgen"
+            },
+            {
+              "name": "gateway",
+              "ok": true,
+              "detail": "127.0.0.1:4318"
+            }
+          ],
+          "commands": [
+            "/home/kaike/Github/observaki/bin/otlploadgen --endpoint http://127.0.0.1:4318 --protocol http --compression gzip --rate 100000 --duration 1m0s --seed 1 --metrics-addr '' --log-interval 30s"
+          ],
+          "shards": [
+            {
+              "index": 0,
+              "rate": 100000,
+              "seed": 1,
+              "exit_code": 0,
+              "planned_events": 6000000,
+              "generated": 6000000,
+              "sent": 6000000,
+              "failed": 0,
+              "rejected": 0,
+              "achieved_rate": 99932.33210710967,
+              "duration_seconds": 60.040627708,
+              "backpressure_events": 0,
+              "pacing_lag_events": 0,
+              "summary_file": "loadgen-00.json",
+              "log_file": "loadgen-00.log"
+            }
+          ],
+          "aggregate": {
+            "target_rate": 100000,
+            "achieved_rate": 99932.33297260384,
+            "rate_delta_percent": -0.06766702739616448,
+            "rate_within_tolerance": true,
+            "planned_events": 6000000,
+            "generated": 6000000,
+            "sent": 6000000,
+            "failed": 0,
+            "rejected": 0,
+            "backpressure_events": 0,
+            "pacing_lag_events": 0,
+            "max_shard_duration_seconds": 60.040627708
+          },
+          "resources": {
+            "schema_version": 1,
+            "supported": true,
+            "cpu_available": true,
+            "memory_available": true,
+            "disk_available": true,
+            "samples": 60,
+            "interval_seconds": 1,
+            "duration_seconds": 60.072230218,
+            "cpu_percent": {
+              "min": 5.844748858447488,
+              "mean": 9.643616031021558,
+              "p95": 10.877513711151737,
+              "max": 12.305580969807869
+            },
+            "memory_used_bytes": {
+              "min": 4916523008,
+              "mean": 4980291584,
+              "p95": 5063393280,
+              "max": 5134602240
+            },
+            "memory_used_percent": {
+              "min": 30.55165773228729,
+              "mean": 30.94792064102528,
+              "p95": 31.464321066495355,
+              "max": 31.906819102170598
+            },
+            "disk_free_bytes_start": 157869445120,
+            "disk_free_bytes_end": 157869338624,
+            "disk_total_bytes": 473626828800,
+            "load1": {
+              "min": 1.04,
+              "mean": 1.6291666666666678,
+              "p95": 2.12,
+              "max": 2.12
+            },
+            "children": {
+              "available": true,
+              "user_seconds": 88.632958,
+              "system_seconds": 3.2569779999999997,
+              "cpu_percent": 6.956648243320649,
+              "max_rss_bytes": 62816256
+            }
+          },
+          "resources_file": "resources.json",
+          "result_dir": "/tmp/opencode/bench-results-story24-final-20261102T014908Z/20261102T014908Z-throughput-100k"
+        },
+        "shards": [
+          {
+            "config": {
+              "endpoint": "http://127.0.0.1:4318",
+              "protocol": "http",
+              "compression": "gzip",
+              "rate": 100000,
+              "event_time_rate": 100000,
+              "duration_seconds": 60,
+              "start_time": "2026-11-02T01:49:08.293756748Z",
+              "seed": 1,
+              "batch_size": 1000,
+              "workers": 4,
+              "mix": {
+                "metrics": 60,
+                "logs": 30,
+                "traces": 10
+              },
+              "payload": {
+                "metric_padding": 832,
+                "log_body": 820,
+                "trace_padding": 2400
+              }
+            },
+            "planned_events": 6000000,
+            "finished_at": "2026-11-02T01:50:08.354601894Z",
+            "duration_seconds": 60.040627708,
+            "metrics": {
+              "started_at": "2026-11-02T01:49:08.313974186Z",
+              "elapsed_seconds": 60.040628228,
+              "target_rate": 100000,
+              "achieved_rate": 99932.33210710967,
+              "generated": 6000000,
+              "sent": 6000000,
+              "failed": 0,
+              "rejected": 0,
+              "bytes": 6862554000,
+              "compressed_bytes": 1024866929,
+              "backpressure_events": 0,
+              "backpressure_wait_seconds": 0,
+              "pacing_lag_events": 0,
+              "latency": {
+                "count": 6000,
+                "min_ms": 4.868908,
+                "mean_ms": 14.300842172,
+                "p50_ms": 11.496342,
+                "p95_ms": 38.662192,
+                "p99_ms": 42.254802,
+                "max_ms": 60.885236
+              },
+              "signals": [
+                {
+                  "signal": "metrics",
+                  "generated": 3600000,
+                  "sent": 3600000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 3600,
+                  "bytes": 3481449600,
+                  "compressed_bytes": 370030760
+                },
+                {
+                  "signal": "logs",
+                  "generated": 1800000,
+                  "sent": 1800000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 1800,
+                  "bytes": 1794902400,
+                  "compressed_bytes": 358721719
+                },
+                {
+                  "signal": "traces",
+                  "generated": 600000,
+                  "sent": 600000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 600,
+                  "bytes": 1586202000,
+                  "compressed_bytes": 296114450
+                }
+              ]
+            }
+          }
+        ],
+        "resources": {
+          "schema_version": 1,
+          "summary": {
+            "schema_version": 1,
+            "supported": true,
+            "cpu_available": true,
+            "memory_available": true,
+            "disk_available": true,
+            "samples": 60,
+            "interval_seconds": 1,
+            "duration_seconds": 60.072230218,
+            "cpu_percent": {
+              "min": 5.844748858447488,
+              "mean": 9.643616031021558,
+              "p95": 10.877513711151737,
+              "max": 12.305580969807869
+            },
+            "memory_used_bytes": {
+              "min": 4916523008,
+              "mean": 4980291584,
+              "p95": 5063393280,
+              "max": 5134602240
+            },
+            "memory_used_percent": {
+              "min": 30.55165773228729,
+              "mean": 30.94792064102528,
+              "p95": 31.464321066495355,
+              "max": 31.906819102170598
+            },
+            "disk_free_bytes_start": 157869445120,
+            "disk_free_bytes_end": 157869338624,
+            "disk_total_bytes": 473626828800,
+            "load1": {
+              "min": 1.04,
+              "mean": 1.6291666666666678,
+              "p95": 2.12,
+              "max": 2.12
+            },
+            "children": {
+              "available": true,
+              "user_seconds": 88.632958,
+              "system_seconds": 3.2569779999999997,
+              "cpu_percent": 6.956648243320649,
+              "max_rss_bytes": 62816256
+            }
+          },
+          "samples": [
+            {
+              "at": "2026-11-02T01:49:09.290346909Z",
+              "cpu_percent": 5.89041095890411,
+              "cpu_available": true,
+              "memory_used_bytes": 5134602240,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.906819102170598,
+              "memory_available": true,
+              "disk_free_bytes": 157869445120,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:10.290383968Z",
+              "cpu_percent": 6.5603644646924835,
+              "cpu_available": true,
+              "memory_used_bytes": 5104812032,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.721700424375598,
+              "memory_available": true,
+              "disk_free_bytes": 157869445120,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:11.290900514Z",
+              "cpu_percent": 5.844748858447488,
+              "cpu_available": true,
+              "memory_used_bytes": 5109313536,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.74967312159775,
+              "memory_available": true,
+              "disk_free_bytes": 157869441024,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:12.290388366Z",
+              "cpu_percent": 6.901279707495429,
+              "cpu_available": true,
+              "memory_used_bytes": 5063393280,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.464321066495355,
+              "memory_available": true,
+              "disk_free_bytes": 157869441024,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:13.29082436Z",
+              "cpu_percent": 6.261425959780621,
+              "cpu_available": true,
+              "memory_used_bytes": 5049851904,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.380173899055468,
+              "memory_available": true,
+              "disk_free_bytes": 157869436928,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:14.29031878Z",
+              "cpu_percent": 6.29849383842994,
+              "cpu_available": true,
+              "memory_used_bytes": 5047361536,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.364698557917098,
+              "memory_available": true,
+              "disk_free_bytes": 157869436928,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:15.290767296Z",
+              "cpu_percent": 6.107566089334549,
+              "cpu_available": true,
+              "memory_used_bytes": 5037404160,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.30282264622734,
+              "memory_available": true,
+              "disk_free_bytes": 157869436928,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:16.29127532Z",
+              "cpu_percent": 6.46041856232939,
+              "cpu_available": true,
+              "memory_used_bytes": 5032660992,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.27334823004604,
+              "memory_available": true,
+              "disk_free_bytes": 157869436928,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:17.290693946Z",
+              "cpu_percent": 8.268615806304249,
+              "cpu_available": true,
+              "memory_used_bytes": 5023801344,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.21829368583174,
+              "memory_available": true,
+              "disk_free_bytes": 157869416448,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:18.290378752Z",
+              "cpu_percent": 10.178000912825194,
+              "cpu_available": true,
+              "memory_used_bytes": 5010829312,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.137684466448164,
+              "memory_available": true,
+              "disk_free_bytes": 157869412352,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.04
+            },
+            {
+              "at": "2026-11-02T01:49:19.290935666Z",
+              "cpu_percent": 10.214318285453716,
+              "cpu_available": true,
+              "memory_used_bytes": 5012140032,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.145829382836776,
+              "memory_available": true,
+              "disk_free_bytes": 157869412352,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.12
+            },
+            {
+              "at": "2026-11-02T01:49:20.290380328Z",
+              "cpu_percent": 10.305517555859552,
+              "cpu_available": true,
+              "memory_used_bytes": 4997443584,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.054504507829428,
+              "memory_available": true,
+              "disk_free_bytes": 157869412352,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.12
+            },
+            {
+              "at": "2026-11-02T01:49:21.290937392Z",
+              "cpu_percent": 10.11389521640091,
+              "cpu_available": true,
+              "memory_used_bytes": 4992573440,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.02424105287298,
+              "memory_available": true,
+              "disk_free_bytes": 157869412352,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.12
+            },
+            {
+              "at": "2026-11-02T01:49:22.290507729Z",
+              "cpu_percent": 10.11389521640091,
+              "cpu_available": true,
+              "memory_used_bytes": 4995158016,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.04030180987678,
+              "memory_available": true,
+              "disk_free_bytes": 157869412352,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.12
+            },
+            {
+              "at": "2026-11-02T01:49:23.291094814Z",
+              "cpu_percent": 10.127737226277372,
+              "cpu_available": true,
+              "memory_used_bytes": 4970942464,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.88982447959711,
+              "memory_available": true,
+              "disk_free_bytes": 157869408256,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.12
+            },
+            {
+              "at": "2026-11-02T01:49:24.290660348Z",
+              "cpu_percent": 10.4735883424408,
+              "cpu_available": true,
+              "memory_used_bytes": 4976697344,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.925585753115875,
+              "memory_available": true,
+              "disk_free_bytes": 157869408256,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.19
+            },
+            {
+              "at": "2026-11-02T01:49:25.290356798Z",
+              "cpu_percent": 9.922621756941284,
+              "cpu_available": true,
+              "memory_used_bytes": 4974346240,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.9109758093438,
+              "memory_available": true,
+              "disk_free_bytes": 157869408256,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.19
+            },
+            {
+              "at": "2026-11-02T01:49:26.290382165Z",
+              "cpu_percent": 9.940720474236207,
+              "cpu_available": true,
+              "memory_used_bytes": 4977197056,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.928691002489035,
+              "memory_available": true,
+              "disk_free_bytes": 157869408256,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.19
+            },
+            {
+              "at": "2026-11-02T01:49:27.290996441Z",
+              "cpu_percent": 9.575923392612859,
+              "cpu_available": true,
+              "memory_used_bytes": 4968976384,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.87760710501419,
+              "memory_available": true,
+              "disk_free_bytes": 157869408256,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.19
+            },
+            {
+              "at": "2026-11-02T01:49:28.290381588Z",
+              "cpu_percent": 10.141617176793057,
+              "cpu_available": true,
+              "memory_used_bytes": 4960169984,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.822883448028183,
+              "memory_available": true,
+              "disk_free_bytes": 157869404160,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.19
+            },
+            {
+              "at": "2026-11-02T01:49:29.290998094Z",
+              "cpu_percent": 10.132359653126425,
+              "cpu_available": true,
+              "memory_used_bytes": 4946497536,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.737921788949436,
+              "memory_available": true,
+              "disk_free_bytes": 157869404160,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.41
+            },
+            {
+              "at": "2026-11-02T01:49:30.290378841Z",
+              "cpu_percent": 10.223642172523961,
+              "cpu_available": true,
+              "memory_used_bytes": 4945702912,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.732983933388837,
+              "memory_available": true,
+              "disk_free_bytes": 157869404160,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.41
+            },
+            {
+              "at": "2026-11-02T01:49:31.290906125Z",
+              "cpu_percent": 10.360565951620265,
+              "cpu_available": true,
+              "memory_used_bytes": 4953042944,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.778595465165083,
+              "memory_available": true,
+              "disk_free_bytes": 157869404160,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.41
+            },
+            {
+              "at": "2026-11-02T01:49:32.290390257Z",
+              "cpu_percent": 12.219679633867276,
+              "cpu_available": true,
+              "memory_used_bytes": 4975542272,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.918408045548407,
+              "memory_available": true,
+              "disk_free_bytes": 157869404160,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.41
+            },
+            {
+              "at": "2026-11-02T01:49:33.290416681Z",
+              "cpu_percent": 11.665141811527905,
+              "cpu_available": true,
+              "memory_used_bytes": 4993060864,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.027269943654996,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.41
+            },
+            {
+              "at": "2026-11-02T01:49:34.290455642Z",
+              "cpu_percent": 10.877513711151737,
+              "cpu_available": true,
+              "memory_used_bytes": 4981923840,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.95806360721548,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.78
+            },
+            {
+              "at": "2026-11-02T01:49:35.290993936Z",
+              "cpu_percent": 10.709382151029748,
+              "cpu_available": true,
+              "memory_used_bytes": 4989554688,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.00548229231545,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.78
+            },
+            {
+              "at": "2026-11-02T01:49:36.290384052Z",
+              "cpu_percent": 10.730593607305936,
+              "cpu_available": true,
+              "memory_used_bytes": 4980314112,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.94806063177571,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.78
+            },
+            {
+              "at": "2026-11-02T01:49:37.290906534Z",
+              "cpu_percent": 10.379515317786922,
+              "cpu_available": true,
+              "memory_used_bytes": 4977582080,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.93108357167819,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.78
+            },
+            {
+              "at": "2026-11-02T01:49:38.290388372Z",
+              "cpu_percent": 10.715914272685819,
+              "cpu_available": true,
+              "memory_used_bytes": 4983902208,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.970357340389548,
+              "memory_available": true,
+              "disk_free_bytes": 157869416448,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.78
+            },
+            {
+              "at": "2026-11-02T01:49:39.290912878Z",
+              "cpu_percent": 9.327846364883403,
+              "cpu_available": true,
+              "memory_used_bytes": 4986769408,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.988174344989645,
+              "memory_available": true,
+              "disk_free_bytes": 157869416448,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.96
+            },
+            {
+              "at": "2026-11-02T01:49:40.290398029Z",
+              "cpu_percent": 10.297482837528605,
+              "cpu_available": true,
+              "memory_used_bytes": 4947103744,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.741688812779174,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.96
+            },
+            {
+              "at": "2026-11-02T01:49:41.290942315Z",
+              "cpu_percent": 10.634413509812871,
+              "cpu_available": true,
+              "memory_used_bytes": 4950429696,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.76235653811528,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.96
+            },
+            {
+              "at": "2026-11-02T01:49:42.29039853Z",
+              "cpu_percent": 10.80091533180778,
+              "cpu_available": true,
+              "memory_used_bytes": 4962181120,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.83538080411196,
+              "memory_available": true,
+              "disk_free_bytes": 157869400064,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.96
+            },
+            {
+              "at": "2026-11-02T01:49:43.290899573Z",
+              "cpu_percent": 9.88610478359909,
+              "cpu_available": true,
+              "memory_used_bytes": 4953088000,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.778875446665943,
+              "memory_available": true,
+              "disk_free_bytes": 157869395968,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.96
+            },
+            {
+              "at": "2026-11-02T01:49:44.290403466Z",
+              "cpu_percent": 9.835315645013724,
+              "cpu_available": true,
+              "memory_used_bytes": 4954591232,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.788216647649136,
+              "memory_available": true,
+              "disk_free_bytes": 157869395968,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.04
+            },
+            {
+              "at": "2026-11-02T01:49:45.290899398Z",
+              "cpu_percent": 10.07292616226071,
+              "cpu_available": true,
+              "memory_used_bytes": 4955533312,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.794070806303452,
+              "memory_available": true,
+              "disk_free_bytes": 157869395968,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.04
+            },
+            {
+              "at": "2026-11-02T01:49:46.290380724Z",
+              "cpu_percent": 9.69807868252516,
+              "cpu_available": true,
+              "memory_used_bytes": 4953718784,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.782795187677962,
+              "memory_available": true,
+              "disk_free_bytes": 157869395968,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.04
+            },
+            {
+              "at": "2026-11-02T01:49:47.29093116Z",
+              "cpu_percent": 9.519450800915331,
+              "cpu_available": true,
+              "memory_used_bytes": 4944154624,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.723362750904787,
+              "memory_available": true,
+              "disk_free_bytes": 157869395968,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.04
+            },
+            {
+              "at": "2026-11-02T01:49:48.290403329Z",
+              "cpu_percent": 9.931350114416476,
+              "cpu_available": true,
+              "memory_used_bytes": 4946681856,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.739067167816586,
+              "memory_available": true,
+              "disk_free_bytes": 157869391872,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.04
+            },
+            {
+              "at": "2026-11-02T01:49:49.290874451Z",
+              "cpu_percent": 10.178000912825194,
+              "cpu_available": true,
+              "memory_used_bytes": 4944166912,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.72343910949593,
+              "memory_available": true,
+              "disk_free_bytes": 157869387776,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.12
+            },
+            {
+              "at": "2026-11-02T01:49:50.290382186Z",
+              "cpu_percent": 10.004568296025584,
+              "cpu_available": true,
+              "memory_used_bytes": 4945752064,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.733289367753407,
+              "memory_available": true,
+              "disk_free_bytes": 157869387776,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.12
+            },
+            {
+              "at": "2026-11-02T01:49:51.290961112Z",
+              "cpu_percent": 9.958885335769759,
+              "cpu_available": true,
+              "memory_used_bytes": 4945547264,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.73201672456769,
+              "memory_available": true,
+              "disk_free_bytes": 157869387776,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.12
+            },
+            {
+              "at": "2026-11-02T01:49:52.290389852Z",
+              "cpu_percent": 9.913202375513935,
+              "cpu_available": true,
+              "memory_used_bytes": 4960821248,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.826930453358774,
+              "memory_available": true,
+              "disk_free_bytes": 157869387776,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.12
+            },
+            {
+              "at": "2026-11-02T01:49:53.290919996Z",
+              "cpu_percent": 9.767229575536284,
+              "cpu_available": true,
+              "memory_used_bytes": 4941524992,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.707022012400127,
+              "memory_available": true,
+              "disk_free_bytes": 157869383680,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.12
+            },
+            {
+              "at": "2026-11-02T01:49:54.290377855Z",
+              "cpu_percent": 9.935897435897436,
+              "cpu_available": true,
+              "memory_used_bytes": 4943978496,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.722268277765064,
+              "memory_available": true,
+              "disk_free_bytes": 157869383680,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.03
+            },
+            {
+              "at": "2026-11-02T01:49:55.290890347Z",
+              "cpu_percent": 9.904153354632587,
+              "cpu_available": true,
+              "memory_used_bytes": 4932878336,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.653291017098976,
+              "memory_available": true,
+              "disk_free_bytes": 157869383680,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.03
+            },
+            {
+              "at": "2026-11-02T01:49:56.29040055Z",
+              "cpu_percent": 10.132359653126425,
+              "cpu_available": true,
+              "memory_used_bytes": 4916523008,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.55165773228729,
+              "memory_available": true,
+              "disk_free_bytes": 157869383680,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.03
+            },
+            {
+              "at": "2026-11-02T01:49:57.290958336Z",
+              "cpu_percent": 9.465020576131687,
+              "cpu_available": true,
+              "memory_used_bytes": 4923551744,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.595334846421242,
+              "memory_available": true,
+              "disk_free_bytes": 157869383680,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.03
+            },
+            {
+              "at": "2026-11-02T01:49:58.290401805Z",
+              "cpu_percent": 12.305580969807869,
+              "cpu_available": true,
+              "memory_used_bytes": 4971692032,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.894482353656848,
+              "memory_available": true,
+              "disk_free_bytes": 157869363200,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.03
+            },
+            {
+              "at": "2026-11-02T01:49:59.29039905Z",
+              "cpu_percent": 10.064043915827996,
+              "cpu_available": true,
+              "memory_used_bytes": 4980215808,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.947449763046563,
+              "memory_available": true,
+              "disk_free_bytes": 157869355008,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.95
+            },
+            {
+              "at": "2026-11-02T01:50:00.290955618Z",
+              "cpu_percent": 9.89963503649635,
+              "cpu_available": true,
+              "memory_used_bytes": 4981682176,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.956561888256328,
+              "memory_available": true,
+              "disk_free_bytes": 157869355008,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.95
+            },
+            {
+              "at": "2026-11-02T01:50:01.290530511Z",
+              "cpu_percent": 9.771689497716896,
+              "cpu_available": true,
+              "memory_used_bytes": 4977344512,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.929607305582756,
+              "memory_available": true,
+              "disk_free_bytes": 157869355008,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.95
+            },
+            {
+              "at": "2026-11-02T01:50:02.290398226Z",
+              "cpu_percent": 9.87202925045704,
+              "cpu_available": true,
+              "memory_used_bytes": 4969000960,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.877759822196477,
+              "memory_available": true,
+              "disk_free_bytes": 157869355008,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.95
+            },
+            {
+              "at": "2026-11-02T01:50:03.290400084Z",
+              "cpu_percent": 9.767229575536284,
+              "cpu_available": true,
+              "memory_used_bytes": 4971421696,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.892802464651698,
+              "memory_available": true,
+              "disk_free_bytes": 157869350912,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.95
+            },
+            {
+              "at": "2026-11-02T01:50:04.290393991Z",
+              "cpu_percent": 10.475754803293686,
+              "cpu_available": true,
+              "memory_used_bytes": 4965535744,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.856226699494073,
+              "memory_available": true,
+              "disk_free_bytes": 157869342720,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.87
+            },
+            {
+              "at": "2026-11-02T01:50:05.290396774Z",
+              "cpu_percent": 9.743824336688014,
+              "cpu_available": true,
+              "memory_used_bytes": 4947836928,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.746244875384054,
+              "memory_available": true,
+              "disk_free_bytes": 157869342720,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.87
+            },
+            {
+              "at": "2026-11-02T01:50:06.290394434Z",
+              "cpu_percent": 9.610983981693364,
+              "cpu_available": true,
+              "memory_used_bytes": 4954968064,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.79055831111086,
+              "memory_available": true,
+              "disk_free_bytes": 157869342720,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.87
+            },
+            {
+              "at": "2026-11-02T01:50:07.290387171Z",
+              "cpu_percent": 9.913202375513935,
+              "cpu_available": true,
+              "memory_used_bytes": 4966232064,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.860553686325527,
+              "memory_available": true,
+              "disk_free_bytes": 157869342720,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.87
+            },
+            {
+              "at": "2026-11-02T01:50:08.29039406Z",
+              "cpu_percent": 10.214318285453716,
+              "cpu_available": true,
+              "memory_used_bytes": 4955770880,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.79554707239889,
+              "memory_available": true,
+              "disk_free_bytes": 157869338624,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.87
+            }
+          ]
+        },
+        "payload": [
+          {
+            "signal": 0,
+            "events": 1000,
+            "protobuf_bytes": 966986,
+            "gzip_bytes": 37766,
+            "protobuf_bytes_per_event": 966.986,
+            "gzip_bytes_per_event": 37.766
+          },
+          {
+            "signal": 1,
+            "events": 1000,
+            "protobuf_bytes": 997168,
+            "gzip_bytes": 198939,
+            "protobuf_bytes_per_event": 997.168,
+            "gzip_bytes_per_event": 198.939
+          },
+          {
+            "signal": 2,
+            "events": 1000,
+            "protobuf_bytes": 2644170,
+            "gzip_bytes": 499272,
+            "protobuf_bytes_per_event": 2644.17,
+            "gzip_bytes_per_event": 499.272
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "throughput-100k",
+      "kind": "throughput",
+      "mode": "run",
+      "status": "ok",
+      "result_dir": "/tmp/opencode/bench-results-story24-final-20261102T014908Z/20261102T015008Z-throughput-100k",
+      "config_hash": "sha256:f6b7069c2aabbb4011b1e06efa1011f2b1e6edf41d6f65a61d31cb2ab59d1978",
+      "commit": "5b6096d",
+      "dirty": false,
+      "started_at": "2026-11-02T01:50:08.377430854Z",
+      "finished_at": "2026-11-02T01:51:08.487963741Z",
+      "duration_seconds": 60.110532887,
+      "hardware": {
+        "hostname": "kabuntu-zenbook",
+        "os": "linux",
+        "arch": "amd64",
+        "kernel": "7.0.0-38-generic",
+        "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+        "cpus": 22,
+        "memory_bytes": 16092491776,
+        "disk_total_bytes": 473626828800
+      },
+      "versions": {
+        "benchctl": "v0.0.1-alpha-17-g5b6096d",
+        "loadgen": "v0.0.1-alpha-17-g5b6096d",
+        "go": "go1.27.2",
+        "os": "linux",
+        "arch": "amd64",
+        "kernel": "7.0.0-38-generic"
+      },
+      "resolved": {
+        "endpoint": "http://127.0.0.1:4318",
+        "duration": "1m0s",
+        "rate": 100000
+      },
+      "metrics": {
+        "events_per_second": 99934.12409495523,
+        "target_rate": 100000,
+        "rate_delta_percent": -0.06587590504476976,
+        "rate_within_tolerance": true,
+        "bytes_per_second": 114300553.8407219,
+        "compressed_bytes_per_second": 17062767.238157146,
+        "send_latency_ms": {
+          "p50_ms": 12.203701,
+          "p95_ms": 39.192706,
+          "p99_ms": 42.982381,
+          "count": 6000,
+          "shards": 1,
+          "basis": "max across load generator shards"
+        },
+        "cpu": {
+          "mean_percent": 10.135761393181967,
+          "p95_percent": 10.608139003200732,
+          "max_percent": 13.430790315212427
+        },
+        "ram": {
+          "total_bytes": 16092491776,
+          "used_bytes_mean": 4901232776,
+          "used_percent_mean": 30.456643040470144,
+          "used_percent_max": 30.67607133012339
+        },
+        "disk": {
+          "total_bytes": 473626828800,
+          "free_bytes_start": 157869285376,
+          "free_bytes_end": 157869211648
+        },
+        "children": {
+          "cpu_percent": 7.4516136280403895,
+          "max_rss_bytes": 62726144,
+          "user_seconds": 95.133469,
+          "system_seconds": 3.2926699999999998
+        },
+        "compression": {
+          "ratio": 6.69882863930264,
+          "source": "wire",
+          "wire": {
+            "ratio": 6.69882863930264,
+            "raw_bytes": 6862554000,
+            "compressed_bytes": 1024440894,
+            "signals": [
+              "metrics",
+              "logs",
+              "traces"
+            ]
+          },
+          "payload": {
+            "ratio": 8.646186107549772,
+            "raw_bytes": 4608324,
+            "compressed_bytes": 735898,
+            "bytes_per_event": 132.2848,
+            "signals": [
+              "metrics",
+              "logs",
+              "traces"
+            ]
+          }
+        },
+        "error_rate": 0,
+        "dropped_events": 0,
+        "backpressure_events": 0,
+        "pacing_lag_events": 0,
+        "generated_events": 6000000,
+        "sent_events": 6000000
+      },
+      "metric_status": [
+        {
+          "metric": "events_per_second",
+          "status": "collected"
+        },
+        {
+          "metric": "bytes_per_second",
+          "status": "collected"
+        },
+        {
+          "metric": "ingest_lag_p50_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "ingest_lag_p95_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "ingest_lag_p99_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "error_rate",
+          "status": "collected"
+        },
+        {
+          "metric": "dropped_events",
+          "status": "collected"
+        },
+        {
+          "metric": "confirmed_lost_events",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL durability accounting (Stories 4.3-4.5)"
+        },
+        {
+          "metric": "cpu_percent",
+          "status": "collected"
+        },
+        {
+          "metric": "ram_bytes",
+          "status": "collected"
+        },
+        {
+          "metric": "disk_bytes",
+          "status": "collected"
+        },
+        {
+          "metric": "compression_ratio",
+          "status": "collected",
+          "detail": "source: wire (storage compression lands with Story 3.1-3.3)"
+        },
+        {
+          "metric": "loadgen_backpressure_events",
+          "status": "collected"
+        },
+        {
+          "metric": "loadgen_pacing_lag_events",
+          "status": "collected"
+        }
+      ],
+      "raw": {
+        "run": {
+          "schema_version": 1,
+          "scenario": {
+            "name": "throughput-100k",
+            "kind": "throughput",
+            "title": "Throughput 100k events/s",
+            "description": "Sustained reference workload at 100k events/s for 1 hour, the design-partner tier.",
+            "hardware": "1 loadgen host (8 vCPU, 16 GB); single-node backend (8 vCPU, 32 GB, local NVMe); 1 Gbps network.",
+            "duration": "1h0m0s",
+            "requires": [
+              "loadgen",
+              "otlp",
+              "gateway"
+            ],
+            "metrics": [
+              "events_per_second",
+              "bytes_per_second",
+              "ingest_lag_p50_ms",
+              "ingest_lag_p95_ms",
+              "ingest_lag_p99_ms",
+              "error_rate",
+              "dropped_events",
+              "confirmed_lost_events",
+              "cpu_percent",
+              "ram_bytes",
+              "disk_bytes",
+              "compression_ratio",
+              "loadgen_backpressure_events",
+              "loadgen_pacing_lag_events"
+            ],
+            "expected": "Timestamped folder with one loadgen summary and log; achieved rate within ±5% of 100k/s; zero failed or rejected events; pipeline lag p95 below 10s and zero confirmed events lost.",
+            "rate": 100000,
+            "shards": 1,
+            "protocol": "http",
+            "compression": "gzip"
+          },
+          "resolved": {
+            "endpoint": "http://127.0.0.1:4318",
+            "duration": "1m0s",
+            "rate": 100000
+          },
+          "config_hash": "sha256:f6b7069c2aabbb4011b1e06efa1011f2b1e6edf41d6f65a61d31cb2ab59d1978",
+          "mode": "run",
+          "status": "ok",
+          "started_at": "2026-11-02T01:50:08.377430854Z",
+          "finished_at": "2026-11-02T01:51:08.487963741Z",
+          "duration_seconds": 60.110532887,
+          "git": {
+            "commit": "5b6096d",
+            "dirty": false
+          },
+          "host": {
+            "hostname": "kabuntu-zenbook",
+            "os": "linux",
+            "arch": "amd64",
+            "kernel": "7.0.0-38-generic",
+            "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+            "cpus": 22,
+            "memory_bytes": 16092491776
+          },
+          "versions": {
+            "benchctl": "v0.0.1-alpha-17-g5b6096d",
+            "go": "go1.27.2",
+            "os": "linux",
+            "arch": "amd64",
+            "kernel": "7.0.0-38-generic"
+          },
+          "checks": [
+            {
+              "name": "loadgen",
+              "ok": true,
+              "detail": "/home/kaike/Github/observaki/bin/otlploadgen"
+            },
+            {
+              "name": "gateway",
+              "ok": true,
+              "detail": "127.0.0.1:4318"
+            }
+          ],
+          "commands": [
+            "/home/kaike/Github/observaki/bin/otlploadgen --endpoint http://127.0.0.1:4318 --protocol http --compression gzip --rate 100000 --duration 1m0s --seed 1 --metrics-addr '' --log-interval 30s"
+          ],
+          "shards": [
+            {
+              "index": 0,
+              "rate": 100000,
+              "seed": 1,
+              "exit_code": 0,
+              "planned_events": 6000000,
+              "generated": 6000000,
+              "sent": 6000000,
+              "failed": 0,
+              "rejected": 0,
+              "achieved_rate": 99934.12259360195,
+              "duration_seconds": 60.039551598,
+              "backpressure_events": 0,
+              "pacing_lag_events": 0,
+              "summary_file": "loadgen-00.json",
+              "log_file": "loadgen-00.log"
+            }
+          ],
+          "aggregate": {
+            "target_rate": 100000,
+            "achieved_rate": 99934.12409495523,
+            "rate_delta_percent": -0.06587590504476976,
+            "rate_within_tolerance": true,
+            "planned_events": 6000000,
+            "generated": 6000000,
+            "sent": 6000000,
+            "failed": 0,
+            "rejected": 0,
+            "backpressure_events": 0,
+            "pacing_lag_events": 0,
+            "max_shard_duration_seconds": 60.039551598
+          },
+          "resources": {
+            "schema_version": 1,
+            "supported": true,
+            "cpu_available": true,
+            "memory_available": true,
+            "disk_available": true,
+            "samples": 60,
+            "interval_seconds": 1,
+            "duration_seconds": 60.100379901,
+            "cpu_percent": {
+              "min": 9.473684210526317,
+              "mean": 10.135761393181967,
+              "p95": 10.608139003200732,
+              "max": 13.430790315212427
+            },
+            "memory_used_bytes": {
+              "min": 4869083136,
+              "mean": 4901232776.533334,
+              "p95": 4934209536,
+              "max": 4936544256
+            },
+            "memory_used_percent": {
+              "min": 30.25686266474684,
+              "mean": 30.456643040470144,
+              "p95": 30.661563197806167,
+              "max": 30.67607133012339
+            },
+            "disk_free_bytes_start": 157869285376,
+            "disk_free_bytes_end": 157869211648,
+            "disk_total_bytes": 473626828800,
+            "load1": {
+              "min": 1.88,
+              "mean": 2.1675,
+              "p95": 2.5,
+              "max": 2.5
+            },
+            "children": {
+              "available": true,
+              "user_seconds": 95.133469,
+              "system_seconds": 3.2926699999999998,
+              "cpu_percent": 7.4516136280403895,
+              "max_rss_bytes": 62726144
+            }
+          },
+          "resources_file": "resources.json",
+          "result_dir": "/tmp/opencode/bench-results-story24-final-20261102T014908Z/20261102T015008Z-throughput-100k"
+        },
+        "shards": [
+          {
+            "config": {
+              "endpoint": "http://127.0.0.1:4318",
+              "protocol": "http",
+              "compression": "gzip",
+              "rate": 100000,
+              "event_time_rate": 100000,
+              "duration_seconds": 60,
+              "start_time": "2026-11-02T01:50:08.392198133Z",
+              "seed": 1,
+              "batch_size": 1000,
+              "workers": 4,
+              "mix": {
+                "metrics": 60,
+                "logs": 30,
+                "traces": 10
+              },
+              "payload": {
+                "metric_padding": 832,
+                "log_body": 820,
+                "trace_padding": 2400
+              }
+            },
+            "planned_events": 6000000,
+            "finished_at": "2026-11-02T01:51:08.472928803Z",
+            "duration_seconds": 60.039551598,
+            "metrics": {
+              "started_at": "2026-11-02T01:50:08.433377205Z",
+              "elapsed_seconds": 60.0395525,
+              "target_rate": 100000,
+              "achieved_rate": 99934.12259360195,
+              "generated": 6000000,
+              "sent": 6000000,
+              "failed": 0,
+              "rejected": 0,
+              "bytes": 6862554000,
+              "compressed_bytes": 1024440894,
+              "backpressure_events": 0,
+              "backpressure_wait_seconds": 0,
+              "pacing_lag_events": 0,
+              "latency": {
+                "count": 6000,
+                "min_ms": 8.097697,
+                "mean_ms": 15.363498589333332,
+                "p50_ms": 12.203701,
+                "p95_ms": 39.192706,
+                "p99_ms": 42.982381,
+                "max_ms": 60.059739
+              },
+              "signals": [
+                {
+                  "signal": "metrics",
+                  "generated": 3600000,
+                  "sent": 3600000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 3600,
+                  "bytes": 3481449600,
+                  "compressed_bytes": 369686304
+                },
+                {
+                  "signal": "logs",
+                  "generated": 1800000,
+                  "sent": 1800000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 1800,
+                  "bytes": 1794902400,
+                  "compressed_bytes": 358692334
+                },
+                {
+                  "signal": "traces",
+                  "generated": 600000,
+                  "sent": 600000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 600,
+                  "bytes": 1586202000,
+                  "compressed_bytes": 296062256
+                }
+              ]
+            }
+          }
+        ],
+        "resources": {
+          "schema_version": 1,
+          "summary": {
+            "schema_version": 1,
+            "supported": true,
+            "cpu_available": true,
+            "memory_available": true,
+            "disk_available": true,
+            "samples": 60,
+            "interval_seconds": 1,
+            "duration_seconds": 60.100379901,
+            "cpu_percent": {
+              "min": 9.473684210526317,
+              "mean": 10.135761393181967,
+              "p95": 10.608139003200732,
+              "max": 13.430790315212427
+            },
+            "memory_used_bytes": {
+              "min": 4869083136,
+              "mean": 4901232776.533334,
+              "p95": 4934209536,
+              "max": 4936544256
+            },
+            "memory_used_percent": {
+              "min": 30.25686266474684,
+              "mean": 30.456643040470144,
+              "p95": 30.661563197806167,
+              "max": 30.67607133012339
+            },
+            "disk_free_bytes_start": 157869285376,
+            "disk_free_bytes_end": 157869211648,
+            "disk_total_bytes": 473626828800,
+            "load1": {
+              "min": 1.88,
+              "mean": 2.1675,
+              "p95": 2.5,
+              "max": 2.5
+            },
+            "children": {
+              "available": true,
+              "user_seconds": 95.133469,
+              "system_seconds": 3.2926699999999998,
+              "cpu_percent": 7.4516136280403895,
+              "max_rss_bytes": 62726144
+            }
+          },
+          "samples": [
+            {
+              "at": "2026-11-02T01:50:09.387309187Z",
+              "cpu_percent": 9.65675057208238,
+              "cpu_available": true,
+              "memory_used_bytes": 4919595008,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.570747380073104,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.88
+            },
+            {
+              "at": "2026-11-02T01:50:10.387853383Z",
+              "cpu_percent": 9.771689497716896,
+              "cpu_available": true,
+              "memory_used_bytes": 4921217024,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.580826714104013,
+              "memory_available": true,
+              "disk_free_bytes": 157869301760,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.88
+            },
+            {
+              "at": "2026-11-02T01:50:11.387580206Z",
+              "cpu_percent": 9.743824336688014,
+              "cpu_available": true,
+              "memory_used_bytes": 4917538816,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.557970042488463,
+              "memory_available": true,
+              "disk_free_bytes": 157869301760,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.88
+            },
+            {
+              "at": "2026-11-02T01:50:12.388185434Z",
+              "cpu_percent": 9.693644261545495,
+              "cpu_available": true,
+              "memory_used_bytes": 4916641792,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.552395865335008,
+              "memory_available": true,
+              "disk_free_bytes": 157869301760,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.88
+            },
+            {
+              "at": "2026-11-02T01:50:13.387745323Z",
+              "cpu_percent": 9.967992684042066,
+              "cpu_available": true,
+              "memory_used_bytes": 4921405440,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.58199754583488,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.88
+            },
+            {
+              "at": "2026-11-02T01:50:14.387380554Z",
+              "cpu_percent": 10.004568296025584,
+              "cpu_available": true,
+              "memory_used_bytes": 4909965312,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.510907697480498,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.97
+            },
+            {
+              "at": "2026-11-02T01:50:15.387935174Z",
+              "cpu_percent": 9.821836455002284,
+              "cpu_available": true,
+              "memory_used_bytes": 4915572736,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.54575266790554,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.97
+            },
+            {
+              "at": "2026-11-02T01:50:16.387479566Z",
+              "cpu_percent": 10.26928343222273,
+              "cpu_available": true,
+              "memory_used_bytes": 4909236224,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.506377087739327,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.97
+            },
+            {
+              "at": "2026-11-02T01:50:17.38807838Z",
+              "cpu_percent": 11.177007299270073,
+              "cpu_available": true,
+              "memory_used_bytes": 4907618304,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.496323206572136,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.97
+            },
+            {
+              "at": "2026-11-02T01:50:18.387688242Z",
+              "cpu_percent": 10.675182481751824,
+              "cpu_available": true,
+              "memory_used_bytes": 4913864704,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.53513882373663,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.97
+            },
+            {
+              "at": "2026-11-02T01:50:19.387324339Z",
+              "cpu_percent": 10.401459854014599,
+              "cpu_available": true,
+              "memory_used_bytes": 4911775744,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.52215786324227,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.89
+            },
+            {
+              "at": "2026-11-02T01:50:20.387903932Z",
+              "cpu_percent": 10.305517555859552,
+              "cpu_available": true,
+              "memory_used_bytes": 4920631296,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.577186954592854,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.89
+            },
+            {
+              "at": "2026-11-02T01:50:21.387390446Z",
+              "cpu_percent": 10,
+              "cpu_available": true,
+              "memory_used_bytes": 4906500096,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.489374574778093,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.89
+            },
+            {
+              "at": "2026-11-02T01:50:22.387391646Z",
+              "cpu_percent": 9.949794614331356,
+              "cpu_available": true,
+              "memory_used_bytes": 4904476672,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.47680086010317,
+              "memory_available": true,
+              "disk_free_bytes": 157869285376,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.89
+            },
+            {
+              "at": "2026-11-02T01:50:23.387990001Z",
+              "cpu_percent": 10.232983097304706,
+              "cpu_available": true,
+              "memory_used_bytes": 4911554560,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.520783408601694,
+              "memory_available": true,
+              "disk_free_bytes": 157869281280,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.89
+            },
+            {
+              "at": "2026-11-02T01:50:24.387520851Z",
+              "cpu_percent": 10.196616369455876,
+              "cpu_available": true,
+              "memory_used_bytes": 4915736576,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.546770782454118,
+              "memory_available": true,
+              "disk_free_bytes": 157869281280,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.9
+            },
+            {
+              "at": "2026-11-02T01:50:25.38807525Z",
+              "cpu_percent": 10.200364298724955,
+              "cpu_available": true,
+              "memory_used_bytes": 4901310464,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.457125796451923,
+              "memory_available": true,
+              "disk_free_bytes": 157869281280,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.9
+            },
+            {
+              "at": "2026-11-02T01:50:26.38739217Z",
+              "cpu_percent": 10.608139003200732,
+              "cpu_available": true,
+              "memory_used_bytes": 4897566720,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.433861879016938,
+              "memory_available": true,
+              "disk_free_bytes": 157869281280,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.9
+            },
+            {
+              "at": "2026-11-02T01:50:27.387939179Z",
+              "cpu_percent": 9.77615349474646,
+              "cpu_available": true,
+              "memory_used_bytes": 4906455040,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.489094593277237,
+              "memory_available": true,
+              "disk_free_bytes": 157869281280,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.9
+            },
+            {
+              "at": "2026-11-02T01:50:28.387373236Z",
+              "cpu_percent": 10.547945205479452,
+              "cpu_available": true,
+              "memory_used_bytes": 4895510528,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.421084541432297,
+              "memory_available": true,
+              "disk_free_bytes": 157869273088,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.9
+            },
+            {
+              "at": "2026-11-02T01:50:29.388261502Z",
+              "cpu_percent": 10.150891632373114,
+              "cpu_available": true,
+              "memory_used_bytes": 4892749824,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.40392931128878,
+              "memory_available": true,
+              "disk_free_bytes": 157869273088,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.91
+            },
+            {
+              "at": "2026-11-02T01:50:30.387381713Z",
+              "cpu_percent": 9.917733089579524,
+              "cpu_available": true,
+              "memory_used_bytes": 4885032960,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.355976116050805,
+              "memory_available": true,
+              "disk_free_bytes": 157869273088,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.91
+            },
+            {
+              "at": "2026-11-02T01:50:31.388013624Z",
+              "cpu_percent": 10.173357664233576,
+              "cpu_available": true,
+              "memory_used_bytes": 4883857408,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.34867114416477,
+              "memory_available": true,
+              "disk_free_bytes": 157869273088,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.91
+            },
+            {
+              "at": "2026-11-02T01:50:32.387389402Z",
+              "cpu_percent": 10.050251256281408,
+              "cpu_available": true,
+              "memory_used_bytes": 4882952192,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.34304606128388,
+              "memory_available": true,
+              "disk_free_bytes": 157869273088,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.91
+            },
+            {
+              "at": "2026-11-02T01:50:33.387378032Z",
+              "cpu_percent": 10.360565951620265,
+              "cpu_available": true,
+              "memory_used_bytes": 4884365312,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.351827299265356,
+              "memory_available": true,
+              "disk_free_bytes": 157869268992,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 1.91
+            },
+            {
+              "at": "2026-11-02T01:50:34.387348187Z",
+              "cpu_percent": 10.004568296025584,
+              "cpu_available": true,
+              "memory_used_bytes": 4883304448,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.34523500756332,
+              "memory_available": true,
+              "disk_free_bytes": 157869268992,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.08
+            },
+            {
+              "at": "2026-11-02T01:50:35.387375579Z",
+              "cpu_percent": 10.273972602739725,
+              "cpu_available": true,
+              "memory_used_bytes": 4878245888,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.313800720876007,
+              "memory_available": true,
+              "disk_free_bytes": 157869268992,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.08
+            },
+            {
+              "at": "2026-11-02T01:50:36.387400801Z",
+              "cpu_percent": 9.693644261545495,
+              "cpu_available": true,
+              "memory_used_bytes": 4875235328,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.295092866045902,
+              "memory_available": true,
+              "disk_free_bytes": 157869268992,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.08
+            },
+            {
+              "at": "2026-11-02T01:50:37.387787527Z",
+              "cpu_percent": 9.721588315837518,
+              "cpu_available": true,
+              "memory_used_bytes": 4869083136,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.25686266474684,
+              "memory_available": true,
+              "disk_free_bytes": 157869268992,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.08
+            },
+            {
+              "at": "2026-11-02T01:50:38.387433954Z",
+              "cpu_percent": 10.497489730716568,
+              "cpu_available": true,
+              "memory_used_bytes": 4874334208,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.28949323602873,
+              "memory_available": true,
+              "disk_free_bytes": 157869264896,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.08
+            },
+            {
+              "at": "2026-11-02T01:50:39.387373686Z",
+              "cpu_percent": 10.105166895290353,
+              "cpu_available": true,
+              "memory_used_bytes": 4878147584,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.31318985214686,
+              "memory_available": true,
+              "disk_free_bytes": 157869264896,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.23
+            },
+            {
+              "at": "2026-11-02T01:50:40.387773553Z",
+              "cpu_percent": 9.473684210526317,
+              "cpu_available": true,
+              "memory_used_bytes": 4874895360,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.292980278357607,
+              "memory_available": true,
+              "disk_free_bytes": 157869264896,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.23
+            },
+            {
+              "at": "2026-11-02T01:50:41.387387526Z",
+              "cpu_percent": 9.826325411334553,
+              "cpu_available": true,
+              "memory_used_bytes": 4876955648,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.305783068805965,
+              "memory_available": true,
+              "disk_free_bytes": 157869264896,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.23
+            },
+            {
+              "at": "2026-11-02T01:50:42.387385637Z",
+              "cpu_percent": 10.401459854014599,
+              "cpu_available": true,
+              "memory_used_bytes": 4882829312,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.342282475372446,
+              "memory_available": true,
+              "disk_free_bytes": 157869264896,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.23
+            },
+            {
+              "at": "2026-11-02T01:50:43.387376326Z",
+              "cpu_percent": 9.954337899543379,
+              "cpu_available": true,
+              "memory_used_bytes": 4887003136,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.368218943497443,
+              "memory_available": true,
+              "disk_free_bytes": 157869277184,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.23
+            },
+            {
+              "at": "2026-11-02T01:50:44.38737932Z",
+              "cpu_percent": 10.05944215820759,
+              "cpu_available": true,
+              "memory_used_bytes": 4877914112,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.311739038915135,
+              "memory_available": true,
+              "disk_free_bytes": 157869277184,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.37
+            },
+            {
+              "at": "2026-11-02T01:50:45.387393076Z",
+              "cpu_percent": 9.986320109439124,
+              "cpu_available": true,
+              "memory_used_bytes": 4878561280,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.31576059138202,
+              "memory_available": true,
+              "disk_free_bytes": 157869277184,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.37
+            },
+            {
+              "at": "2026-11-02T01:50:46.387399141Z",
+              "cpu_percent": 9.917733089579524,
+              "cpu_available": true,
+              "memory_used_bytes": 4874629120,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.29132584221617,
+              "memory_available": true,
+              "disk_free_bytes": 157869277184,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.37
+            },
+            {
+              "at": "2026-11-02T01:50:47.387390694Z",
+              "cpu_percent": 9.67594705613875,
+              "cpu_available": true,
+              "memory_used_bytes": 4872282112,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.276741351307805,
+              "memory_available": true,
+              "disk_free_bytes": 157869277184,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.37
+            },
+            {
+              "at": "2026-11-02T01:50:48.38793831Z",
+              "cpu_percent": 10.273972602739725,
+              "cpu_available": true,
+              "memory_used_bytes": 4873994240,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.287380648340434,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.37
+            },
+            {
+              "at": "2026-11-02T01:50:49.387440189Z",
+              "cpu_percent": 10.095934216537232,
+              "cpu_available": true,
+              "memory_used_bytes": 4879400960,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.320978428443475,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.5
+            },
+            {
+              "at": "2026-11-02T01:50:50.387939305Z",
+              "cpu_percent": 10.33379058070416,
+              "cpu_available": true,
+              "memory_used_bytes": 4890300416,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.388708498787555,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.5
+            },
+            {
+              "at": "2026-11-02T01:50:51.387374364Z",
+              "cpu_percent": 9.844322344322345,
+              "cpu_available": true,
+              "memory_used_bytes": 4888227840,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.375829349748056,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.5
+            },
+            {
+              "at": "2026-11-02T01:50:52.387857551Z",
+              "cpu_percent": 10.12311901504788,
+              "cpu_available": true,
+              "memory_used_bytes": 4886093824,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.36256840775284,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.5
+            },
+            {
+              "at": "2026-11-02T01:50:53.387403719Z",
+              "cpu_percent": 10.091324200913242,
+              "cpu_available": true,
+              "memory_used_bytes": 4893335552,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.40756907079994,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.5
+            },
+            {
+              "at": "2026-11-02T01:50:54.3873813Z",
+              "cpu_percent": 9.839816933638444,
+              "cpu_available": true,
+              "memory_used_bytes": 4887592960,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.37188415587232,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.46
+            },
+            {
+              "at": "2026-11-02T01:50:55.387749703Z",
+              "cpu_percent": 10,
+              "cpu_available": true,
+              "memory_used_bytes": 4890062848,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.387232232692117,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.46
+            },
+            {
+              "at": "2026-11-02T01:50:56.388112543Z",
+              "cpu_percent": 10.013717421124829,
+              "cpu_available": true,
+              "memory_used_bytes": 4896395264,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.426582359994615,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.46
+            },
+            {
+              "at": "2026-11-02T01:50:57.387387038Z",
+              "cpu_percent": 10.300820419325433,
+              "cpu_available": true,
+              "memory_used_bytes": 4901765120,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.45995106432422,
+              "memory_available": true,
+              "disk_free_bytes": 157869260800,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.46
+            },
+            {
+              "at": "2026-11-02T01:50:58.387788981Z",
+              "cpu_percent": 13.430790315212427,
+              "cpu_available": true,
+              "memory_used_bytes": 4934209536,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.661563197806167,
+              "memory_available": true,
+              "disk_free_bytes": 157869228032,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.46
+            },
+            {
+              "at": "2026-11-02T01:50:59.388179201Z",
+              "cpu_percent": 9.926806953339433,
+              "cpu_available": true,
+              "memory_used_bytes": 4934438912,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.662988558174177,
+              "memory_available": true,
+              "disk_free_bytes": 157869223936,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.43
+            },
+            {
+              "at": "2026-11-02T01:51:00.38757393Z",
+              "cpu_percent": 9.794050343249427,
+              "cpu_available": true,
+              "memory_used_bytes": 4932304896,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.64972761617896,
+              "memory_available": true,
+              "disk_free_bytes": 157869223936,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.43
+            },
+            {
+              "at": "2026-11-02T01:51:01.387387816Z",
+              "cpu_percent": 10.187300137048881,
+              "cpu_available": true,
+              "memory_used_bytes": 4935491584,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.66952994414878,
+              "memory_available": true,
+              "disk_free_bytes": 157869223936,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.43
+            },
+            {
+              "at": "2026-11-02T01:51:02.387918937Z",
+              "cpu_percent": 10.068649885583524,
+              "cpu_available": true,
+              "memory_used_bytes": 4927688704,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.621042238772805,
+              "memory_available": true,
+              "disk_free_bytes": 157869223936,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.43
+            },
+            {
+              "at": "2026-11-02T01:51:03.387376773Z",
+              "cpu_percent": 10.251716247139587,
+              "cpu_available": true,
+              "memory_used_bytes": 4925296640,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.606177766363587,
+              "memory_available": true,
+              "disk_free_bytes": 157869219840,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.43
+            },
+            {
+              "at": "2026-11-02T01:51:04.387376968Z",
+              "cpu_percent": 10.461397898583828,
+              "cpu_available": true,
+              "memory_used_bytes": 4931432448,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.64430615620779,
+              "memory_available": true,
+              "disk_free_bytes": 157869215744,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.39
+            },
+            {
+              "at": "2026-11-02T01:51:05.387781675Z",
+              "cpu_percent": 10.009140767824496,
+              "cpu_available": true,
+              "memory_used_bytes": 4931051520,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.64193903988235,
+              "memory_available": true,
+              "disk_free_bytes": 157869215744,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.39
+            },
+            {
+              "at": "2026-11-02T01:51:06.387376677Z",
+              "cpu_percent": 9.789569990850868,
+              "cpu_available": true,
+              "memory_used_bytes": 4931026944,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.64178632270006,
+              "memory_available": true,
+              "disk_free_bytes": 157869215744,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.39
+            },
+            {
+              "at": "2026-11-02T01:51:07.387794704Z",
+              "cpu_percent": 9.908675799086758,
+              "cpu_available": true,
+              "memory_used_bytes": 4930760704,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.640131886558624,
+              "memory_available": true,
+              "disk_free_bytes": 157869215744,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.39
+            },
+            {
+              "at": "2026-11-02T01:51:08.387446896Z",
+              "cpu_percent": 10.155535224153706,
+              "cpu_available": true,
+              "memory_used_bytes": 4936544256,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.67607133012339,
+              "memory_available": true,
+              "disk_free_bytes": 157869211648,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.39
+            }
+          ]
+        },
+        "payload": [
+          {
+            "signal": 0,
+            "events": 1000,
+            "protobuf_bytes": 966986,
+            "gzip_bytes": 37830,
+            "protobuf_bytes_per_event": 966.986,
+            "gzip_bytes_per_event": 37.83
+          },
+          {
+            "signal": 1,
+            "events": 1000,
+            "protobuf_bytes": 997168,
+            "gzip_bytes": 198900,
+            "protobuf_bytes_per_event": 997.168,
+            "gzip_bytes_per_event": 198.9
+          },
+          {
+            "signal": 2,
+            "events": 1000,
+            "protobuf_bytes": 2644170,
+            "gzip_bytes": 499168,
+            "protobuf_bytes_per_event": 2644.17,
+            "gzip_bytes_per_event": 499.168
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "throughput-100k",
+      "kind": "throughput",
+      "mode": "run",
+      "status": "ok",
+      "result_dir": "/tmp/opencode/bench-results-story24-final-20261102T014908Z/20261102T015108Z-throughput-100k",
+      "config_hash": "sha256:f6b7069c2aabbb4011b1e06efa1011f2b1e6edf41d6f65a61d31cb2ab59d1978",
+      "commit": "5b6096d",
+      "dirty": false,
+      "started_at": "2026-11-02T01:51:08.500856539Z",
+      "finished_at": "2026-11-02T01:52:08.601235571Z",
+      "duration_seconds": 60.100379032,
+      "hardware": {
+        "hostname": "kabuntu-zenbook",
+        "os": "linux",
+        "arch": "amd64",
+        "kernel": "7.0.0-38-generic",
+        "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+        "cpus": 22,
+        "memory_bytes": 16092491776,
+        "disk_total_bytes": 473626828800
+      },
+      "versions": {
+        "benchctl": "v0.0.1-alpha-17-g5b6096d",
+        "loadgen": "v0.0.1-alpha-17-g5b6096d",
+        "go": "go1.27.2",
+        "os": "linux",
+        "arch": "amd64",
+        "kernel": "7.0.0-38-generic"
+      },
+      "resolved": {
+        "endpoint": "http://127.0.0.1:4318",
+        "duration": "1m0s",
+        "rate": 100000
+      },
+      "metrics": {
+        "events_per_second": 99938.97473357162,
+        "target_rate": 100000,
+        "rate_delta_percent": -0.06102526642837619,
+        "rate_within_tolerance": true,
+        "bytes_per_second": 114306101.80229515,
+        "compressed_bytes_per_second": 17070394.385307353,
+        "send_latency_ms": {
+          "p50_ms": 12.087106,
+          "p95_ms": 39.210637,
+          "p99_ms": 43.013583,
+          "count": 6000,
+          "shards": 1,
+          "basis": "max across load generator shards"
+        },
+        "cpu": {
+          "mean_percent": 10.109439269876242,
+          "p95_percent": 10.771337288909173,
+          "max_percent": 12.774725274725274
+        },
+        "ram": {
+          "total_bytes": 16092491776,
+          "used_bytes_mean": 4924243217,
+          "used_percent_mean": 30.599631714030632,
+          "used_percent_max": 31.02037221758839
+        },
+        "disk": {
+          "total_bytes": 473626828800,
+          "free_bytes_start": 157869158400,
+          "free_bytes_end": 157869084672
+        },
+        "children": {
+          "cpu_percent": 7.4288726817839645,
+          "max_rss_bytes": 61218816,
+          "user_seconds": 94.75781500000001,
+          "system_seconds": 3.3631830000000003
+        },
+        "compression": {
+          "ratio": 6.696160570295873,
+          "source": "wire",
+          "wire": {
+            "ratio": 6.696160570295873,
+            "raw_bytes": 6862554000,
+            "compressed_bytes": 1024849080,
+            "signals": [
+              "metrics",
+              "logs",
+              "traces"
+            ]
+          },
+          "payload": {
+            "ratio": 8.64265808666846,
+            "raw_bytes": 4608324,
+            "compressed_bytes": 736165,
+            "bytes_per_event": 132.3388,
+            "signals": [
+              "metrics",
+              "logs",
+              "traces"
+            ]
+          }
+        },
+        "error_rate": 0,
+        "dropped_events": 0,
+        "backpressure_events": 0,
+        "pacing_lag_events": 0,
+        "generated_events": 6000000,
+        "sent_events": 6000000
+      },
+      "metric_status": [
+        {
+          "metric": "events_per_second",
+          "status": "collected"
+        },
+        {
+          "metric": "bytes_per_second",
+          "status": "collected"
+        },
+        {
+          "metric": "ingest_lag_p50_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "ingest_lag_p95_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "ingest_lag_p99_ms",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL ingest metrics (Story 4.3)"
+        },
+        {
+          "metric": "error_rate",
+          "status": "collected"
+        },
+        {
+          "metric": "dropped_events",
+          "status": "collected"
+        },
+        {
+          "metric": "confirmed_lost_events",
+          "status": "not_collected",
+          "detail": "requires gateway/WAL durability accounting (Stories 4.3-4.5)"
+        },
+        {
+          "metric": "cpu_percent",
+          "status": "collected"
+        },
+        {
+          "metric": "ram_bytes",
+          "status": "collected"
+        },
+        {
+          "metric": "disk_bytes",
+          "status": "collected"
+        },
+        {
+          "metric": "compression_ratio",
+          "status": "collected",
+          "detail": "source: wire (storage compression lands with Story 3.1-3.3)"
+        },
+        {
+          "metric": "loadgen_backpressure_events",
+          "status": "collected"
+        },
+        {
+          "metric": "loadgen_pacing_lag_events",
+          "status": "collected"
+        }
+      ],
+      "raw": {
+        "run": {
+          "schema_version": 1,
+          "scenario": {
+            "name": "throughput-100k",
+            "kind": "throughput",
+            "title": "Throughput 100k events/s",
+            "description": "Sustained reference workload at 100k events/s for 1 hour, the design-partner tier.",
+            "hardware": "1 loadgen host (8 vCPU, 16 GB); single-node backend (8 vCPU, 32 GB, local NVMe); 1 Gbps network.",
+            "duration": "1h0m0s",
+            "requires": [
+              "loadgen",
+              "otlp",
+              "gateway"
+            ],
+            "metrics": [
+              "events_per_second",
+              "bytes_per_second",
+              "ingest_lag_p50_ms",
+              "ingest_lag_p95_ms",
+              "ingest_lag_p99_ms",
+              "error_rate",
+              "dropped_events",
+              "confirmed_lost_events",
+              "cpu_percent",
+              "ram_bytes",
+              "disk_bytes",
+              "compression_ratio",
+              "loadgen_backpressure_events",
+              "loadgen_pacing_lag_events"
+            ],
+            "expected": "Timestamped folder with one loadgen summary and log; achieved rate within ±5% of 100k/s; zero failed or rejected events; pipeline lag p95 below 10s and zero confirmed events lost.",
+            "rate": 100000,
+            "shards": 1,
+            "protocol": "http",
+            "compression": "gzip"
+          },
+          "resolved": {
+            "endpoint": "http://127.0.0.1:4318",
+            "duration": "1m0s",
+            "rate": 100000
+          },
+          "config_hash": "sha256:f6b7069c2aabbb4011b1e06efa1011f2b1e6edf41d6f65a61d31cb2ab59d1978",
+          "mode": "run",
+          "status": "ok",
+          "started_at": "2026-11-02T01:51:08.500856539Z",
+          "finished_at": "2026-11-02T01:52:08.601235571Z",
+          "duration_seconds": 60.100379032,
+          "git": {
+            "commit": "5b6096d",
+            "dirty": false
+          },
+          "host": {
+            "hostname": "kabuntu-zenbook",
+            "os": "linux",
+            "arch": "amd64",
+            "kernel": "7.0.0-38-generic",
+            "cpu_model": "Intel(R) Core(TM) Ultra 7 155H",
+            "cpus": 22,
+            "memory_bytes": 16092491776
+          },
+          "versions": {
+            "benchctl": "v0.0.1-alpha-17-g5b6096d",
+            "go": "go1.27.2",
+            "os": "linux",
+            "arch": "amd64",
+            "kernel": "7.0.0-38-generic"
+          },
+          "checks": [
+            {
+              "name": "loadgen",
+              "ok": true,
+              "detail": "/home/kaike/Github/observaki/bin/otlploadgen"
+            },
+            {
+              "name": "gateway",
+              "ok": true,
+              "detail": "127.0.0.1:4318"
+            }
+          ],
+          "commands": [
+            "/home/kaike/Github/observaki/bin/otlploadgen --endpoint http://127.0.0.1:4318 --protocol http --compression gzip --rate 100000 --duration 1m0s --seed 1 --metrics-addr '' --log-interval 30s"
+          ],
+          "shards": [
+            {
+              "index": 0,
+              "rate": 100000,
+              "seed": 1,
+              "exit_code": 0,
+              "planned_events": 6000000,
+              "generated": 6000000,
+              "sent": 6000000,
+              "failed": 0,
+              "rejected": 0,
+              "achieved_rate": 99938.97303398124,
+              "duration_seconds": 60.036637518,
+              "backpressure_events": 0,
+              "pacing_lag_events": 0,
+              "summary_file": "loadgen-00.json",
+              "log_file": "loadgen-00.log"
+            }
+          ],
+          "aggregate": {
+            "target_rate": 100000,
+            "achieved_rate": 99938.97473357162,
+            "rate_delta_percent": -0.06102526642837619,
+            "rate_within_tolerance": true,
+            "planned_events": 6000000,
+            "generated": 6000000,
+            "sent": 6000000,
+            "failed": 0,
+            "rejected": 0,
+            "backpressure_events": 0,
+            "pacing_lag_events": 0,
+            "max_shard_duration_seconds": 60.036637518
+          },
+          "resources": {
+            "schema_version": 1,
+            "supported": true,
+            "cpu_available": true,
+            "memory_available": true,
+            "disk_available": true,
+            "samples": 60,
+            "interval_seconds": 1,
+            "duration_seconds": 60.091405006,
+            "cpu_percent": {
+              "min": 9.349220898258478,
+              "mean": 10.109439269876242,
+              "p95": 10.771337288909173,
+              "max": 12.774725274725274
+            },
+            "memory_used_bytes": {
+              "min": 4889133056,
+              "mean": 4924243217.066667,
+              "p95": 4956667904,
+              "max": 4991950848
+            },
+            "memory_used_percent": {
+              "min": 30.381454432628942,
+              "mean": 30.599631714030632,
+              "p95": 30.80112124955235,
+              "max": 31.02037221758839
+            },
+            "disk_free_bytes_start": 157869158400,
+            "disk_free_bytes_end": 157869084672,
+            "disk_total_bytes": 473626828800,
+            "load1": {
+              "min": 2.44,
+              "mean": 3.0216666666666656,
+              "p95": 3.53,
+              "max": 3.53
+            },
+            "children": {
+              "available": true,
+              "user_seconds": 94.75781500000001,
+              "system_seconds": 3.3631830000000003,
+              "cpu_percent": 7.4288726817839645,
+              "max_rss_bytes": 61218816
+            }
+          },
+          "resources_file": "resources.json",
+          "result_dir": "/tmp/opencode/bench-results-story24-final-20261102T014908Z/20261102T015108Z-throughput-100k"
+        },
+        "shards": [
+          {
+            "config": {
+              "endpoint": "http://127.0.0.1:4318",
+              "protocol": "http",
+              "compression": "gzip",
+              "rate": 100000,
+              "event_time_rate": 100000,
+              "duration_seconds": 60,
+              "start_time": "2026-11-02T01:51:08.514755372Z",
+              "seed": 1,
+              "batch_size": 1000,
+              "workers": 4,
+              "mix": {
+                "metrics": 60,
+                "logs": 30,
+                "traces": 10
+              },
+              "payload": {
+                "metric_padding": 832,
+                "log_body": 820,
+                "trace_padding": 2400
+              }
+            },
+            "planned_events": 6000000,
+            "finished_at": "2026-11-02T01:52:08.591255007Z",
+            "duration_seconds": 60.036637518,
+            "metrics": {
+              "started_at": "2026-11-02T01:51:08.554617489Z",
+              "elapsed_seconds": 60.036638539,
+              "target_rate": 100000,
+              "achieved_rate": 99938.97303398124,
+              "generated": 6000000,
+              "sent": 6000000,
+              "failed": 0,
+              "rejected": 0,
+              "bytes": 6862554000,
+              "compressed_bytes": 1024849080,
+              "backpressure_events": 0,
+              "backpressure_wait_seconds": 0,
+              "pacing_lag_events": 0,
+              "latency": {
+                "count": 6000,
+                "min_ms": 7.967296,
+                "mean_ms": 15.318321287,
+                "p50_ms": 12.087106,
+                "p95_ms": 39.210637,
+                "p99_ms": 43.013583,
+                "max_ms": 53.183272
+              },
+              "signals": [
+                {
+                  "signal": "metrics",
+                  "generated": 3600000,
+                  "sent": 3600000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 3600,
+                  "bytes": 3481449600,
+                  "compressed_bytes": 370026913
+                },
+                {
+                  "signal": "logs",
+                  "generated": 1800000,
+                  "sent": 1800000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 1800,
+                  "bytes": 1794902400,
+                  "compressed_bytes": 358718994
+                },
+                {
+                  "signal": "traces",
+                  "generated": 600000,
+                  "sent": 600000,
+                  "failed": 0,
+                  "rejected": 0,
+                  "requests": 600,
+                  "bytes": 1586202000,
+                  "compressed_bytes": 296103173
+                }
+              ]
+            }
+          }
+        ],
+        "resources": {
+          "schema_version": 1,
+          "summary": {
+            "schema_version": 1,
+            "supported": true,
+            "cpu_available": true,
+            "memory_available": true,
+            "disk_available": true,
+            "samples": 60,
+            "interval_seconds": 1,
+            "duration_seconds": 60.091405006,
+            "cpu_percent": {
+              "min": 9.349220898258478,
+              "mean": 10.109439269876242,
+              "p95": 10.771337288909173,
+              "max": 12.774725274725274
+            },
+            "memory_used_bytes": {
+              "min": 4889133056,
+              "mean": 4924243217.066667,
+              "p95": 4956667904,
+              "max": 4991950848
+            },
+            "memory_used_percent": {
+              "min": 30.381454432628942,
+              "mean": 30.599631714030632,
+              "p95": 30.80112124955235,
+              "max": 31.02037221758839
+            },
+            "disk_free_bytes_start": 157869158400,
+            "disk_free_bytes_end": 157869084672,
+            "disk_total_bytes": 473626828800,
+            "load1": {
+              "min": 2.44,
+              "mean": 3.0216666666666656,
+              "p95": 3.53,
+              "max": 3.53
+            },
+            "children": {
+              "available": true,
+              "user_seconds": 94.75781500000001,
+              "system_seconds": 3.3631830000000003,
+              "cpu_percent": 7.4288726817839645,
+              "max_rss_bytes": 61218816
+            }
+          },
+          "samples": [
+            {
+              "at": "2026-11-02T01:51:09.509432149Z",
+              "cpu_percent": 9.821836455002284,
+              "cpu_available": true,
+              "memory_used_bytes": 4933652480,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.658101608341003,
+              "memory_available": true,
+              "disk_free_bytes": 157869158400,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.44
+            },
+            {
+              "at": "2026-11-02T01:51:10.509989267Z",
+              "cpu_percent": 9.881602914389799,
+              "cpu_available": true,
+              "memory_used_bytes": 4941955072,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.70969456309014,
+              "memory_available": true,
+              "disk_free_bytes": 157869158400,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.44
+            },
+            {
+              "at": "2026-11-02T01:51:11.509399853Z",
+              "cpu_percent": 9.913202375513935,
+              "cpu_available": true,
+              "memory_used_bytes": 4942139392,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.71083994195729,
+              "memory_available": true,
+              "disk_free_bytes": 157869158400,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.44
+            },
+            {
+              "at": "2026-11-02T01:51:12.50962663Z",
+              "cpu_percent": 9.867519415258108,
+              "cpu_available": true,
+              "memory_used_bytes": 4942061568,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.710356337546717,
+              "memory_available": true,
+              "disk_free_bytes": 157869154304,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.44
+            },
+            {
+              "at": "2026-11-02T01:51:13.510184116Z",
+              "cpu_percent": 9.757214841960604,
+              "cpu_available": true,
+              "memory_used_bytes": 4932263936,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.649473087541818,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.44
+            },
+            {
+              "at": "2026-11-02T01:51:14.509755523Z",
+              "cpu_percent": 10.009140767824496,
+              "cpu_available": true,
+              "memory_used_bytes": 4930727936,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.63992826364891,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.49
+            },
+            {
+              "at": "2026-11-02T01:51:15.51035464Z",
+              "cpu_percent": 9.817351598173515,
+              "cpu_available": true,
+              "memory_used_bytes": 4934832128,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.665432033090763,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.49
+            },
+            {
+              "at": "2026-11-02T01:51:16.510016357Z",
+              "cpu_percent": 10.059171597633137,
+              "cpu_available": true,
+              "memory_used_bytes": 4938088448,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.685667059743725,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.49
+            },
+            {
+              "at": "2026-11-02T01:51:17.51022142Z",
+              "cpu_percent": 9.963436928702011,
+              "cpu_available": true,
+              "memory_used_bytes": 4933877760,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.6595015158453,
+              "memory_available": true,
+              "disk_free_bytes": 157869146112,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.49
+            },
+            {
+              "at": "2026-11-02T01:51:18.509763847Z",
+              "cpu_percent": 10.46617915904936,
+              "cpu_available": true,
+              "memory_used_bytes": 4925231104,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.60577052054415,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.49
+            },
+            {
+              "at": "2026-11-02T01:51:19.510304303Z",
+              "cpu_percent": 9.689213893967093,
+              "cpu_available": true,
+              "memory_used_bytes": 4931510272,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.644789760618362,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.53
+            },
+            {
+              "at": "2026-11-02T01:51:20.509423808Z",
+              "cpu_percent": 9.89010989010989,
+              "cpu_available": true,
+              "memory_used_bytes": 4930711552,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.63982645219405,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.53
+            },
+            {
+              "at": "2026-11-02T01:51:21.509954517Z",
+              "cpu_percent": 10.178000912825194,
+              "cpu_available": true,
+              "memory_used_bytes": 4930457600,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.638248374643755,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.53
+            },
+            {
+              "at": "2026-11-02T01:51:22.509406251Z",
+              "cpu_percent": 11.675824175824175,
+              "cpu_available": true,
+              "memory_used_bytes": 4932055040,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.648174991492382,
+              "memory_available": true,
+              "disk_free_bytes": 157869150208,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.53
+            },
+            {
+              "at": "2026-11-02T01:51:23.509953594Z",
+              "cpu_percent": 10.250569476082005,
+              "cpu_available": true,
+              "memory_used_bytes": 4922691584,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.58998974504121,
+              "memory_available": true,
+              "disk_free_bytes": 157869146112,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.53
+            },
+            {
+              "at": "2026-11-02T01:51:24.509527843Z",
+              "cpu_percent": 9.908675799086758,
+              "cpu_available": true,
+              "memory_used_bytes": 4910727168,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.51564193013138,
+              "memory_available": true,
+              "disk_free_bytes": 157869146112,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.57
+            },
+            {
+              "at": "2026-11-02T01:51:25.509418174Z",
+              "cpu_percent": 9.826325411334553,
+              "cpu_available": true,
+              "memory_used_bytes": 4910571520,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.514674721310232,
+              "memory_available": true,
+              "disk_free_bytes": 157869146112,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.57
+            },
+            {
+              "at": "2026-11-02T01:51:26.509827573Z",
+              "cpu_percent": 10.324349017816354,
+              "cpu_available": true,
+              "memory_used_bytes": 4912332800,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.525619452707435,
+              "memory_available": true,
+              "disk_free_bytes": 157869146112,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.57
+            },
+            {
+              "at": "2026-11-02T01:51:27.509381899Z",
+              "cpu_percent": 10.224667583677212,
+              "cpu_available": true,
+              "memory_used_bytes": 4916793344,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.553337621292442,
+              "memory_available": true,
+              "disk_free_bytes": 157869146112,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.57
+            },
+            {
+              "at": "2026-11-02T01:51:28.509868932Z",
+              "cpu_percent": 10.360565951620265,
+              "cpu_available": true,
+              "memory_used_bytes": 4902936576,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.46723058334655,
+              "memory_available": true,
+              "disk_free_bytes": 157869142016,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.57
+            },
+            {
+              "at": "2026-11-02T01:51:29.509402415Z",
+              "cpu_percent": 10.264598540145986,
+              "cpu_available": true,
+              "memory_used_bytes": 4901576704,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.45878023259336,
+              "memory_available": true,
+              "disk_free_bytes": 157869142016,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.76
+            },
+            {
+              "at": "2026-11-02T01:51:30.509947219Z",
+              "cpu_percent": 10.273972602739725,
+              "cpu_available": true,
+              "memory_used_bytes": 4898934784,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.44236313549756,
+              "memory_available": true,
+              "disk_free_bytes": 157869142016,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.76
+            },
+            {
+              "at": "2026-11-02T01:51:31.50938259Z",
+              "cpu_percent": 9.876543209876543,
+              "cpu_available": true,
+              "memory_used_bytes": 4898705408,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.44093777512955,
+              "memory_available": true,
+              "disk_free_bytes": 157869142016,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.76
+            },
+            {
+              "at": "2026-11-02T01:51:32.509812708Z",
+              "cpu_percent": 9.817351598173515,
+              "cpu_available": true,
+              "memory_used_bytes": 4897394688,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.43279285874093,
+              "memory_available": true,
+              "disk_free_bytes": 157869142016,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.76
+            },
+            {
+              "at": "2026-11-02T01:51:33.510203006Z",
+              "cpu_percent": 9.794050343249427,
+              "cpu_available": true,
+              "memory_used_bytes": 4900683776,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.453231508303613,
+              "memory_available": true,
+              "disk_free_bytes": 157869137920,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 2.76
+            },
+            {
+              "at": "2026-11-02T01:51:34.509390863Z",
+              "cpu_percent": 9.963436928702011,
+              "cpu_available": true,
+              "memory_used_bytes": 4900982784,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.455089567354772,
+              "memory_available": true,
+              "disk_free_bytes": 157869137920,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.02
+            },
+            {
+              "at": "2026-11-02T01:51:35.509801904Z",
+              "cpu_percent": 9.68478757423481,
+              "cpu_available": true,
+              "memory_used_bytes": 4896501760,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.427244134451186,
+              "memory_available": true,
+              "disk_free_bytes": 157869137920,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.02
+            },
+            {
+              "at": "2026-11-02T01:51:36.50938517Z",
+              "cpu_percent": 10.127737226277372,
+              "cpu_available": true,
+              "memory_used_bytes": 4896559104,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.427600474543194,
+              "memory_available": true,
+              "disk_free_bytes": 157869137920,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.02
+            },
+            {
+              "at": "2026-11-02T01:51:37.509407901Z",
+              "cpu_percent": 9.867519415258108,
+              "cpu_available": true,
+              "memory_used_bytes": 4896612352,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.427931361771478,
+              "memory_available": true,
+              "disk_free_bytes": 157869133824,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.02
+            },
+            {
+              "at": "2026-11-02T01:51:38.509380541Z",
+              "cpu_percent": 10.292772186642269,
+              "cpu_available": true,
+              "memory_used_bytes": 4889133056,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.381454432628942,
+              "memory_available": true,
+              "disk_free_bytes": 157869133824,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.02
+            },
+            {
+              "at": "2026-11-02T01:51:39.509765341Z",
+              "cpu_percent": 10.391978122151322,
+              "cpu_available": true,
+              "memory_used_bytes": 4900208640,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.45027897611274,
+              "memory_available": true,
+              "disk_free_bytes": 157869133824,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.26
+            },
+            {
+              "at": "2026-11-02T01:51:40.510060084Z",
+              "cpu_percent": 9.386446886446887,
+              "cpu_available": true,
+              "memory_used_bytes": 4899348480,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.444933874732715,
+              "memory_available": true,
+              "disk_free_bytes": 157869133824,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.26
+            },
+            {
+              "at": "2026-11-02T01:51:41.509379263Z",
+              "cpu_percent": 10.23765996343693,
+              "cpu_available": true,
+              "memory_used_bytes": 4901695488,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.459518365641074,
+              "memory_available": true,
+              "disk_free_bytes": 157869133824,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.26
+            },
+            {
+              "at": "2026-11-02T01:51:42.509805468Z",
+              "cpu_percent": 10.771337288909173,
+              "cpu_available": true,
+              "memory_used_bytes": 4909039616,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.505155350281036,
+              "memory_available": true,
+              "disk_free_bytes": 157869133824,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.26
+            },
+            {
+              "at": "2026-11-02T01:51:43.510190784Z",
+              "cpu_percent": 9.949794614331356,
+              "cpu_available": true,
+              "memory_used_bytes": 4917530624,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.557919136761036,
+              "memory_available": true,
+              "disk_free_bytes": 157869129728,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.26
+            },
+            {
+              "at": "2026-11-02T01:51:44.509380431Z",
+              "cpu_percent": 9.349220898258478,
+              "cpu_available": true,
+              "memory_used_bytes": 4918296576,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.562678822275636,
+              "memory_available": true,
+              "disk_free_bytes": 157869129728,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.4
+            },
+            {
+              "at": "2026-11-02T01:51:45.509388494Z",
+              "cpu_percent": 9.552102376599635,
+              "cpu_available": true,
+              "memory_used_bytes": 4927008768,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.616817063396212,
+              "memory_available": true,
+              "disk_free_bytes": 157869129728,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.4
+            },
+            {
+              "at": "2026-11-02T01:51:46.509779791Z",
+              "cpu_percent": 10.608139003200732,
+              "cpu_available": true,
+              "memory_used_bytes": 4991950848,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 31.02037221758839,
+              "memory_available": true,
+              "disk_free_bytes": 157869129728,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.4
+            },
+            {
+              "at": "2026-11-02T01:51:47.50939299Z",
+              "cpu_percent": 10.338517840805125,
+              "cpu_available": true,
+              "memory_used_bytes": 4922310656,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.587622628715767,
+              "memory_available": true,
+              "disk_free_bytes": 157869129728,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.4
+            },
+            {
+              "at": "2026-11-02T01:51:48.509413192Z",
+              "cpu_percent": 9.99087591240876,
+              "cpu_available": true,
+              "memory_used_bytes": 4927356928,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.618980556811938,
+              "memory_available": true,
+              "disk_free_bytes": 157869142016,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.4
+            },
+            {
+              "at": "2026-11-02T01:51:49.509380286Z",
+              "cpu_percent": 10.39671682626539,
+              "cpu_available": true,
+              "memory_used_bytes": 4920004608,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.573292666444544,
+              "memory_available": true,
+              "disk_free_bytes": 157869142016,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.53
+            },
+            {
+              "at": "2026-11-02T01:51:50.509381602Z",
+              "cpu_percent": 10.3290676416819,
+              "cpu_available": true,
+              "memory_used_bytes": 4909797376,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.509864130068205,
+              "memory_available": true,
+              "disk_free_bytes": 157869121536,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.53
+            },
+            {
+              "at": "2026-11-02T01:51:51.50974319Z",
+              "cpu_percent": 9.55647005029721,
+              "cpu_available": true,
+              "memory_used_bytes": 4903251968,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.46919045385256,
+              "memory_available": true,
+              "disk_free_bytes": 157869121536,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.53
+            },
+            {
+              "at": "2026-11-02T01:51:52.509378887Z",
+              "cpu_percent": 10.27866605756053,
+              "cpu_available": true,
+              "memory_used_bytes": 4916850688,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.553693961384443,
+              "memory_available": true,
+              "disk_free_bytes": 157869121536,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.53
+            },
+            {
+              "at": "2026-11-02T01:51:53.509383583Z",
+              "cpu_percent": 9.68478757423481,
+              "cpu_available": true,
+              "memory_used_bytes": 4922134528,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.586528155576048,
+              "memory_available": true,
+              "disk_free_bytes": 157869117440,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.53
+            },
+            {
+              "at": "2026-11-02T01:51:54.509746935Z",
+              "cpu_percent": 9.749430523917995,
+              "cpu_available": true,
+              "memory_used_bytes": 4915085312,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.542723777123527,
+              "memory_available": true,
+              "disk_free_bytes": 157869117440,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.48
+            },
+            {
+              "at": "2026-11-02T01:51:55.509381801Z",
+              "cpu_percent": 9.954337899543379,
+              "cpu_available": true,
+              "memory_used_bytes": 4911370240,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.519638029734548,
+              "memory_available": true,
+              "disk_free_bytes": 157869117440,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.48
+            },
+            {
+              "at": "2026-11-02T01:51:56.509384942Z",
+              "cpu_percent": 10.07292616226071,
+              "cpu_available": true,
+              "memory_used_bytes": 4908765184,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.50345000841217,
+              "memory_available": true,
+              "disk_free_bytes": 157869117440,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.48
+            },
+            {
+              "at": "2026-11-02T01:51:57.509387054Z",
+              "cpu_percent": 10.83676268861454,
+              "cpu_available": true,
+              "memory_used_bytes": 4908822528,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.503806348504174,
+              "memory_available": true,
+              "disk_free_bytes": 157869117440,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.48
+            },
+            {
+              "at": "2026-11-02T01:51:58.509397983Z",
+              "cpu_percent": 12.774725274725274,
+              "cpu_available": true,
+              "memory_used_bytes": 4951867392,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.771290493279047,
+              "memory_available": true,
+              "disk_free_bytes": 157869092864,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.48
+            },
+            {
+              "at": "2026-11-02T01:51:59.50939694Z",
+              "cpu_percent": 10.109789569990852,
+              "cpu_available": true,
+              "memory_used_bytes": 4955414528,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.793332673255737,
+              "memory_available": true,
+              "disk_free_bytes": 157869088768,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.45
+            },
+            {
+              "at": "2026-11-02T01:52:00.50938185Z",
+              "cpu_percent": 10.355839416058394,
+              "cpu_available": true,
+              "memory_used_bytes": 4956667904,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.80112124955235,
+              "memory_available": true,
+              "disk_free_bytes": 157869088768,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.45
+            },
+            {
+              "at": "2026-11-02T01:52:01.509383788Z",
+              "cpu_percent": 9.821836455002284,
+              "cpu_available": true,
+              "memory_used_bytes": 4957933568,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.80898618444011,
+              "memory_available": true,
+              "disk_free_bytes": 157869088768,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.45
+            },
+            {
+              "at": "2026-11-02T01:52:02.509383582Z",
+              "cpu_percent": 9.73491773308958,
+              "cpu_available": true,
+              "memory_used_bytes": 4958695424,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.81372041709099,
+              "memory_available": true,
+              "disk_free_bytes": 157869084672,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.45
+            },
+            {
+              "at": "2026-11-02T01:52:03.509769947Z",
+              "cpu_percent": 10.118505013673655,
+              "cpu_available": true,
+              "memory_used_bytes": 4956291072,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.798779586090617,
+              "memory_available": true,
+              "disk_free_bytes": 157869084672,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.45
+            },
+            {
+              "at": "2026-11-02T01:52:04.51007678Z",
+              "cpu_percent": 10.045662100456621,
+              "cpu_available": true,
+              "memory_used_bytes": 4949229568,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.754898849046956,
+              "memory_available": true,
+              "disk_free_bytes": 157869084672,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.33
+            },
+            {
+              "at": "2026-11-02T01:52:05.509380774Z",
+              "cpu_percent": 9.826325411334553,
+              "cpu_available": true,
+              "memory_used_bytes": 4955942912,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.796616092674896,
+              "memory_available": true,
+              "disk_free_bytes": 157869084672,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.33
+            },
+            {
+              "at": "2026-11-02T01:52:06.50939735Z",
+              "cpu_percent": 9.821836455002284,
+              "cpu_available": true,
+              "memory_used_bytes": 4956045312,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.797252414267756,
+              "memory_available": true,
+              "disk_free_bytes": 157869084672,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.33
+            },
+            {
+              "at": "2026-11-02T01:52:07.5093895Z",
+              "cpu_percent": 10.245901639344263,
+              "cpu_available": true,
+              "memory_used_bytes": 4954836992,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.789743819471997,
+              "memory_available": true,
+              "disk_free_bytes": 157869084672,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.33
+            },
+            {
+              "at": "2026-11-02T01:52:08.509800957Z",
+              "cpu_percent": 10.428051001821494,
+              "cpu_available": true,
+              "memory_used_bytes": 4938137600,
+              "memory_total_bytes": 16092491776,
+              "memory_used_percent": 30.6859724941083,
+              "memory_available": true,
+              "disk_free_bytes": 157869084672,
+              "disk_total_bytes": 473626828800,
+              "disk_available": true,
+              "load1": 3.33
+            }
+          ]
+        },
+        "payload": [
+          {
+            "signal": 0,
+            "events": 1000,
+            "protobuf_bytes": 966986,
+            "gzip_bytes": 37831,
+            "protobuf_bytes_per_event": 966.986,
+            "gzip_bytes_per_event": 37.831
+          },
+          {
+            "signal": 1,
+            "events": 1000,
+            "protobuf_bytes": 997168,
+            "gzip_bytes": 199034,
+            "protobuf_bytes_per_event": 997.168,
+            "gzip_bytes_per_event": 199.034
+          },
+          {
+            "signal": 2,
+            "events": 1000,
+            "protobuf_bytes": 2644170,
+            "gzip_bytes": 499300,
+            "protobuf_bytes_per_event": 2644.17,
+            "gzip_bytes_per_event": 499.3
+          }
+        ]
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "scenario": "throughput-100k",
+      "kind": "throughput",
+      "config_hash": "sha256:f6b7069c2aabbb4011b1e06efa1011f2b1e6edf41d6f65a61d31cb2ab59d1978",
+      "commits": [
+        "5b6096d"
+      ],
+      "same_commit": true,
+      "runs": 3,
+      "within_tolerance": true,
+      "metrics": [
+        {
+          "metric": "events_per_second",
+          "unit": "events/s",
+          "runs": 3,
+          "mean": 99935.14393371023,
+          "min": 99932.33297260384,
+          "max": 99938.97473357162,
+          "stddev": 2.8057441678288444,
+          "spread_percent": 0.006646071348227558,
+          "tolerance_percent": 5,
+          "min_runs": 2,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "0.01% within 5.00%"
+        },
+        {
+          "metric": "bytes_per_second",
+          "unit": "B/s",
+          "runs": 3,
+          "mean": 114301720.29047649,
+          "min": 114298505.22841239,
+          "max": 114306101.80229515,
+          "stddev": 3209.0951436518876,
+          "spread_percent": 0.006646071348229356,
+          "tolerance_percent": 5,
+          "min_runs": 2,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "0.01% within 5.00%"
+        },
+        {
+          "metric": "send_latency_p50_ms",
+          "unit": "ms",
+          "runs": 3,
+          "mean": 11.929049666666666,
+          "min": 11.496342,
+          "max": 12.203701,
+          "stddev": 0.30965092399919564,
+          "spread_percent": 5.9297179554593775,
+          "tolerance_percent": 10,
+          "min_runs": 3,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "5.93% within 10.00%"
+        },
+        {
+          "metric": "send_latency_p95_ms",
+          "unit": "ms",
+          "runs": 3,
+          "mean": 39.02184499999999,
+          "min": 38.662192,
+          "max": 39.210637,
+          "stddev": 0.25441840931426435,
+          "spread_percent": 1.4054819806700607,
+          "tolerance_percent": 10,
+          "min_runs": 3,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "1.41% within 10.00%"
+        },
+        {
+          "metric": "send_latency_p99_ms",
+          "unit": "ms",
+          "runs": 3,
+          "mean": 42.750255333333335,
+          "min": 42.254802,
+          "max": 43.013583,
+          "stddev": 0.3505699125085064,
+          "spread_percent": 1.7749157147334285,
+          "tolerance_percent": 10,
+          "min_runs": 3,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "1.77% within 10.00%"
+        },
+        {
+          "metric": "cpu_percent_mean",
+          "unit": "%",
+          "runs": 3,
+          "mean": 9.962938898026588,
+          "min": 9.643616031021558,
+          "max": 10.135761393181967,
+          "stddev": 0.22605092875731195,
+          "spread_percent": 4.939760919921841,
+          "tolerance_percent": 10,
+          "min_runs": 2,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "4.94% within 10.00%"
+        },
+        {
+          "metric": "memory_used_percent_mean",
+          "unit": "%",
+          "runs": 3,
+          "mean": 30.668065131842017,
+          "min": 30.456643040470144,
+          "max": 30.94792064102528,
+          "stddev": 0.2063181519026928,
+          "spread_percent": 1.6019191248066482,
+          "tolerance_percent": 10,
+          "min_runs": 2,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "1.60% within 10.00%"
+        },
+        {
+          "metric": "compression_ratio",
+          "unit": "x",
+          "runs": 3,
+          "mean": 6.697011053366833,
+          "min": 6.696043950501988,
+          "max": 6.69882863930264,
+          "stddev": 0.0012861088651724179,
+          "spread_percent": 0.041581069203286226,
+          "tolerance_percent": 5,
+          "min_runs": 2,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "0.04% within 5.00%"
+        },
+        {
+          "metric": "error_rate",
+          "unit": "percentage points",
+          "runs": 3,
+          "mean": 0,
+          "min": 0,
+          "max": 0,
+          "stddev": 0,
+          "spread_absolute": 0,
+          "tolerance_absolute": 0.1,
+          "min_runs": 2,
+          "assessed": true,
+          "within_tolerance": true,
+          "detail": "0.00pp within 0.10pp"
+        }
+      ]
+    }
+  ],
+  "cost_model": {
+    "status": "not_configured",
+    "reason": "Pricing assumptions are an open founder decision (ADR-0006 Q-07); this report publishes the volume inputs only.",
+    "events_per_day": 8634727416.980589,
+    "raw_tb_per_day": 9.8760471957183,
+    "wire_tb_per_day": 1.4748820748905553,
+    "payload_tb_per_day": 1.1427094646903107,
+    "inputs": [
+      "events per day from the highest sustained throughput run",
+      "raw and wire bytes per day from the same run",
+      "reference payload gzip bytes per event from the deterministic generator",
+      "TCO per TB/day, replica factor and operator hours are not priced here"
+    ]
+  }
+}
