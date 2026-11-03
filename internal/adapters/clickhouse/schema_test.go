@@ -186,6 +186,49 @@ func TestTracesMigrationContract(t *testing.T) {
 	}
 }
 
+func TestTenancyMigrationContract(t *testing.T) {
+	migration := findMigration(t, "tenancy")
+	ddl := migration.SQL
+
+	for _, table := range []string{"otel_logs", "otel_traces"} {
+		for _, column := range []string{"project_generation", "authz_epoch"} {
+			want := "ALTER TABLE " + table + " ADD COLUMN IF NOT EXISTS " + column + " UInt64 DEFAULT 1"
+			if !strings.Contains(ddl, want) {
+				t.Errorf("tenancy migration is missing %q", want)
+			}
+		}
+	}
+	if !strings.Contains(ddl, "CREATE TABLE IF NOT EXISTS tenant_scope") {
+		t.Error("tenancy migration must create tenant_scope idempotently")
+	}
+	if !strings.Contains(ddl, "CREATE ROLE IF NOT EXISTS observaki_query") {
+		t.Error("tenancy migration must create the observaki_query role")
+	}
+	for _, table := range []string{"otel_logs", "otel_traces", "tenant_scope"} {
+		want := "GRANT SELECT ON " + table + " TO observaki_query"
+		if !strings.Contains(ddl, want) {
+			t.Errorf("tenancy migration is missing %q", want)
+		}
+	}
+	for _, policy := range []string{"tenant_isolation_logs ON otel_logs", "tenant_isolation_traces ON otel_traces"} {
+		want := "CREATE ROW POLICY IF NOT EXISTS " + policy
+		if !strings.Contains(ddl, want) {
+			t.Errorf("tenancy migration is missing %q", want)
+		}
+	}
+	if !strings.Contains(ddl, "tenant_scope_self ON tenant_scope") {
+		t.Error("tenancy migration must hide other users' tenant_scope rows")
+	}
+	for _, fragment := range []string{"tenant_id = (SELECT tenant_id FROM tenant_scope", "project_generation = (SELECT project_generation FROM tenant_scope", "authz_epoch = (SELECT authz_epoch FROM tenant_scope", "currentUser()"} {
+		if !strings.Contains(ddl, fragment) {
+			t.Errorf("tenancy row policy is missing %q", fragment)
+		}
+	}
+	if strings.Contains(strings.ToUpper(ddl), "SELECT *") {
+		t.Error("tenancy migration must not contain SELECT *")
+	}
+}
+
 func TestIngestDedupeMigrationContract(t *testing.T) {
 	migration := findMigration(t, "ingest_dedupe")
 	ddl := migration.SQL
