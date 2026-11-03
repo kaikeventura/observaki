@@ -68,7 +68,11 @@ sendo item do T1/G1.
 ## Limitações
 
 - Single-node local; sem réplica, NATS, gateway ou Query Service. O usuário
-  `obs_tenant_0` simula o backstop de row policy do QS.
+  `obs_tenant_0` simula o backstop de row policy do QS. O spike provisiona uma
+  linha de `tenant_scope` por usuário; um usuário com múltiplos projetos precisa
+  de um usuário/role por escopo assinado (ou um dictionary por
+  `(user, project)`), e a subquery escalar falha fechada se houver mais de uma
+  linha.
 - Dataset gerado por SQL, não pelo caminho OTLP real.
 - O tier de 10B/7d é uma projeção window-equivalent; o de 86B/24h é medido no
   rollup, não no raw. Nenhum dos dois substitui a medição T1.

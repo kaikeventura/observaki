@@ -19,6 +19,12 @@
 -- (AD-19) and has SELECT only on this row plus the telemetry tables. The
 -- policy on tenant_scope hides the other users' rows.
 --
+-- The spike provisions one tenant_scope row per query user. A user that needs
+-- multiple projects must get one user/role per signed scope (or a dictionary
+-- keyed by (user, project)); the scalar subquery intentionally fails closed if
+-- a user has more than one row. Apply this migration as an admin user with
+-- access-management privileges; the application user never runs migrations.
+--
 -- The migration is idempotent: ADD COLUMN IF NOT EXISTS, CREATE ... IF NOT
 -- EXISTS. It does not rewrite data. The row policies are attached to the
 -- observaki_query role; a user must have only that role for the policy to be
