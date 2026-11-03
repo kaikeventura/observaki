@@ -1,0 +1,608 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-03T01:49:37Z",
+  "commit": "d867eb2",
+  "dirty": true,
+  "clickhouse": {
+    "version": "26.8.36.3",
+    "image": "clickhouse/clickhouse-server:26.8",
+    "container": "observaki-ch35"
+  },
+  "host": {
+    "hostname": "kabuntu-zenbook",
+    "cpus": 22,
+    "memory_bytes": 16092479488,
+    "disk_total_bytes": 473626828800,
+    "disk_free_bytes": 110907813888,
+    "data_dir": "/tmp/opencode/observaki-ch35"
+  },
+  "schema": {
+    "migrations": [
+      "0001_otel_logs.sql",
+      "0002_otel_traces.sql",
+      "0003_ingest_dedupe.sql",
+      "0004_tenancy.sql"
+    ],
+    "tenancy_sha256": "8b86cd841e068900bcebb99e1aa8bcdd5bdd88d61062c86972f7fa9df34c1388",
+    "row_policy": "tenant_id + project_generation + authz_epoch from tenant_scope"
+  },
+  "dataset": {
+    "tier": "1b",
+    "events": 1000000000,
+    "logs": 300000005,
+    "traces": 100000000,
+    "metrics_samples": 600000000,
+    "mix": "60% metrics / 30% logs / 10% traces",
+    "window_hours": 24,
+    "base": "2026-11-03 01:23:09",
+    "tenants": 2,
+    "projects": 4,
+    "retention_days": [
+      7,
+      15,
+      30
+    ]
+  },
+  "storage": {
+    "otel_logs": {
+      "rows": 300000005,
+      "parts": 666,
+      "compressed_bytes": 25259253846,
+      "uncompressed_bytes": 189593985675,
+      "ratio": 7.51,
+      "compressed_bytes_per_row": 84.2
+    },
+    "otel_traces": {
+      "rows": 100000000,
+      "parts": 171,
+      "compressed_bytes": 6088644838,
+      "uncompressed_bytes": 47124273265,
+      "ratio": 7.74,
+      "compressed_bytes_per_row": 60.9
+    }
+  },
+  "queries": {
+    "runs": 20,
+    "target_ms": 1000,
+    "results": [
+      {
+        "id": "q01",
+        "runs": 20,
+        "p50_ms": 149.043272,
+        "p95_ms": 164.353385,
+        "p99_ms": 165.12247,
+        "rows_read_mean": 39272454,
+        "bytes_read_mean": 982163214,
+        "returned_mean": 48,
+        "errors": 0
+      },
+      {
+        "id": "q02",
+        "runs": 20,
+        "p50_ms": 233.220648,
+        "p95_ms": 250.69543,
+        "p99_ms": 251.606033,
+        "rows_read_mean": 39272454,
+        "bytes_read_mean": 1099628696,
+        "returned_mean": 8,
+        "errors": 0
+      },
+      {
+        "id": "q03",
+        "runs": 20,
+        "p50_ms": 171.184728,
+        "p95_ms": 187.10800799999998,
+        "p99_ms": 209.128428,
+        "rows_read_mean": 10797062,
+        "bytes_read_mean": 390179656,
+        "returned_mean": 100,
+        "errors": 0
+      },
+      {
+        "id": "q04",
+        "runs": 20,
+        "p50_ms": 219.601551,
+        "p95_ms": 254.494583,
+        "p99_ms": 257.582518,
+        "rows_read_mean": 39272454,
+        "bytes_read_mean": 1060356248,
+        "returned_mean": 8,
+        "errors": 0
+      },
+      {
+        "id": "q05",
+        "runs": 20,
+        "p50_ms": 407.06104999999997,
+        "p95_ms": 431.94125,
+        "p99_ms": 448.41903,
+        "rows_read_mean": 10780678,
+        "bytes_read_mean": 554552568,
+        "returned_mean": 16,
+        "errors": 0
+      },
+      {
+        "id": "q06",
+        "runs": 20,
+        "p50_ms": 36.561539999999994,
+        "p95_ms": 100.91878799999999,
+        "p99_ms": 148.449037,
+        "rows_read_mean": 2038585.2,
+        "bytes_read_mean": 108195380.35,
+        "returned_mean": 100,
+        "errors": 0
+      },
+      {
+        "id": "q07",
+        "runs": 20,
+        "p50_ms": 178.10648600000002,
+        "p95_ms": 195.62707300000002,
+        "p99_ms": 203.476242,
+        "rows_read_mean": 25059334,
+        "bytes_read_mean": 877076632,
+        "returned_mean": 9,
+        "errors": 0
+      },
+      {
+        "id": "q08",
+        "runs": 20,
+        "p50_ms": 58.28774,
+        "p95_ms": 65.187547,
+        "p99_ms": 65.727248,
+        "rows_read_mean": 4186118,
+        "bytes_read_mean": 150655574,
+        "returned_mean": 1,
+        "errors": 0
+      },
+      {
+        "id": "q09",
+        "runs": 20,
+        "p50_ms": 94.63849300000001,
+        "p95_ms": 102.73475,
+        "p99_ms": 103.612594,
+        "rows_read_mean": 25059334,
+        "bytes_read_mean": 701661336,
+        "returned_mean": 9,
+        "errors": 0
+      },
+      {
+        "id": "q10",
+        "runs": 20,
+        "p50_ms": 49.821418,
+        "p95_ms": 54.835424,
+        "p99_ms": 56.233959,
+        "rows_read_mean": 15745030,
+        "bytes_read_mean": 395853896,
+        "returned_mean": 2,
+        "errors": 0
+      },
+      {
+        "id": "q11",
+        "runs": 20,
+        "p50_ms": 11.908081,
+        "p95_ms": 14.07389,
+        "p99_ms": 14.422178,
+        "rows_read_mean": 81926,
+        "bytes_read_mean": 3777936,
+        "returned_mean": 100,
+        "errors": 0
+      },
+      {
+        "id": "q12",
+        "runs": 20,
+        "p50_ms": 45.460847,
+        "p95_ms": 52.195892,
+        "p99_ms": 63.29294000000001,
+        "rows_read_mean": 589830,
+        "bytes_read_mean": 43814836,
+        "returned_mean": 10,
+        "errors": 0
+      },
+      {
+        "id": "q13",
+        "runs": 20,
+        "p50_ms": 160.550999,
+        "p95_ms": 179.457682,
+        "p99_ms": 185.959983,
+        "rows_read_mean": 31490054,
+        "bytes_read_mean": 915079545,
+        "returned_mean": 9,
+        "errors": 0
+      },
+      {
+        "id": "q14",
+        "runs": 20,
+        "p50_ms": 189.288485,
+        "p95_ms": 206.489967,
+        "p99_ms": 212.197937,
+        "rows_read_mean": 25059334,
+        "bytes_read_mean": 877076632,
+        "returned_mean": 9,
+        "errors": 0
+      },
+      {
+        "id": "q15",
+        "runs": 20,
+        "p50_ms": 44.377505,
+        "p95_ms": 52.157661000000004,
+        "p99_ms": 53.82709,
+        "rows_read_mean": 16395,
+        "bytes_read_mean": 565683,
+        "returned_mean": 1,
+        "errors": 0
+      },
+      {
+        "id": "q20",
+        "runs": 20,
+        "p50_ms": 51.239654,
+        "p95_ms": 56.049933,
+        "p99_ms": 61.001413,
+        "rows_read_mean": 15384582,
+        "bytes_read_mean": 386007192,
+        "returned_mean": 54,
+        "errors": 0
+      }
+    ]
+  },
+  "tiers": {
+    "1b": {
+      "status": "measured",
+      "measured_tier": "1b",
+      "events": 1000000000,
+      "window": "24h",
+      "target_ms": 1000,
+      "max_p95_ms": 431.94125,
+      "verdict": "pass"
+    },
+    "10b": {
+      "status": "projected",
+      "events": 10000000000,
+      "window": "7d",
+      "target_ms": 3000,
+      "scale_factor_vs_1b_24h": 1.4285714286,
+      "projected_p95_ms": 617.059,
+      "pass": true,
+      "method": "linear window-equivalent projection: 10B/7d has 10/7x the events of 1B/24h in the same query window; not a raw 10B measurement"
+    },
+    "86b": {
+      "status": "measured_rollup",
+      "events": 86400000000,
+      "window": "24h",
+      "target_ms": 3000,
+      "pass": true,
+      "rollup": {
+        "status": "pass",
+        "scale": 86,
+        "dataset": "86B/24h rollup-equivalent (same rollup cardinality; counters scale 86x)",
+        "logs_rollup_rows": 276678,
+        "traces_rollup_rows": 115280,
+        "cross_tenant_rows": "0",
+        "queries": [
+          {
+            "id": "q01",
+            "runs": 20,
+            "p50_ms": 6.8033909999999995,
+            "p95_ms": 10.183467,
+            "p99_ms": 14.537085999999999,
+            "returned_mean": 40
+          },
+          {
+            "id": "q02",
+            "runs": 20,
+            "p50_ms": 7.519298,
+            "p95_ms": 8.116432999999999,
+            "p99_ms": 8.436571,
+            "returned_mean": 8
+          },
+          {
+            "id": "q04",
+            "runs": 20,
+            "p50_ms": 7.349105,
+            "p95_ms": 14.510708000000001,
+            "p99_ms": 17.377126999999998,
+            "returned_mean": 8
+          },
+          {
+            "id": "q07",
+            "runs": 20,
+            "p50_ms": 77.68936599999999,
+            "p95_ms": 87.13906300000001,
+            "p99_ms": 87.97162999999999,
+            "returned_mean": 9
+          },
+          {
+            "id": "q08",
+            "runs": 20,
+            "p50_ms": 41.43921099999999,
+            "p95_ms": 48.488168,
+            "p99_ms": 51.339199,
+            "returned_mean": 1
+          },
+          {
+            "id": "q09",
+            "runs": 20,
+            "p50_ms": 7.849065,
+            "p95_ms": 8.795735,
+            "p99_ms": 9.966323,
+            "returned_mean": 9
+          },
+          {
+            "id": "q10",
+            "runs": 20,
+            "p50_ms": 6.359904,
+            "p95_ms": 7.399402,
+            "p99_ms": 8.552109,
+            "returned_mean": 2
+          },
+          {
+            "id": "q14",
+            "runs": 20,
+            "p50_ms": 8.248152,
+            "p95_ms": 9.23403,
+            "p99_ms": 10.014804,
+            "returned_mean": 9
+          },
+          {
+            "id": "q20",
+            "runs": 20,
+            "p50_ms": 66.22083199999999,
+            "p95_ms": 80.434805,
+            "p99_ms": 90.711257,
+            "returned_mean": 45
+          }
+        ],
+        "failures": "",
+        "pass": true
+      }
+    }
+  },
+  "metrics_queries": {
+    "status": "pass",
+    "source": "bench/victoriametrics/results/2026-11-02-local-1m-1h/report.json",
+    "dataset": {
+      "series": 1000000,
+      "samples_per_second": 1000000,
+      "duration": "1h"
+    },
+    "runs": 5,
+    "overall_latency_ms": {
+      "count": 100,
+      "p50_ms": 573.94889,
+      "p95_ms": 799.501642,
+      "p99_ms": 1216.707693,
+      "max_ms": 1305.188152
+    },
+    "queries": [
+      {
+        "id": "q16",
+        "source_id": "m01",
+        "description": "Request rate by service",
+        "p50_ms": 616.716225,
+        "p95_ms": 757.04204,
+        "p99_ms": 757.04204,
+        "result_series": 200,
+        "status": "pass"
+      },
+      {
+        "id": "q17",
+        "source_id": "m05",
+        "description": "Error ratio by service",
+        "p50_ms": 782.218104,
+        "p95_ms": 799.501642,
+        "p99_ms": 799.501642,
+        "result_series": 200,
+        "status": "pass"
+      },
+      {
+        "id": "q18",
+        "source_id": "m06",
+        "description": "p95 latency from histogram buckets",
+        "p50_ms": 485.924994,
+        "p95_ms": 659.670864,
+        "p99_ms": 659.670864,
+        "result_series": 1,
+        "status": "pass"
+      },
+      {
+        "id": "q19",
+        "source_id": "m20",
+        "description": "Service cardinality",
+        "p50_ms": 625.776935,
+        "p95_ms": 688.760464,
+        "p99_ms": 688.760464,
+        "result_series": 1,
+        "status": "pass"
+      }
+    ]
+  },
+  "tenancy": {
+    "tests": [
+      {
+        "name": "cross_tenant_logs",
+        "sql": "SELECT count() FROM otel_logs WHERE tenant_id = 'tenant-1'",
+        "want": "0",
+        "exit_code": 0,
+        "output": "0",
+        "status": "pass"
+      },
+      {
+        "name": "cross_tenant_traces",
+        "sql": "SELECT count() FROM otel_traces WHERE tenant_id = 'tenant-1'",
+        "want": "0",
+        "exit_code": 0,
+        "output": "0",
+        "status": "pass"
+      },
+      {
+        "name": "subquery_bypass",
+        "sql": "SELECT count() FROM (SELECT * FROM otel_logs) WHERE tenant_id = 'tenant-1'",
+        "want": "0",
+        "exit_code": 0,
+        "output": "0",
+        "status": "pass"
+      },
+      {
+        "name": "or_bypass",
+        "sql": "SELECT countIf(tenant_id = 'tenant-1') FROM otel_logs WHERE tenant_id = 'tenant-1' OR 1 = 1",
+        "want": "0",
+        "exit_code": 0,
+        "output": "0",
+        "status": "pass"
+      },
+      {
+        "name": "join_bypass",
+        "sql": "SELECT countIf(a.tenant_id = 'tenant-1' OR b.tenant_id = 'tenant-1') FROM (SELECT tenant_id, event_id FROM otel_logs LIMIT 100000) AS a JOIN (SELECT tenant_id, event_id FROM otel_logs LIMIT 100000) AS b ON a.event_id = b.event_id",
+        "want": "0",
+        "exit_code": 0,
+        "output": "0",
+        "status": "pass"
+      },
+      {
+        "name": "url_function",
+        "sql": "SELECT * FROM url('http://127.0.0.1:1/x', 'CSV', 'a String') LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON URL. (ACCESS_DENIE",
+        "status": "pass"
+      },
+      {
+        "name": "file_function",
+        "sql": "SELECT * FROM file('x.csv', 'CSV', 'a String') LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON FILE. (ACCESS_DENI",
+        "status": "pass"
+      },
+      {
+        "name": "s3_function",
+        "sql": "SELECT * FROM s3('https://bucket.s3.amazonaws.com/key', 'CSV', 'a String') LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON S3. (ACCESS_DENIED",
+        "status": "pass"
+      },
+      {
+        "name": "remote_function",
+        "sql": "SELECT * FROM remote('127.0.0.1', 'system', 'one') LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON REMOTE. (ACCESS_DE",
+        "status": "pass"
+      },
+      {
+        "name": "mysql_function",
+        "sql": "SELECT * FROM mysql('127.0.0.1:3306', 'db', 't', 'u', 'p') LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON MYSQL. (ACCESS_DEN",
+        "status": "pass"
+      },
+      {
+        "name": "postgresql_function",
+        "sql": "SELECT * FROM postgresql('127.0.0.1:5432', 'db', 't', 'u', 'p') LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON POSTGRES. (ACCESS_",
+        "status": "pass"
+      },
+      {
+        "name": "system_users",
+        "sql": "SELECT * FROM system.users LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant SELECT ON system.users. (A",
+        "status": "pass"
+      },
+      {
+        "name": "system_processes",
+        "sql": "SELECT * FROM system.processes LIMIT 1",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant SELECT ON system.processes",
+        "status": "pass"
+      },
+      {
+        "name": "write_attempt",
+        "sql": "INSERT INTO otel_logs (tenant_id, project_id, timestamp, ingested_at, observed_timestamp, severity, severity_number, service_name, body, attributes, resource_attributes, trace_id, span_id, event_id) VALUES ('tenant-0', 'project-0', now64(9), now64(9), now64(9), 'INFO', 9, 'checkout', 'x', map(), map(), 't', 's', 'e')",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant INSERT(tenant_id, project_",
+        "status": "pass"
+      },
+      {
+        "name": "ddl_attempt",
+        "sql": "ALTER TABLE otel_logs ADD COLUMN should_fail UInt8",
+        "want": "denied",
+        "exit_code": 241,
+        "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant ALTER ADD COLUMN(should_fa",
+        "status": "pass"
+      }
+    ],
+    "all_pass": true,
+    "epoch": {
+      "epoch1_rows": 149981236,
+      "probe_epoch": 13995,
+      "probe_event": "epoch-event-13995-31031",
+      "rows_after_epoch_bump": 0,
+      "rows_after_new_epoch_row": 1,
+      "pass": true
+    },
+    "epoch_pass": true,
+    "system_tables": {
+      "secret_select_exit": 241,
+      "secret_select_output": "Received exception from server (version 26.8.36):\nCode: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant SELECT ON observaki_query_bench.secret_probe. (ACCESS_DENIED)\n(query: SELECT * FROM secret_probe)",
+      "visible_tables": "otel_logs\notel_logs_1m\notel_traces\notel_traces_1m\ntenant_scope"
+    }
+  },
+  "retention": {
+    "ttl": {
+      "rows": 6000,
+      "ages_days": [
+        6,
+        14,
+        29,
+        8,
+        16,
+        31
+      ],
+      "policies_days": [
+        7,
+        15,
+        30
+      ],
+      "survivors": "project-0\t7\t1000\nproject-1\t15\t1000\nproject-2\t30\t1000",
+      "pass": true
+    },
+    "policy_change": {
+      "rows": 10000000,
+      "before": 10000000,
+      "after": 0,
+      "mutation_ms": 493,
+      "pass": true
+    },
+    "pass": true
+  },
+  "verdict": {
+    "status": "pass",
+    "failures": "",
+    "criteria": {
+      "one_b_p95_lt_1s": true,
+      "p99_lt_2x_p95": true,
+      "tenant_isolation": true,
+      "table_functions_blocked": true,
+      "authz_epoch": true,
+      "retention_7_15_30": true,
+      "rollup_86b": true
+    }
+  },
+  "reproduction": "./bench/clickhouse/query/run.sh --logs 300000000 --traces 100000000 --chunk-rows 50000000 --runs 20 --skip-load --rollup --base \"2026-11-03 01:23:09\"",
+  "limitations": [
+    "single-node local ClickHouse, not the T1 cluster (Story 2.4 profile requires P-07)",
+    "the 1B tier is 1B events (300M logs + 100M spans + 600M metric samples), not 1B rows per signal; the 3.1/3.2 spikes already stress-tested 1B rows per signal",
+    "the 10B/7d tier is not materialized on this host; the report records a window-equivalent projection, not a raw 10B measurement",
+    "the 86B/24h tier is not materialized raw on this host; the rollup path is measured when --rollup is set, and the raw 86B scan remains a T1 gate item",
+    "the local host is smaller than the query-1b reference (16 vCPU/64 GB); the report records the real hardware",
+    "the OS page cache is warm after the warm-up run; the first (cold) run is not counted",
+    "no replication, NATS, gateway or Query Service; the tenant-scoped ClickHouse user simulates the QS row-policy backstop",
+    "the 4 MetricsQL queries use the Story 3.4 VictoriaMetrics dataset; the metrics tier is larger than the 1B mix (3.6B samples)"
+  ]
+}

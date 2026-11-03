@@ -1,0 +1,120 @@
+{
+  "name": "cross_tenant_logs",
+  "sql": "SELECT count() FROM otel_logs WHERE tenant_id = 'tenant-1'",
+  "want": "0",
+  "exit_code": 0,
+  "output": "0",
+  "status": "pass"
+}
+{
+  "name": "cross_tenant_traces",
+  "sql": "SELECT count() FROM otel_traces WHERE tenant_id = 'tenant-1'",
+  "want": "0",
+  "exit_code": 0,
+  "output": "0",
+  "status": "pass"
+}
+{
+  "name": "subquery_bypass",
+  "sql": "SELECT count() FROM (SELECT * FROM otel_logs) WHERE tenant_id = 'tenant-1'",
+  "want": "0",
+  "exit_code": 0,
+  "output": "0",
+  "status": "pass"
+}
+{
+  "name": "or_bypass",
+  "sql": "SELECT countIf(tenant_id = 'tenant-1') FROM otel_logs WHERE tenant_id = 'tenant-1' OR 1 = 1",
+  "want": "0",
+  "exit_code": 0,
+  "output": "0",
+  "status": "pass"
+}
+{
+  "name": "join_bypass",
+  "sql": "SELECT countIf(a.tenant_id = 'tenant-1' OR b.tenant_id = 'tenant-1') FROM (SELECT tenant_id, event_id FROM otel_logs LIMIT 100000) AS a JOIN (SELECT tenant_id, event_id FROM otel_logs LIMIT 100000) AS b ON a.event_id = b.event_id",
+  "want": "0",
+  "exit_code": 0,
+  "output": "0",
+  "status": "pass"
+}
+{
+  "name": "url_function",
+  "sql": "SELECT * FROM url('http://127.0.0.1:1/x', 'CSV', 'a String') LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON URL. (ACCESS_DENIE",
+  "status": "pass"
+}
+{
+  "name": "file_function",
+  "sql": "SELECT * FROM file('x.csv', 'CSV', 'a String') LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON FILE. (ACCESS_DENI",
+  "status": "pass"
+}
+{
+  "name": "s3_function",
+  "sql": "SELECT * FROM s3('https://bucket.s3.amazonaws.com/key', 'CSV', 'a String') LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON S3. (ACCESS_DENIED",
+  "status": "pass"
+}
+{
+  "name": "remote_function",
+  "sql": "SELECT * FROM remote('127.0.0.1', 'system', 'one') LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON REMOTE. (ACCESS_DE",
+  "status": "pass"
+}
+{
+  "name": "mysql_function",
+  "sql": "SELECT * FROM mysql('127.0.0.1:3306', 'db', 't', 'u', 'p') LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON MYSQL. (ACCESS_DEN",
+  "status": "pass"
+}
+{
+  "name": "postgresql_function",
+  "sql": "SELECT * FROM postgresql('127.0.0.1:5432', 'db', 't', 'u', 'p') LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant READ ON POSTGRES. (ACCESS_",
+  "status": "pass"
+}
+{
+  "name": "system_users",
+  "sql": "SELECT * FROM system.users LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant SELECT ON system.users. (A",
+  "status": "pass"
+}
+{
+  "name": "system_processes",
+  "sql": "SELECT * FROM system.processes LIMIT 1",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant SELECT ON system.processes",
+  "status": "pass"
+}
+{
+  "name": "write_attempt",
+  "sql": "INSERT INTO otel_logs (tenant_id, project_id, timestamp, ingested_at, observed_timestamp, severity, severity_number, service_name, body, attributes, resource_attributes, trace_id, span_id, event_id) VALUES ('tenant-0', 'project-0', now64(9), now64(9), now64(9), 'INFO', 9, 'checkout', 'x', map(), map(), 't', 's', 'e')",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant INSERT(tenant_id, project_",
+  "status": "pass"
+}
+{
+  "name": "ddl_attempt",
+  "sql": "ALTER TABLE otel_logs ADD COLUMN should_fail UInt8",
+  "want": "denied",
+  "exit_code": 241,
+  "output": "Received exception from server (version 26.8.36): Code: 497. DB::Exception: Received from localhost:9000. DB::Exception: obs_tenant_0: Not enough privileges. To execute this query, it's necessary to have the grant ALTER ADD COLUMN(should_fa",
+  "status": "pass"
+}

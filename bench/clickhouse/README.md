@@ -8,7 +8,8 @@ O spike de traces da Story 3.2 fica em [`traces/`](traces/README.md): schema
 `otel_traces`, busca por `trace_id`, busca por serviço/status/24 h, compressão,
 service map e correlação log↔trace. O caminho de ingestão da Story 3.3 fica em
 [`ingest/`](ingest/README.md): writer RowBinary, spool/checkpoint, dedupe por
-`event_id`, recuperação e o run local de 400k/s.
+`event_id`, recuperação e o run local de 400k/s. O spike de consulta, retenção
+e row policies da Story 3.5 fica em [`query/`](query/README.md).
 
 > **Não é evidência do G1.** O run padrão é single-node, local e usa SQL para
 > gerar o dataset; não passa pelo gateway, NATS, Query Service ou row policies.
@@ -92,10 +93,11 @@ se quiser começar do zero.
   no spike de 1B. Em volume T1 (≈25,9B logs/dia) o writer pode trocar para
   `toStartOfHour(ingested_at)` depois de uma revisão de capacidade; o `ORDER BY`
   e o TTL não mudam.
-- **TTL por linha (`retention_days`).** Um projeto de 7 dias e outro de 15 dias
+- **TTL por linha (`retention_days`).** Um projeto de 7 dias e outro de 15/30
   convivem na mesma tabela. O valor é o do momento da ingestão; mudar a política
-  afeta linhas novas e é reconciliado pelo control plane (Story 3.5). O fallback
-  de tabelas por bucket continua documentado no addendum.
+  afeta linhas novas e é reconciliado pelo control plane. A Story 3.5 validou
+  7/15/30 e escolheu TTL por linha para o MVP; o fallback de tabelas por bucket
+  continua documentado no addendum e no `docs/adr/0005-tenancy-e-retencao.md`.
 - **`ORDER BY (tenant_id, project_id, service_name, timestamp)`.** É o filtro
   mais comum do produto e o da `q03`; a janela de 1 h lê uma fatia limitada.
 - **Codecs.** `ZSTD(3)` no body/maps/IDs e `Delta(8) + ZSTD(3)` nos timestamps.
@@ -115,19 +117,72 @@ se quiser começar do zero.
   O limite local de parts é elevado para 5.000/6.000 apenas no run sem merges;
   o schema de produção não carrega esse tuning.
 
+## Story 3.5 — consulta, retenção e row policies
+
+O diretório [`query/`](query/) mede as 20 consultas de dashboard, o isolamento
+por tenant e a retenção por projeto no dataset de 1B eventos do cenário
+`query-1b` (60% métricas, 30% logs, 10% traces). O run local usa **300M logs +
+100M spans** e reaproveita as 4 consultas MetricsQL da Story 3.4; o total é
+1B eventos.
+
+| Etapa | O que faz |
+|---|---|
+| Dataset | 300M logs + 100M spans em 24 h, 2 tenants × 4 projetos × 8/9 serviços, retenção 7/15/30 |
+| Consultas | 16 SQL de [`queries/catalog.tsv`](queries/catalog.tsv) como `obs_tenant_0` (role `observaki_query`), com 1 warm-up e 20 repetições; 4 MetricsQL da Story 3.4 |
+| Isolamento | Row policies por `tenant_id` + `project_generation` + `authz_epoch`; testes de cross-tenant, subquery, `OR 1=1`, join, `url`/`file`/`s3`/`remote`/`mysql`/`postgresql`, `system.users`/`system.processes`, escrita e DDL |
+| Retenção | Probe de TTL 7/15/30 com idades 6/14/29 e 8/16/31 dias; mutação de política em 10M linhas |
+| 86B/24h | Rollups de 1 minuto (logs e traces) com as mesmas row policies; 9 consultas agregadas em 20 repetições |
+| Relatório | `report.md`, `report.json`, `query_runs.jsonl`, `rollup.json`, `tenancy.jsonl`, `epoch.json`, `retention.json` |
+
+```bash
+# smoke (≈1 min)
+make bench-clickhouse-query-check
+
+# run publicado (≈20 min de carga + consultas)
+make bench-clickhouse-query
+# ou
+./bench/clickhouse/query/run.sh --logs 300000000 --traces 100000000 \
+  --runs 20 --stop-merges --rollup \
+  --results-dir bench/clickhouse/results/2026-11-02-local-1b-mix
+
+# repetir só a medição e os rollups sobre o dataset já carregado
+./bench/clickhouse/query/run.sh --skip-load --base "2026-11-03 01:23:09" \
+  --runs 20 --rollup --results-dir bench/clickhouse/results/2026-11-02-local-1b-mix
+```
+
+**Decisão de retenção.** TTL por linha em uma tabela foi escolhido para o MVP:
+não exige roteamento por bucket, o schema é único e 7/15/30 convivem. O custo é
+o merge de TTL: uma part com retenções mistas reescreve também as linhas vivas
+quando a primeira expira. A mutação de troca de política medida em 10M linhas
+foi ~0,49 s; no T1 o custo precisa ser reavaliado. O fallback de tabelas por
+bucket 7/15/30 evita a reescrita de linhas vivas, mas triplica schema,
+roteamento e parts; por isso não é o default.
+
+**Rollups 86B/24h.** As consultas agregadas usam rollups de 1 minuto; as
+consultas pontuais/seletivas (`q03`, `q06`, `q11`, `q12`, `q13`, `q15`) ficam
+nas tabelas raw com bloom filters. O rollup de 1B tem a mesma cardinalidade do
+rollup de 86B/24h (dimensões × 1440 minutos); só os contadores escalam. O raw
+10B/86B continua sendo item do T1/G1.
+
 ## Limitações
 
-- Single-node local; sem réplica, row policies, NATS, gateway ou Query Service.
+- Single-node local; sem réplica, NATS, gateway ou Query Service. O usuário
+  `obs_tenant_0` simula o backstop de row policy do QS; o predicado injetado
+  pelo QS (AD-3/AD-17) ainda não existe.
 - Dataset gerado por SQL, não pelo caminho OTLP real.
 - A `q03` roda com cache de página quente depois do warm-up; o relatório registra
   que a primeira execução não entra na estatística.
 - O hardware local é menor que a referência `query-1b` (16 vCPU/64 GB); o
   relatório publica CPU, RAM e disco reais.
-- O run de 1B local é evidência de schema, não o número do Gate G1. O número
-  oficial continua dependendo do cluster T1 (P-07) e das Stories 3.3/4.1.
+- O run de 1B local é evidência de schema/consulta, não o número do Gate G1. O
+  número oficial continua dependendo do cluster T1 (P-07) e das Stories 4.1–4.5.
+- O tier de 10B/7d é uma projeção window-equivalent; o de 86B/24h é medido no
+  rollup, não no raw. Nenhum dos dois substitui a medição T1.
 
 ## Resultados publicados
 
 Os consolidados ficam em [`results/`](results/). O relatório de 2026-11-02 é a
 primeira execução local de 1B e está referenciado em
-[`BENCHMARKS.md`](../../BENCHMARKS.md).
+[`BENCHMARKS.md`](../../BENCHMARKS.md). O relatório de consulta/retenção/row
+policies da Story 3.5 fica em
+[`results/2026-11-02-local-1b-mix/`](results/2026-11-02-local-1b-mix/).

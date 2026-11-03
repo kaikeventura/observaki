@@ -20,6 +20,7 @@ benchmark de fornecedor não entra sem reprodução própria.
 | Schema ClickHouse de traces (1B spans, local) | ✅ publicado; 7,52x, trace lookup p95 328 ms, serviço/status p95 178 ms e correlação ok; **não é G1** |
 | Ingestão ClickHouse + dedupe (400k/s, 60 s, local) | ✅ publicado; 399.994/s, lag p95 1,4 s, 24M linhas, dedupe e recuperação ok; **não é G1** |
 | VictoriaMetrics + cardinalidade (1M séries, 1M/s, 1 h, local) | ✅ publicado; 999.738/s, p95 de carga 13 ms, 20 consultas p95 799,5 ms, drift do vizinho 4,82%; **não é G1** |
+| Consulta, retenção e row policies (1B eventos, local) | ✅ publicado; 16 consultas p95 ≤ 432 ms, 4 MetricsQL p95 799,5 ms, 7/15/30 TTL, isolamento e 86B rollup p95 ≤ 87 ms; **não é G1** |
 | Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.2–3.5/4.1–4.5 |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
@@ -326,6 +327,63 @@ O `m14` acima de 1 s é uma visão de operador cross-tenant; as 19 consultas de
 dashboard ficaram abaixo de 1 s. O baseline T1 continua bloqueado por **P-07**
 e pelas Stories 4.1/4.3/4.5.
 
+## Story 3.5 — consulta, retenção e row policies (local, 1B eventos)
+
+**O que é:** o spike da Story 3.5 em um ClickHouse 26.8 single-node local com
+o dataset de 1B eventos do cenário `query-1b` (60% métricas, 30% logs, 10%
+traces), ou seja, **300M logs + 100M spans + 600M amostras de métricas**. Mede
+as 16 consultas SQL do catálogo, as 4 consultas MetricsQL (do run da Story 3.4),
+o isolamento por tenant com row policies e `authz_epoch`, a retenção 7/15/30 e
+o tier de 86B/24h em rollups de 1 minuto. **Não é o cluster T1 e não é
+evidência do Gate G1.**
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Commit do harness | `d867eb2` + harness da Story 3.5 (working tree `dirty: true`; o commit de publicação é o desta sessão) |
+| Run (UTC) | 2026-11-03T01:23:09Z a 01:49:37Z |
+| Dataset | 300.000.000 logs + 100.000.000 spans em 24 h; 2 tenants × 4 projetos; retenção 7/15/30 |
+| Consultas | 16 SQL (q01–q15, q20) + 4 MetricsQL (q16–q19); 20 execuções + 1 warm-up por consulta |
+| Isolamento | 15 testes de cross-tenant, subquery, `OR 1=1`, join, table functions, system tables, escrita/DDL e epoch |
+| Rollup 86B | 1 minuto; 9 consultas agregadas; mesmas row policies |
+| Hardware | `kabuntu-zenbook`, 22 CPUs, 15,0 GiB de RAM; ClickHouse 26.8.36.3 |
+| Artefatos | [`report.md`](bench/clickhouse/results/2026-11-02-local-1b-mix/report.md), [`report.json`](bench/clickhouse/results/2026-11-02-local-1b-mix/report.json), [`handoff`](docs/dev/story-3.5-handoff.md) |
+
+### Resultados
+
+| Métrica | Valor |
+|---|---:|
+| Logs comprimidos | 23,52 GiB (7,51x; 84,2 B/linha) |
+| Spans comprimidos | 5,67 GiB (7,74x; 60,9 B/linha) |
+| 16 consultas SQL p95 máximo | **431,94 ms** (q05; alvo < 1.000 ms) |
+| 16 consultas SQL p99 máximo | 448,42 ms (q05; alvo < 2x p95) |
+| 4 consultas MetricsQL p95 | **799,50 ms** (alvo < 1.000 ms) |
+| Testes de isolamento | 15/15 pass; cross-tenant 0 linhas |
+| Epoch (`authz_epoch`) | linhas antigas invisíveis; linha nova visível; pass |
+| TTL 7/15/30 | 1.000 linhas sobreviventes por projeto; pass |
+| Mutação de política (10M linhas) | **493 ms**; 10.000.000 → 0 após expirar |
+| 10B/7d (projeção window-equivalent) | **617,06 ms** (alvo < 3.000 ms) |
+| 86B/24h rollup (9 consultas) | p95 máximo **87,14 ms** (q07; alvo < 3.000 ms) |
+
+### Veredito
+
+**Pass local para o spike de consulta/retenção/isolamento.** O dataset de 1B
+eventos manteve as 16 consultas SQL com p95 máximo de **431,94 ms** e p99
+abaixo de 2x o p95; as 4 consultas MetricsQL da Story 3.4 ficaram em **799,50
+ms** de p95. As row policies isolaram os tenants em todos os 15 testes,
+incluindo subquery, `OR 1=1`, join e table functions perigosas; o bump de
+`authz_epoch` invalidou as linhas antigas. O TTL 7/15/30 expirou cada projeto
+conforme a política e a mutação de troca de política em 10M linhas levou
+**493 ms**. O tier de 86B/24h foi medido no rollup de 1 minuto (9 consultas,
+p95 máximo **87,14 ms**); o de 10B/7d é uma projeção window-equivalent
+(**617,06 ms**), não uma medição raw.
+
+**Não é o G1.** O raw 10B/86B não foi materializado; o host tem 15 GiB de RAM e
+~143 GiB livres. O Query Service, o gateway e o vmauth continuam pendentes das
+Stories 4.1–4.5. O baseline T1 continua bloqueado por **P-07** e pelas Stories
+4.1–4.5.
+
 ## Cluster de referência T1 (pendente)
 
 O perfil está em [`bench/env/t1.json`](bench/env/t1.json) e a documentação de
@@ -413,7 +471,10 @@ sem cluster com `--dry-run`.
 4. **VictoriaMetrics e cardinalidade (Story 3.4)** validadas localmente
    (1M séries, 1M/s, p95 799,5 ms, drift 4,82%); falta o RED do gateway
    (AD-21) e o vmauth no cluster T1.
-5. **Query Service (Story 3.5)** para as 20 consultas de dashboard.
+5. **Query Service (Fase 1/Story 5.5)** para executar as 20 consultas via
+   contexto assinado; o catálogo SQL e as latências locais foram validados na
+   Story 3.5, mas o QS não existe. O raw 10B/86B também continua pendente: o
+   tier de 10B/7d é uma projeção e o de 86B/24h foi medido no rollup.
 6. **Automação de caos (Story 4.5)** para o teste de falha e DLQ.
 7. **Validação do protocolo de rampa no cluster:** o `baseline.sh` executa fases
    separadas de taxa constante; a rampa contínua dentro de uma única execução

@@ -1,0 +1,59 @@
+{
+  "status": "pass",
+  "source": "bench/victoriametrics/results/2026-11-02-local-1m-1h/report.json",
+  "dataset": {
+    "series": 1000000,
+    "samples_per_second": 1000000,
+    "duration": "1h"
+  },
+  "runs": 5,
+  "overall_latency_ms": {
+    "count": 100,
+    "p50_ms": 573.94889,
+    "p95_ms": 799.501642,
+    "p99_ms": 1216.707693,
+    "max_ms": 1305.188152
+  },
+  "queries": [
+    {
+      "id": "q16",
+      "source_id": "m01",
+      "description": "Request rate by service",
+      "p50_ms": 616.716225,
+      "p95_ms": 757.04204,
+      "p99_ms": 757.04204,
+      "result_series": 200,
+      "status": "pass"
+    },
+    {
+      "id": "q17",
+      "source_id": "m05",
+      "description": "Error ratio by service",
+      "p50_ms": 782.218104,
+      "p95_ms": 799.501642,
+      "p99_ms": 799.501642,
+      "result_series": 200,
+      "status": "pass"
+    },
+    {
+      "id": "q18",
+      "source_id": "m06",
+      "description": "p95 latency from histogram buckets",
+      "p50_ms": 485.924994,
+      "p95_ms": 659.670864,
+      "p99_ms": 659.670864,
+      "result_series": 1,
+      "status": "pass"
+    },
+    {
+      "id": "q19",
+      "source_id": "m20",
+      "description": "Service cardinality",
+      "p50_ms": 625.776935,
+      "p95_ms": 688.760464,
+      "p99_ms": 688.760464,
+      "result_series": 1,
+      "status": "pass"
+    }
+  ]
+}

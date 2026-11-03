@@ -1,0 +1,28 @@
+{
+  "ttl": {
+    "rows": 6000,
+    "ages_days": [
+      6,
+      14,
+      29,
+      8,
+      16,
+      31
+    ],
+    "policies_days": [
+      7,
+      15,
+      30
+    ],
+    "survivors": "project-0\t7\t1000\nproject-1\t15\t1000\nproject-2\t30\t1000",
+    "pass": true
+  },
+  "policy_change": {
+    "rows": 10000000,
+    "before": 10000000,
+    "after": 0,
+    "mutation_ms": 493,
+    "pass": true
+  },
+  "pass": true
+}

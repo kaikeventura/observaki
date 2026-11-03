@@ -1,0 +1,159 @@
+[01:23:09] Story 3.5 ClickHouse query/retention/tenancy spike
+[01:23:09] logs=300000000 traces=100000000 chunk_rows=50000000 runs=20 base=2026-11-03 01:23:09
+[01:23:09] container=observaki-ch35 image=clickhouse/clickhouse-server:26.8 data_dir=/tmp/opencode/observaki-ch35 results=bench/clickhouse/results/2026-11-02-local-1b-mix
+[01:23:11] stopping background merges for the benchmark tables (local disk bound)
+[01:23:11] creating a fresh otel_logs table
+[01:23:12] stopping background merges for the benchmark tables (local disk bound)
+[01:25:22] loaded 50000000/300000000 rows into otel_logs (chunk 50000000 in 130s, free 137.9 GiB)
+[01:27:33] loaded 100000000/300000000 rows into otel_logs (chunk 50000000 in 131s, free 133.5 GiB)
+[01:29:44] loaded 150000000/300000000 rows into otel_logs (chunk 50000000 in 131s, free 129.3 GiB)
+[01:31:52] loaded 200000000/300000000 rows into otel_logs (chunk 50000000 in 128s, free 125.0 GiB)
+[01:34:07] loaded 250000000/300000000 rows into otel_logs (chunk 50000000 in 135s, free 120.8 GiB)
+[01:36:22] loaded 300000000/300000000 rows into otel_logs (chunk 50000000 in 135s, free 116.5 GiB)
+[01:36:22] creating a fresh otel_traces table
+[01:36:23] stopping background merges for the benchmark tables (local disk bound)
+[01:38:12] loaded 50000000/100000000 rows into otel_traces (chunk 50000000 in 109s, free 113.4 GiB)
+[01:40:08] loaded 100000000/100000000 rows into otel_traces (chunk 50000000 in 116s, free 108.9 GiB)
+[01:40:08] storage otel_logs: rows=300000000 parts=661 compressed=25259249541 uncompressed=189593984105 ratio=7.51x bytes_per_row=84.2
+[01:40:09] storage otel_traces: rows=100000000 parts=171 compressed=6088644838 uncompressed=47124273265 ratio=7.74x bytes_per_row=60.9
+[01:40:09] provisioning tenant-scoped ClickHouse users (row policy backstop)
+[01:40:09] trace lookup target: trace_id=956e8070579d1de26a01230c0daeed42 log_trace_id=96FE9A9497EAC2B4123DE7B960AA2D7E
+[01:40:09] warm-up q01
+[01:40:13] measured 20 runs for q01
+[01:40:13] warm-up q02
+[01:40:20] measured 20 runs for q02
+[01:40:20] warm-up q03
+[01:40:26] measured 20 runs for q03
+[01:40:26] warm-up q04
+[01:40:32] measured 20 runs for q04
+[01:40:32] warm-up q05
+[01:40:42] measured 20 runs for q05
+[01:40:42] warm-up q06
+[01:40:46] measured 20 runs for q06
+[01:40:46] warm-up q07
+[01:40:53] measured 20 runs for q07
+[01:40:53] warm-up q08
+[01:40:56] measured 20 runs for q08
+[01:40:56] warm-up q09
+[01:41:01] measured 20 runs for q09
+[01:41:01] warm-up q10
+[01:41:04] measured 20 runs for q10
+[01:41:04] warm-up q11
+[01:41:07] measured 20 runs for q11
+[01:41:07] warm-up q12
+[01:41:11] measured 20 runs for q12
+[01:41:11] warm-up q13
+[01:41:18] measured 20 runs for q13
+[01:41:18] warm-up q14
+[01:41:24] measured 20 runs for q14
+[01:41:24] warm-up q15
+[01:41:27] measured 20 runs for q15
+[01:41:27] warm-up q20
+[01:41:31] measured 20 runs for q20
+[01:41:31] tenancy cross_tenant_logs: pass (exit 0)
+[01:41:31] tenancy cross_tenant_traces: pass (exit 0)
+[01:41:31] tenancy subquery_bypass: pass (exit 0)
+[01:41:31] tenancy or_bypass: pass (exit 0)
+[01:41:31] tenancy join_bypass: pass (exit 0)
+[01:41:31] tenancy url_function: pass (exit 241)
+[01:41:31] tenancy file_function: pass (exit 241)
+[01:41:32] tenancy s3_function: pass (exit 241)
+[01:41:32] tenancy remote_function: pass (exit 241)
+[01:41:32] tenancy mysql_function: pass (exit 241)
+[01:41:32] tenancy postgresql_function: pass (exit 241)
+[01:41:32] tenancy system_users: pass (exit 241)
+[01:41:32] tenancy system_processes: pass (exit 241)
+[01:41:32] tenancy write_attempt: pass (exit 241)
+[01:41:32] tenancy ddl_attempt: pass (exit 241)
+[01:41:34] retention: 7/15/30-day TTL with mixed ages
+[01:41:34] retention survivors: project-0	7	1000;project-1	15	1000;project-2	30	1000
+[01:41:34] retention: policy change mutation on 10000000 rows
+[01:41:37] retention mutation: before=10000000 after=0 elapsed=0.550s
+[01:41:37] recording the 4 MetricsQL dashboard queries from the Story 3.4 published run
+[01:41:37] report: bench/clickhouse/results/2026-11-02-local-1b-mix/report.md
+[01:41:37] json:   bench/clickhouse/results/2026-11-02-local-1b-mix/report.json
+[01:47:29] Story 3.5 ClickHouse query/retention/tenancy spike
+[01:47:29] logs=300000000 traces=100000000 chunk_rows=50000000 runs=20 base=2026-11-03 01:23:09
+[01:47:29] container=observaki-ch35 image=clickhouse/clickhouse-server:26.8 data_dir=/tmp/opencode/observaki-ch35 results=bench/clickhouse/results/2026-11-02-local-1b-mix
+[01:47:30] skipping load; measuring the existing otel_logs table
+[01:47:30] skipping load; measuring the existing otel_traces table
+[01:47:30] storage otel_logs: rows=300000005 parts=666 compressed=25259253846 uncompressed=189593985675 ratio=7.51x bytes_per_row=84.2
+[01:47:31] storage otel_traces: rows=100000000 parts=171 compressed=6088644838 uncompressed=47124273265 ratio=7.74x bytes_per_row=60.9
+[01:47:31] provisioning tenant-scoped ClickHouse users (row policy backstop)
+[01:47:31] trace lookup target: trace_id=956e8070579d1de26a01230c0daeed42 log_trace_id=D4D720776131809965C6588086425599
+[01:47:31] warm-up q01
+[01:47:36] measured 20 runs for q01
+[01:47:36] warm-up q02
+[01:47:43] measured 20 runs for q02
+[01:47:43] warm-up q03
+[01:47:49] measured 20 runs for q03
+[01:47:49] warm-up q04
+[01:47:56] measured 20 runs for q04
+[01:47:56] warm-up q05
+[01:48:07] measured 20 runs for q05
+[01:48:07] warm-up q06
+[01:48:11] measured 20 runs for q06
+[01:48:11] warm-up q07
+[01:48:17] measured 20 runs for q07
+[01:48:17] warm-up q08
+[01:48:21] measured 20 runs for q08
+[01:48:21] warm-up q09
+[01:48:25] measured 20 runs for q09
+[01:48:25] warm-up q10
+[01:48:28] measured 20 runs for q10
+[01:48:28] warm-up q11
+[01:48:30] measured 20 runs for q11
+[01:48:30] warm-up q12
+[01:48:33] measured 20 runs for q12
+[01:48:33] warm-up q13
+[01:48:39] measured 20 runs for q13
+[01:48:39] warm-up q14
+[01:48:45] measured 20 runs for q14
+[01:48:45] warm-up q15
+[01:48:48] measured 20 runs for q15
+[01:48:48] warm-up q20
+[01:48:51] measured 20 runs for q20
+[01:48:51] tenancy cross_tenant_logs: pass (exit 0)
+[01:48:51] tenancy cross_tenant_traces: pass (exit 0)
+[01:48:51] tenancy subquery_bypass: pass (exit 0)
+[01:48:52] tenancy or_bypass: pass (exit 0)
+[01:48:52] tenancy join_bypass: pass (exit 0)
+[01:48:52] tenancy url_function: pass (exit 241)
+[01:48:52] tenancy file_function: pass (exit 241)
+[01:48:52] tenancy s3_function: pass (exit 241)
+[01:48:52] tenancy remote_function: pass (exit 241)
+[01:48:52] tenancy mysql_function: pass (exit 241)
+[01:48:52] tenancy postgresql_function: pass (exit 241)
+[01:48:53] tenancy system_users: pass (exit 241)
+[01:48:53] tenancy system_processes: pass (exit 241)
+[01:48:53] tenancy write_attempt: pass (exit 241)
+[01:48:53] tenancy ddl_attempt: pass (exit 241)
+[01:48:55] retention: 7/15/30-day TTL with mixed ages
+[01:48:55] retention survivors: project-0	7	1000;project-1	15	1000;project-2	30	1000
+[01:48:55] retention: policy change mutation on 10000000 rows
+[01:48:57] retention mutation: before=10000000 after=0 elapsed=0.493s
+[01:48:58] building 1m rollups for the 86B/24h tier
+[01:49:14] rollup rows: logs=276678 traces=115280
+[01:49:14] rollup cross-tenant rows: 0
+[01:49:14] warm-up q01
+[01:49:16] measured 20 runs for q01
+[01:49:16] warm-up q02
+[01:49:18] measured 20 runs for q02
+[01:49:18] warm-up q04
+[01:49:20] measured 20 runs for q04
+[01:49:20] warm-up q07
+[01:49:24] measured 20 runs for q07
+[01:49:24] warm-up q08
+[01:49:27] measured 20 runs for q08
+[01:49:27] warm-up q09
+[01:49:29] measured 20 runs for q09
+[01:49:29] warm-up q10
+[01:49:31] measured 20 runs for q10
+[01:49:31] warm-up q14
+[01:49:33] measured 20 runs for q14
+[01:49:33] warm-up q20
+[01:49:37] measured 20 runs for q20
+[01:49:37] rollup verdict: pass
+[01:49:37] recording the 4 MetricsQL dashboard queries from the Story 3.4 published run
+[01:49:37] report: bench/clickhouse/results/2026-11-02-local-1b-mix/report.md
+[01:49:37] json:   bench/clickhouse/results/2026-11-02-local-1b-mix/report.json

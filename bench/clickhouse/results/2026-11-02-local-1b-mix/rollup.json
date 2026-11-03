@@ -1,0 +1,84 @@
+{
+  "status": "pass",
+  "scale": 86,
+  "dataset": "86B/24h rollup-equivalent (same rollup cardinality; counters scale 86x)",
+  "logs_rollup_rows": 276678,
+  "traces_rollup_rows": 115280,
+  "cross_tenant_rows": "0",
+  "queries": [
+    {
+      "id": "q01",
+      "runs": 20,
+      "p50_ms": 6.8033909999999995,
+      "p95_ms": 10.183467,
+      "p99_ms": 14.537085999999999,
+      "returned_mean": 40
+    },
+    {
+      "id": "q02",
+      "runs": 20,
+      "p50_ms": 7.519298,
+      "p95_ms": 8.116432999999999,
+      "p99_ms": 8.436571,
+      "returned_mean": 8
+    },
+    {
+      "id": "q04",
+      "runs": 20,
+      "p50_ms": 7.349105,
+      "p95_ms": 14.510708000000001,
+      "p99_ms": 17.377126999999998,
+      "returned_mean": 8
+    },
+    {
+      "id": "q07",
+      "runs": 20,
+      "p50_ms": 77.68936599999999,
+      "p95_ms": 87.13906300000001,
+      "p99_ms": 87.97162999999999,
+      "returned_mean": 9
+    },
+    {
+      "id": "q08",
+      "runs": 20,
+      "p50_ms": 41.43921099999999,
+      "p95_ms": 48.488168,
+      "p99_ms": 51.339199,
+      "returned_mean": 1
+    },
+    {
+      "id": "q09",
+      "runs": 20,
+      "p50_ms": 7.849065,
+      "p95_ms": 8.795735,
+      "p99_ms": 9.966323,
+      "returned_mean": 9
+    },
+    {
+      "id": "q10",
+      "runs": 20,
+      "p50_ms": 6.359904,
+      "p95_ms": 7.399402,
+      "p99_ms": 8.552109,
+      "returned_mean": 2
+    },
+    {
+      "id": "q14",
+      "runs": 20,
+      "p50_ms": 8.248152,
+      "p95_ms": 9.23403,
+      "p99_ms": 10.014804,
+      "returned_mean": 9
+    },
+    {
+      "id": "q20",
+      "runs": 20,
+      "p50_ms": 66.22083199999999,
+      "p95_ms": 80.434805,
+      "p99_ms": 90.711257,
+      "returned_mean": 45
+    }
+  ],
+  "failures": "",
+  "pass": true
+}
