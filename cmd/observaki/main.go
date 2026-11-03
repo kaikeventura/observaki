@@ -70,6 +70,10 @@ func gateway() error {
 		return err
 	}
 
+	if cfg.Environment == config.EnvironmentProduction {
+		return errors.New("otlp gateway: the discard sink is not durable; production requires the WAL from Story 4.3")
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel.SlogLevel(),
 	}))

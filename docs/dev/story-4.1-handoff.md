@@ -129,7 +129,9 @@ make build
 - **Sem auth/tenant (Story 4.2):** `Batch.TenantID`/`ProjectID` ficam vazios;
   nenhum token é validado. Não usar fora de desenvolvimento.
 - **Sem WAL/durabilidade (Story 4.3):** o sink é `DiscardSink`; o ACK não
-  significa persistência. O warning aparece no startup. O WAL NATS, dedupe por
+  significa persistência. O warning aparece no startup. Em
+  `OBSERVAKI_ENV=production`, o comando `gateway` recusa iniciar com o
+  `DiscardSink` (fail-closed) até a Story 4.3. O WAL NATS, dedupe por
   `event_id`, DLQ e backpressure 429 entram na 4.3.
 - **Sem writers, RED ou cardinalidade (Stories 4.4 e AD-33):** o gateway não
   calcula span metrics/RED e não grava em ClickHouse/VictoriaMetrics.
