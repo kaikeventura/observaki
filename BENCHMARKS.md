@@ -21,6 +21,7 @@ benchmark de fornecedor não entra sem reprodução própria.
 | Ingestão ClickHouse + dedupe (400k/s, 60 s, local) | ✅ publicado; 399.994/s, lag p95 1,4 s, 24M linhas, dedupe e recuperação ok; **não é G1** |
 | VictoriaMetrics + cardinalidade (1M séries, 1M/s, 1 h, local) | ✅ publicado; 999.738/s, p95 de carga 13 ms, 20 consultas p95 799,5 ms, drift do vizinho 4,82%; **não é G1** |
 | Consulta, retenção e row policies (1B eventos, local) | ✅ publicado; 16 consultas p95 ≤ 432 ms, 4 MetricsQL p95 799,5 ms, 7/15/30 TTL, isolamento e 86B rollup p95 ≤ 87 ms; **não é G1** |
+| Gateway: auth, quota e isolamento (local, 1M/s ofertado) | ⚠️ funcional pass (26.703 requests 429, 401/403/audit); p95 local +15,13% (inconclusivo por host compartilhado); T1 pendente |
 | Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.2–3.5/4.1–4.5 |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
@@ -383,6 +384,60 @@ p95 máximo **87,14 ms**); o de 10B/7d é uma projeção window-equivalent
 ~143 GiB livres. O Query Service, o gateway e o vmauth continuam pendentes das
 Stories 4.1–4.5. O baseline T1 continua bloqueado por **P-07** e pelas Stories
 4.1–4.5.
+
+## Story 4.2 — auth, quota e isolamento do gateway (local)
+
+**O que é:** um gateway local com dois tenants, tokens de projeto e quotas
+independentes. O tenant quieto envia 50k eventos/s (logs); o barulhento oferece
+1M eventos/s contra uma quota de 100k/s. O harness mede o p95 ponta a ponta e o
+p95 de processamento do gateway por tenant, em 3 repetições. **Não usa WAL,
+armazenamento ou Query Service** e não é evidência do G1.
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Story | 4.2 — Auth por tenant, quotas e rate limiting |
+| Commit | a registrar no commit final desta sessão |
+| Harness | `bench/gateway/quota/run.sh --small-payload` |
+| Payload | 0 B métrica, 64 B log, 0 B trace |
+| Compressão | quiet gzip; barulhento none |
+| Duração | 10 s por fase × 3 repetições; mediana |
+| Host | Intel Core Ultra 7 155H, 22 threads, 15 GiB RAM |
+| Data | 2026-11-03 |
+
+### Resultados
+
+| Métrica | Valor |
+|---|---|
+| Quota do tenant barulhento | 100.000 eventos/s |
+| Tenant quieto | 50.000 eventos/s |
+| Tenant barulhento ofertado | 1.000.000 eventos/s |
+| Requests 429 | 26.703 |
+| p95 de processamento do gateway, quieto sozinho | 5,461 ms |
+| p95 de processamento do gateway, quieto sob carga | 6,287 ms |
+| Variação do p95 de processamento | **+15,13%** |
+| p95 cliente, quieto sozinho | 10,535 ms |
+| p95 cliente, quieto sob carga | 11,610 ms |
+| Variação do p95 cliente | **+10,20%** |
+| Run de smoke (100k/s ofertado, 10k/s quota) | **+5,11%** no p95 do gateway |
+
+### Veredito
+
+**Pass funcional; isolamento local inconclusivo.** O gateway devolveu 429 com
+`Retry-After` para 26.703 requests do tenant barulhento, o tenant quieto não
+teve erros e os buckets são independentes; 401/403/audit também foram
+exercitados no `make smoke`. O p95 local de 15,13% (gateway) e 10,20%
+(cliente) ficou acima do limite de 10%, mas o gateway e os dois geradores de
+carga compartilham o mesmo host: a 1M/s o gerador barulhento satura CPU e banda
+de memória, o que contamina a comparação. O run com payload pequeno foi
+necessário para o host sustentar 1M/s; com o payload de referência o gerador
+não passa de ~640k/s com gzip.
+
+**A medição de aceite (`<10%`) fica para o T1**, com load generators em hosts
+separados, e continua bloqueada por **P-07** e pelas Stories 4.3–4.5. O veredito
+funcional e a pré-admissão antes do decode estão registrados em
+[`docs/dev/story-4.2-handoff.md`](docs/dev/story-4.2-handoff.md).
 
 ## Cluster de referência T1 (pendente)
 

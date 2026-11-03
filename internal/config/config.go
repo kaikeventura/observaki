@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Environment variable names.
@@ -24,6 +25,10 @@ const (
 	EnvOTLPHTTPAddr          = "OBSERVAKI_OTLP_HTTP_ADDR"
 	EnvIngestMaxRequestBytes = "OBSERVAKI_INGEST_MAX_REQUEST_BYTES"
 	EnvIngestMaxEvents       = "OBSERVAKI_INGEST_MAX_EVENTS"
+	EnvIngestAuthFile        = "OBSERVAKI_INGEST_AUTH_FILE"
+	EnvIngestAuthPublicKey   = "OBSERVAKI_INGEST_AUTH_PUBLIC_KEY"
+	EnvIngestAuthReload      = "OBSERVAKI_INGEST_AUTH_RELOAD_INTERVAL"
+	EnvIngestAuditFile       = "OBSERVAKI_INGEST_AUDIT_FILE"
 	EnvRedactKeys            = "OBSERVAKI_REDACT_ATTRIBUTE_KEYS"
 	EnvRedactMask            = "OBSERVAKI_REDACT_MASK"
 )
@@ -43,6 +48,9 @@ const (
 	DefaultIngestMaxRequestBytes int64 = 10 << 20
 	// DefaultIngestMaxEvents is the OTLP batch event limit.
 	DefaultIngestMaxEvents = 10_000
+	// DefaultIngestAuthReload is how often the gateway re-reads the auth
+	// snapshot.
+	DefaultIngestAuthReload = 30 * time.Second
 
 	DefaultRedactMask = "[REDACTED]"
 	// DefaultRedactKeys masks credit-card fields in attributes.
@@ -97,6 +105,10 @@ type Config struct {
 	OTLPHTTPAddr          string
 	IngestMaxRequestBytes int64
 	IngestMaxEvents       int
+	IngestAuthFile        string
+	IngestAuthPublicKey   string
+	IngestAuthReload      time.Duration
+	IngestAuditFile       string
 	RedactKeys            []string
 	RedactMask            string
 }
@@ -124,9 +136,12 @@ func Load(lookup Lookup) (Config, error) {
 		DatabaseURL: strings.TrimSpace(lookup(EnvDatabaseURL)),
 		WebDir:      strings.TrimSpace(valueOr(lookup(EnvWebDir), DefaultWebDir)),
 
-		OTLPGRPCAddr: valueOr(lookup(EnvOTLPGRPCAddr), DefaultOTLPGRPCAddr),
-		OTLPHTTPAddr: valueOr(lookup(EnvOTLPHTTPAddr), DefaultOTLPHTTPAddr),
-		RedactMask:   valueOr(lookup(EnvRedactMask), DefaultRedactMask),
+		OTLPGRPCAddr:        valueOr(lookup(EnvOTLPGRPCAddr), DefaultOTLPGRPCAddr),
+		OTLPHTTPAddr:        valueOr(lookup(EnvOTLPHTTPAddr), DefaultOTLPHTTPAddr),
+		IngestAuthFile:      strings.TrimSpace(lookup(EnvIngestAuthFile)),
+		IngestAuthPublicKey: strings.TrimSpace(lookup(EnvIngestAuthPublicKey)),
+		IngestAuditFile:     strings.TrimSpace(lookup(EnvIngestAuditFile)),
+		RedactMask:          valueOr(lookup(EnvRedactMask), DefaultRedactMask),
 	}
 
 	var err error
@@ -135,6 +150,10 @@ func Load(lookup Lookup) (Config, error) {
 		return Config{}, err
 	}
 	cfg.IngestMaxEvents, err = intValue(lookup, EnvIngestMaxEvents, DefaultIngestMaxEvents)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.IngestAuthReload, err = durationValue(lookup, EnvIngestAuthReload, DefaultIngestAuthReload)
 	if err != nil {
 		return Config{}, err
 	}
@@ -197,6 +216,9 @@ func (c Config) Validate() error {
 	if c.IngestMaxEvents < 1 || c.IngestMaxEvents > 10_000_000 {
 		return fmt.Errorf("invalid %s %d: must be between 1 and 10000000", EnvIngestMaxEvents, c.IngestMaxEvents)
 	}
+	if c.IngestAuthReload < time.Second || c.IngestAuthReload > time.Hour {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 1h", EnvIngestAuthReload, c.IngestAuthReload)
+	}
 	if strings.TrimSpace(c.RedactMask) == "" {
 		return fmt.Errorf("invalid %s: must not be empty", EnvRedactMask)
 	}
@@ -225,6 +247,18 @@ func intValue(lookup Lookup, key string, fallback int) (int, error) {
 		return fallback, nil
 	}
 	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s %q: %w", key, raw, err)
+	}
+	return value, nil
+}
+
+func durationValue(lookup Lookup, key string, fallback time.Duration) (time.Duration, error) {
+	raw := strings.TrimSpace(lookup(key))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := time.ParseDuration(raw)
 	if err != nil {
 		return 0, fmt.Errorf("invalid %s %q: %w", key, raw, err)
 	}

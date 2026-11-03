@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
 	logscollectorpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -33,6 +34,12 @@ func TestHTTPSenderExportsLogs(t *testing.T) {
 		}
 		if got := r.Header.Get("Content-Encoding"); got != "gzip" {
 			t.Errorf("Content-Encoding = %q, want gzip", got)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
+			t.Errorf("Authorization = %q, want the configured header", got)
+		}
+		if got := r.Header.Get("X-Observaki-Project-Id"); got != "project-a" {
+			t.Errorf("X-Observaki-Project-Id = %q, want project-a", got)
 		}
 
 		reader, err := gzip.NewReader(r.Body)
@@ -73,6 +80,10 @@ func TestHTTPSenderExportsLogs(t *testing.T) {
 	cfg.Endpoint = server.URL
 	cfg.Compression = CompressionGzip
 	cfg.RequestTimeout = 5 * time.Second
+	cfg.Headers = map[string]string{
+		"Authorization":          "Bearer test-token",
+		"X-Observaki-Project-Id": "project-a",
+	}
 
 	sender, err := NewSender(cfg)
 	if err != nil {
@@ -265,5 +276,67 @@ func TestGRPCSenderExportsAllSignals(t *testing.T) {
 	}
 	if tracesResult.Rejected != 3 {
 		t.Fatalf("traces rejected = %d, want 3", tracesResult.Rejected)
+	}
+}
+
+type headerLogsServer struct {
+	logscollectorpb.UnimplementedLogsServiceServer
+	received chan string
+}
+
+func (s *headerLogsServer) Export(ctx context.Context, request *logscollectorpb.ExportLogsServiceRequest) (*logscollectorpb.ExportLogsServiceResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	values := md.Get("authorization")
+	value := ""
+	if len(values) > 0 {
+		value = values[0]
+	}
+	project := ""
+	if values := md.Get("x-observaki-project-id"); len(values) > 0 {
+		project = values[0]
+	}
+	s.received <- value + "|" + project
+	return &logscollectorpb.ExportLogsServiceResponse{}, nil
+}
+
+func TestGRPCSenderSendsMetadata(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	received := make(chan string, 1)
+	server := grpc.NewServer()
+	logscollectorpb.RegisterLogsServiceServer(server, &headerLogsServer{received: received})
+	go func() { _ = server.Serve(listener) }()
+	defer server.Stop()
+
+	cfg := DefaultConfig()
+	cfg.Endpoint = listener.Addr().String()
+	cfg.Protocol = ProtocolGRPC
+	cfg.Compression = CompressionNone
+	cfg.RequestTimeout = 5 * time.Second
+	cfg.Headers = map[string]string{
+		"Authorization":          "Bearer test-token",
+		"X-Observaki-Project-Id": "project-a",
+	}
+
+	sender, err := NewSender(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = sender.Close() }()
+	builder, err := NewBuilder(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batch, err := builder.BuildBatch(Logs, []int64{0})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sender.Send(context.Background(), batch); err != nil {
+		t.Fatalf("Send() = %v", err)
+	}
+	if got := <-received; got != "Bearer test-token|project-a" {
+		t.Fatalf("metadata = %q, want the configured headers", got)
 	}
 }

@@ -1,0 +1,83 @@
+{
+  "config": {
+    "endpoint": "http://127.0.0.1:18341",
+    "protocol": "http",
+    "compression": "gzip",
+    "rate": 50000,
+    "event_time_rate": 50000,
+    "duration_seconds": 10,
+    "start_time": "2026-11-03T03:05:53.841232173Z",
+    "seed": 1,
+    "batch_size": 1000,
+    "workers": 2,
+    "mix": {
+      "metrics": 0,
+      "logs": 100,
+      "traces": 0
+    },
+    "payload": {
+      "metric_padding": 0,
+      "log_body": 64,
+      "trace_padding": 0
+    }
+  },
+  "planned_events": 500000,
+  "finished_at": "2026-11-03T03:06:03.870216911Z",
+  "duration_seconds": 10.008180167,
+  "metrics": {
+    "started_at": "2026-11-03T03:05:53.862036744Z",
+    "elapsed_seconds": 10.008181424,
+    "target_rate": 50000,
+    "achieved_rate": 49959.12632049025,
+    "generated": 500000,
+    "sent": 500000,
+    "failed": 0,
+    "rejected": 0,
+    "bytes": 119584000,
+    "compressed_bytes": 26677200,
+    "backpressure_events": 0,
+    "backpressure_wait_seconds": 0,
+    "pacing_lag_events": 0,
+    "latency": {
+      "count": 500,
+      "min_ms": 6.391463,
+      "mean_ms": 9.255272344,
+      "p50_ms": 9.125397,
+      "p95_ms": 11.619623,
+      "p99_ms": 12.58589,
+      "max_ms": 18.877447
+    },
+    "signals": [
+      {
+        "signal": "metrics",
+        "generated": 0,
+        "sent": 0,
+        "failed": 0,
+        "rejected": 0,
+        "requests": 0,
+        "bytes": 0,
+        "compressed_bytes": 0
+      },
+      {
+        "signal": "logs",
+        "generated": 500000,
+        "sent": 500000,
+        "failed": 0,
+        "rejected": 0,
+        "requests": 500,
+        "bytes": 119584000,
+        "compressed_bytes": 26677200
+      },
+      {
+        "signal": "traces",
+        "generated": 0,
+        "sent": 0,
+        "failed": 0,
+        "rejected": 0,
+        "requests": 0,
+        "bytes": 0,
+        "compressed_bytes": 0
+      }
+    ]
+  }
+}

@@ -38,7 +38,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -140,5 +140,11 @@ bench-victoriametrics: ## run the VictoriaMetrics spike (1M series, 1M samples/s
 
 bench-victoriametrics-check: ## run the short VictoriaMetrics smoke (100k series, 100k/s, 10s)
 	./bench/victoriametrics/run.sh --smoke --reset
+
+bench-gateway-quota: ## run the gateway quota isolation workload (100k/s quota, 1M/s noisy tenant)
+	./bench/gateway/quota/run.sh
+
+bench-gateway-quota-check: ## run the short gateway auth/quota isolation smoke
+	./bench/gateway/quota/run.sh --smoke
 
 ci: bootstrap lint test build ## run the full local CI suite

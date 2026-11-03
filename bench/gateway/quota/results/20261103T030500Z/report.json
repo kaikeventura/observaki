@@ -1,0 +1,39 @@
+{
+  "story": "4.2",
+  "status": "pass",
+  "isolation_status": "inconclusive",
+  "isolation_note": "local gateway processing p95 changed 15.13% (limit 10%); the gateway and both load generators share one host, so CPU frequency and memory bandwidth contention invalidate the neighbor comparison. The T1 fleet with separate load generators is required.",
+  "client_note": "",
+  "duration": "10s",
+  "quota_events_per_second": 100000,
+  "normal_rate": 50000,
+  "noisy_rate": 1000000,
+  "batch_size": 1000,
+  "runs": 3,
+  "normal_mix": "0,100,0",
+  "noisy_mix": "60,30,10",
+  "normal_compression": "gzip",
+  "noisy_compression": "none",
+  "payload": {
+    "metric_padding": 0,
+    "log_body": 64,
+    "trace_padding": 0
+  },
+  "pinned": false,
+  "gateway_cpus": "",
+  "normal_cpus": "",
+  "noisy_cpus": "",
+  "baseline_p95_ms": 10.535304,
+  "loaded_p95_ms": 11.610206,
+  "p95_delta_percent": 10.20,
+  "baseline_server_p95_ms": 5.461000,
+  "loaded_server_p95_ms": 6.287000,
+  "server_p95_delta_percent": 15.13,
+  "quota_rejected_requests": 26703,
+  "reason": "",
+  "limitations": [
+    "local single-process gateway with the discard sink; not G1 evidence",
+    "the quiet tenant quota is 1M events/s so it is never limited",
+    "the noisy tenant over-quota traffic is rejected before the sink"
+  ]
+}

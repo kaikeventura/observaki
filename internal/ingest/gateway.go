@@ -55,6 +55,9 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	// Redaction configures the pipeline redaction stage.
 	Redaction RedactionConfig
+	// Auth enables token authentication and per-tenant quotas. Nil disables
+	// both; the observaki gateway command always requires it.
+	Auth *AuthConfig
 	// Sink receives validated, redacted batches. Required.
 	Sink Sink
 	// Logger receives structured operational logs. Nil discards logs.
@@ -66,6 +69,7 @@ type Gateway struct {
 	cfg      Config
 	sink     Sink
 	redactor *redactor
+	auth     *Authenticator
 	logger   *slog.Logger
 	metrics  *gatewayMetrics
 	health   *health.Server
@@ -113,10 +117,23 @@ func New(cfg Config) (*Gateway, error) {
 		sink:         cfg.Sink,
 		redactor:     newRedactor(cfg.Redaction),
 		logger:       cfg.Logger,
-		metrics:      &gatewayMetrics{},
+		metrics:      &gatewayMetrics{latency: newLatencyWindows()},
 		health:       health.NewServer(),
 		grpcListener: grpcListener,
 		httpListener: httpListener,
+	}
+	if cfg.Auth != nil {
+		authCfg := *cfg.Auth
+		if authCfg.Logger == nil {
+			authCfg.Logger = cfg.Logger
+		}
+		authenticator, err := NewAuthenticator(authCfg)
+		if err != nil {
+			_ = grpcListener.Close()
+			_ = httpListener.Close()
+			return nil, err
+		}
+		g.auth = authenticator
 	}
 
 	g.grpcServer = grpc.NewServer(
@@ -135,7 +152,7 @@ func New(cfg Config) (*Gateway, error) {
 	mux.HandleFunc("/v1/metrics", g.handleMetrics)
 	mux.HandleFunc("/healthz", g.handleHealthz)
 	mux.HandleFunc("/readyz", g.handleReadyz)
-	mux.Handle("/metrics", g.metrics.handler())
+	mux.Handle("/metrics", g.handleSelfMetrics())
 	mux.HandleFunc("/", g.handleNotFound)
 
 	g.httpServer = &http.Server{
@@ -170,12 +187,16 @@ func (g *Gateway) HTTPAddr() string {
 func (g *Gateway) Run(ctx context.Context) error {
 	g.ready.Store(true)
 	g.health.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+	if g.auth != nil {
+		g.auth.Start()
+	}
 	g.logger.Info(
 		"otlp gateway listening",
 		"grpc_addr", g.GRPCAddr(),
 		"http_addr", g.HTTPAddr(),
 		"max_request_bytes", g.cfg.MaxRequestBytes,
 		"max_events", g.cfg.MaxEvents,
+		"auth_enabled", g.auth != nil,
 	)
 
 	errCh := make(chan error, 2)
@@ -241,6 +262,9 @@ func (g *Gateway) Shutdown(ctx context.Context) error {
 
 		if errors.Is(httpErr, http.ErrServerClosed) {
 			httpErr = nil
+		}
+		if g.auth != nil {
+			g.auth.Close()
 		}
 		if closer, ok := g.sink.(io.Closer); ok {
 			if err := closer.Close(); err != nil {

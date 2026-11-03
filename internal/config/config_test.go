@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func lookup(values map[string]string) Lookup {
@@ -42,6 +43,12 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.IngestMaxEvents != DefaultIngestMaxEvents {
 		t.Errorf("IngestMaxEvents = %d, want %d", cfg.IngestMaxEvents, DefaultIngestMaxEvents)
 	}
+	if cfg.IngestAuthReload != DefaultIngestAuthReload {
+		t.Errorf("IngestAuthReload = %s, want %s", cfg.IngestAuthReload, DefaultIngestAuthReload)
+	}
+	if cfg.IngestAuthFile != "" || cfg.IngestAuthPublicKey != "" || cfg.IngestAuditFile != "" {
+		t.Errorf("auth paths = %q %q %q, want empty", cfg.IngestAuthFile, cfg.IngestAuthPublicKey, cfg.IngestAuditFile)
+	}
 	if cfg.RedactMask != DefaultRedactMask {
 		t.Errorf("RedactMask = %q, want %q", cfg.RedactMask, DefaultRedactMask)
 	}
@@ -62,6 +69,10 @@ func TestLoadOverrides(t *testing.T) {
 		EnvOTLPHTTPAddr:          "127.0.0.1:14318",
 		EnvIngestMaxRequestBytes: "2048",
 		EnvIngestMaxEvents:       "42",
+		EnvIngestAuthFile:        "/etc/observaki/ingest-auth.json",
+		EnvIngestAuthPublicKey:   "cHVibGljLWtleQ==",
+		EnvIngestAuthReload:      "45s",
+		EnvIngestAuditFile:       "/var/log/observaki/audit.jsonl",
 		EnvRedactKeys:            "secret, token",
 		EnvRedactMask:            "***",
 	}))
@@ -95,6 +106,18 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.IngestMaxEvents != 42 {
 		t.Errorf("IngestMaxEvents = %d", cfg.IngestMaxEvents)
+	}
+	if cfg.IngestAuthFile != "/etc/observaki/ingest-auth.json" {
+		t.Errorf("IngestAuthFile = %q", cfg.IngestAuthFile)
+	}
+	if cfg.IngestAuthPublicKey != "cHVibGljLWtleQ==" {
+		t.Errorf("IngestAuthPublicKey = %q", cfg.IngestAuthPublicKey)
+	}
+	if cfg.IngestAuthReload != 45*time.Second {
+		t.Errorf("IngestAuthReload = %s", cfg.IngestAuthReload)
+	}
+	if cfg.IngestAuditFile != "/var/log/observaki/audit.jsonl" {
+		t.Errorf("IngestAuditFile = %q", cfg.IngestAuditFile)
 	}
 	if got := strings.Join(cfg.RedactKeys, ","); got != "secret,token" {
 		t.Errorf("RedactKeys = %q", got)
@@ -206,6 +229,18 @@ func TestLoadInvalidValues(t *testing.T) {
 			env:     map[string]string{EnvIngestMaxEvents: "0"},
 			wantVar: EnvIngestMaxEvents,
 			wantVal: "0",
+		},
+		{
+			name:    "auth reload not a duration",
+			env:     map[string]string{EnvIngestAuthReload: "often"},
+			wantVar: EnvIngestAuthReload,
+			wantVal: "often",
+		},
+		{
+			name:    "auth reload below one second",
+			env:     map[string]string{EnvIngestAuthReload: "100ms"},
+			wantVar: EnvIngestAuthReload,
+			wantVal: "100ms",
 		},
 		{
 			name:    "redact keys empty",

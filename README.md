@@ -44,21 +44,27 @@ O workload de referência e as limitações de taxa estão em
 ## Gateway OTLP (Fase 0)
 
 O comando `gateway` sobe os receptores OTLP/gRPC (`:4317`) e OTLP/HTTP
-(`:4318`) para traces, logs e métricas. Ele aplica os limites de requisição
-(10 MiB e 10k eventos por padrão) e a redação de campos de cartão antes do
-sink.
+(`:4318`) para traces, logs e métricas. Ele exige um snapshot versionado com
+tokens por tenant/projeto e quotas, aplica os limites de requisição (10 MiB e
+10k eventos por padrão), autentica/limita o tráfego antes do sink e redige
+campos de cartão.
 
 ```bash
 make build
-./bin/observaki gateway
+# crie o snapshot com o hash SHA-256 do token (veja docs/dev/local-setup.md)
+OBSERVAKI_INGEST_AUTH_FILE=/tmp/observaki-dev/ingest-auth.json \
+OBSERVAKI_INGEST_AUDIT_FILE=/tmp/observaki-dev/audit.jsonl \
+  ./bin/observaki gateway
 ./bin/otlploadgen --protocol http --endpoint http://127.0.0.1:4318 \
-  --rate 100 --duration 5s --mix 34,33,33 --metrics-addr ""
+  --rate 100 --duration 5s --batch-size 10 --mix 34,33,33 --metrics-addr "" \
+  --header "Authorization=Bearer ${TOKEN}"
 ```
 
-O sink ainda é o `DiscardSink` — nada é persistido — até a Story 4.3. Auth,
-quotas e o WAL NATS entram nas Stories 4.2/4.3; RED e writers, na 4.4. Os
-detalhes e as limitações estão em
-[`docs/dev/story-4.1-handoff.md`](docs/dev/story-4.1-handoff.md).
+Token inválido ou expirado retorna 401; tentativa de escrever em outro
+projeto retorna 403 e vai para o audit; excesso de quota retorna 429 com
+`Retry-After`. O sink ainda é o `DiscardSink` — nada é persistido — até a
+Story 4.3; o WAL NATS entra na 4.3, e RED/writers na 4.4. Detalhes em
+[`docs/dev/story-4.2-handoff.md`](docs/dev/story-4.2-handoff.md).
 
 O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
 em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em
@@ -123,6 +129,10 @@ estão documentados em [`.env.example`](.env.example):
 | `OBSERVAKI_OTLP_HTTP_ADDR` | `:4318` | endereço do receptor OTLP/HTTP |
 | `OBSERVAKI_INGEST_MAX_REQUEST_BYTES` | `10485760` | limite do corpo após descompressão |
 | `OBSERVAKI_INGEST_MAX_EVENTS` | `10000` | limite de spans/logs/data points por request |
+| `OBSERVAKI_INGEST_AUTH_FILE` | — | snapshot de tokens/quotas (obrigatório no `gateway`) |
+| `OBSERVAKI_INGEST_AUTH_PUBLIC_KEY` | — | chave Ed25519 do snapshot (obrigatória em staging/produção) |
+| `OBSERVAKI_INGEST_AUTH_RELOAD_INTERVAL` | `30s` | intervalo de releitura do snapshot |
+| `OBSERVAKI_INGEST_AUDIT_FILE` | — | audit JSONL append-only (obrigatório em staging/produção) |
 | `OBSERVAKI_REDACT_ATTRIBUTE_KEYS` | `credit_card,card_number,card.number,cc_number,pan,cvv,cvc` | chaves mascaradas pela redação |
 | `OBSERVAKI_REDACT_MASK` | `[REDACTED]` | valor que substitui o campo sensível |
 

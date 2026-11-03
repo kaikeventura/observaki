@@ -38,6 +38,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 		compression  string
 		mix          string
 		startTime    string
+		headers      headerValues
 		checkPayload bool
 		dryRun       bool
 		showVersion  bool
@@ -63,6 +64,7 @@ Flags:
 	}
 
 	flags.StringVar(&cfg.Endpoint, "endpoint", cfg.Endpoint, "OTLP endpoint (host:port for gRPC, URL for HTTP)")
+	flags.Var(&headers, "header", "extra HTTP/gRPC header in key=value form (repeatable), e.g. \"Authorization=Bearer TOKEN\"")
 	flags.StringVar(&protocol, "protocol", string(cfg.Protocol), "OTLP transport: grpc or http")
 	flags.StringVar(&compression, "compression", string(cfg.Compression), "request compression: gzip or none")
 	flags.IntVar(&cfg.Rate, "rate", cfg.Rate, "target events per second")
@@ -71,6 +73,9 @@ Flags:
 	flags.StringVar(&startTime, "start-time", "", "event start time in RFC3339 (default: now)")
 	flags.Int64Var(&cfg.Seed, "seed", cfg.Seed, "deterministic seed")
 	flags.IntVar(&cfg.BatchSize, "batch-size", cfg.BatchSize, "events per OTLP request")
+	flags.IntVar(&cfg.Payload.MetricPadding, "metric-padding", cfg.Payload.MetricPadding, "bench.payload attribute length on each metric data point")
+	flags.IntVar(&cfg.Payload.LogBody, "log-body", cfg.Payload.LogBody, "log record body length")
+	flags.IntVar(&cfg.Payload.TracePadding, "trace-padding", cfg.Payload.TracePadding, "bench.payload attribute length on each span")
 	flags.IntVar(&cfg.Workers, "workers", cfg.Workers, "concurrent send workers")
 	flags.StringVar(&cfg.MetricsAddr, "metrics-addr", cfg.MetricsAddr, "metrics listen address (empty disables /metrics)")
 	flags.StringVar(&mix, "mix", "60,30,10", "signal mix in events per 100: metrics,logs,traces")
@@ -110,6 +115,11 @@ Flags:
 	}
 	cfg.Mix = parsedMix
 	cfg.DryRun = dryRun
+	parsedHeaders, err := loadgen.ParseHeaders(headers)
+	if err != nil {
+		return err
+	}
+	cfg.Headers = parsedHeaders
 	if startTime != "" {
 		parsedStart, err := time.Parse(time.RFC3339, startTime)
 		if err != nil {
@@ -274,4 +284,13 @@ func logProgress(ctx context.Context, logger *slog.Logger, metrics *loadgen.RunM
 			)
 		}
 	}
+}
+
+type headerValues []string
+
+func (h *headerValues) String() string { return strings.Join(*h, ",") }
+
+func (h *headerValues) Set(value string) error {
+	*h = append(*h, value)
+	return nil
 }

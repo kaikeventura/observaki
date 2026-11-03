@@ -133,7 +133,10 @@ func DefaultPayloadSizes() PayloadSizes {
 
 // Config controls a generator run.
 type Config struct {
-	Endpoint    string
+	Endpoint string
+	// Headers are extra request headers/metadata, for example the
+	// Authorization bearer token.
+	Headers     map[string]string
 	Protocol    Protocol
 	Compression Compression
 	Rate        int
@@ -188,6 +191,45 @@ func (c Config) TotalEvents() int64 {
 	return int64(c.Rate) * int64(c.Duration) / int64(time.Second)
 }
 
+// ParseHeaders parses repeated "key=value" header flags.
+func ParseHeaders(values []string) (map[string]string, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	headers := make(map[string]string, len(values))
+	for _, value := range values {
+		key, headerValue, ok := strings.Cut(value, "=")
+		if !ok {
+			return nil, fmt.Errorf("header %q must use key=value", value)
+		}
+		key = strings.TrimSpace(key)
+		headerValue = strings.TrimSpace(headerValue)
+		if key == "" {
+			return nil, fmt.Errorf("header %q has an empty key", value)
+		}
+		headers[key] = headerValue
+	}
+	if err := validateHeaders(headers); err != nil {
+		return nil, err
+	}
+	return headers, nil
+}
+
+func validateHeaders(headers map[string]string) error {
+	for key, value := range headers {
+		if strings.TrimSpace(key) == "" {
+			return errors.New("header key must not be empty")
+		}
+		if strings.ContainsAny(key, " \t\r\n") {
+			return fmt.Errorf("header key %q contains whitespace", key)
+		}
+		if strings.ContainsAny(value, "\r\n") {
+			return fmt.Errorf("header %q contains a newline", key)
+		}
+	}
+	return nil
+}
+
 // Validate checks a configuration before a run.
 func (c Config) Validate() error {
 	if c.Protocol != ProtocolGRPC && c.Protocol != ProtocolHTTP {
@@ -195,6 +237,9 @@ func (c Config) Validate() error {
 	}
 	if c.Compression != CompressionGzip && c.Compression != CompressionNone {
 		return fmt.Errorf("unsupported compression %q", c.Compression)
+	}
+	if err := validateHeaders(c.Headers); err != nil {
+		return err
 	}
 	if c.Rate <= 0 {
 		return errors.New("rate must be greater than zero")

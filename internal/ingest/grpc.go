@@ -42,31 +42,44 @@ func (s *metricsService) Export(ctx context.Context, req *metricpb.ExportMetrics
 func (g *Gateway) exportTraces(ctx context.Context, req *tracepb.ExportTraceServiceRequest) (*tracepb.ExportTraceServiceResponse, error) {
 	started := time.Now()
 	requestID := requestIDFromContext(ctx)
+	identity, requestErr := g.authenticateGRPC(ctx, SignalTraces, requestID)
+	if requestErr != nil {
+		g.recordGRPC(SignalTraces, identity, 0, 0, requestErr, started, requestID)
+		return nil, requestErr.grpcStatus()
+	}
 	events := countSpans(req)
 
 	if requestErr := g.checkEventLimit(requestID, events); requestErr != nil {
-		g.recordGRPC(SignalTraces, events, events, requestErr, started, requestID)
+		g.recordGRPC(SignalTraces, identity, events, events, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 	if events == 0 {
-		g.recordGRPC(SignalTraces, 0, 0, nil, started, requestID)
+		g.recordGRPC(SignalTraces, identity, 0, 0, nil, started, requestID)
 		return &tracepb.ExportTraceServiceResponse{}, nil
+	}
+	if requestErr := g.checkQuota(requestID, identity, events); requestErr != nil {
+		g.recordGRPC(SignalTraces, identity, events, events, requestErr, started, requestID)
+		return nil, requestErr.grpcStatus()
 	}
 
 	batch := &Batch{
-		Signal:     SignalTraces,
-		ReceivedAt: time.Now().UTC(),
-		Traces:     req,
+		Signal:           SignalTraces,
+		TenantID:         identity.TenantID,
+		ProjectID:        identity.ProjectID,
+		ConfigVersion:    identity.ConfigVersion,
+		ConfigGeneration: identity.Generation,
+		ReceivedAt:       time.Now().UTC(),
+		Traces:           req,
 	}
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(ctx, batch)
 	if err != nil {
 		requestErr := errSinkUnavailable(requestID, err)
-		g.recordGRPC(SignalTraces, events, 0, requestErr, started, requestID)
+		g.recordGRPC(SignalTraces, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 	if requestErr := validateSinkResult(requestID, events, result); requestErr != nil {
-		g.recordGRPC(SignalTraces, events, 0, requestErr, started, requestID)
+		g.recordGRPC(SignalTraces, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 
@@ -77,38 +90,51 @@ func (g *Gateway) exportTraces(ctx context.Context, req *tracepb.ExportTraceServ
 			ErrorMessage:  result.Reason,
 		}
 	}
-	g.recordGRPC(SignalTraces, events, result.Rejected, nil, started, requestID)
+	g.recordGRPC(SignalTraces, identity, events, result.Rejected, nil, started, requestID)
 	return response, nil
 }
 
 func (g *Gateway) exportLogs(ctx context.Context, req *logspb.ExportLogsServiceRequest) (*logspb.ExportLogsServiceResponse, error) {
 	started := time.Now()
 	requestID := requestIDFromContext(ctx)
+	identity, requestErr := g.authenticateGRPC(ctx, SignalLogs, requestID)
+	if requestErr != nil {
+		g.recordGRPC(SignalLogs, identity, 0, 0, requestErr, started, requestID)
+		return nil, requestErr.grpcStatus()
+	}
 	events := countLogRecords(req)
 
 	if requestErr := g.checkEventLimit(requestID, events); requestErr != nil {
-		g.recordGRPC(SignalLogs, events, events, requestErr, started, requestID)
+		g.recordGRPC(SignalLogs, identity, events, events, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 	if events == 0 {
-		g.recordGRPC(SignalLogs, 0, 0, nil, started, requestID)
+		g.recordGRPC(SignalLogs, identity, 0, 0, nil, started, requestID)
 		return &logspb.ExportLogsServiceResponse{}, nil
+	}
+	if requestErr := g.checkQuota(requestID, identity, events); requestErr != nil {
+		g.recordGRPC(SignalLogs, identity, events, events, requestErr, started, requestID)
+		return nil, requestErr.grpcStatus()
 	}
 
 	batch := &Batch{
-		Signal:     SignalLogs,
-		ReceivedAt: time.Now().UTC(),
-		Logs:       req,
+		Signal:           SignalLogs,
+		TenantID:         identity.TenantID,
+		ProjectID:        identity.ProjectID,
+		ConfigVersion:    identity.ConfigVersion,
+		ConfigGeneration: identity.Generation,
+		ReceivedAt:       time.Now().UTC(),
+		Logs:             req,
 	}
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(ctx, batch)
 	if err != nil {
 		requestErr := errSinkUnavailable(requestID, err)
-		g.recordGRPC(SignalLogs, events, 0, requestErr, started, requestID)
+		g.recordGRPC(SignalLogs, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 	if requestErr := validateSinkResult(requestID, events, result); requestErr != nil {
-		g.recordGRPC(SignalLogs, events, 0, requestErr, started, requestID)
+		g.recordGRPC(SignalLogs, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 
@@ -119,38 +145,51 @@ func (g *Gateway) exportLogs(ctx context.Context, req *logspb.ExportLogsServiceR
 			ErrorMessage:       result.Reason,
 		}
 	}
-	g.recordGRPC(SignalLogs, events, result.Rejected, nil, started, requestID)
+	g.recordGRPC(SignalLogs, identity, events, result.Rejected, nil, started, requestID)
 	return response, nil
 }
 
 func (g *Gateway) exportMetrics(ctx context.Context, req *metricpb.ExportMetricsServiceRequest) (*metricpb.ExportMetricsServiceResponse, error) {
 	started := time.Now()
 	requestID := requestIDFromContext(ctx)
+	identity, requestErr := g.authenticateGRPC(ctx, SignalMetrics, requestID)
+	if requestErr != nil {
+		g.recordGRPC(SignalMetrics, identity, 0, 0, requestErr, started, requestID)
+		return nil, requestErr.grpcStatus()
+	}
 	events := countDataPoints(req)
 
 	if requestErr := g.checkEventLimit(requestID, events); requestErr != nil {
-		g.recordGRPC(SignalMetrics, events, events, requestErr, started, requestID)
+		g.recordGRPC(SignalMetrics, identity, events, events, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 	if events == 0 {
-		g.recordGRPC(SignalMetrics, 0, 0, nil, started, requestID)
+		g.recordGRPC(SignalMetrics, identity, 0, 0, nil, started, requestID)
 		return &metricpb.ExportMetricsServiceResponse{}, nil
+	}
+	if requestErr := g.checkQuota(requestID, identity, events); requestErr != nil {
+		g.recordGRPC(SignalMetrics, identity, events, events, requestErr, started, requestID)
+		return nil, requestErr.grpcStatus()
 	}
 
 	batch := &Batch{
-		Signal:     SignalMetrics,
-		ReceivedAt: time.Now().UTC(),
-		Metrics:    req,
+		Signal:           SignalMetrics,
+		TenantID:         identity.TenantID,
+		ProjectID:        identity.ProjectID,
+		ConfigVersion:    identity.ConfigVersion,
+		ConfigGeneration: identity.Generation,
+		ReceivedAt:       time.Now().UTC(),
+		Metrics:          req,
 	}
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(ctx, batch)
 	if err != nil {
 		requestErr := errSinkUnavailable(requestID, err)
-		g.recordGRPC(SignalMetrics, events, 0, requestErr, started, requestID)
+		g.recordGRPC(SignalMetrics, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 	if requestErr := validateSinkResult(requestID, events, result); requestErr != nil {
-		g.recordGRPC(SignalMetrics, events, 0, requestErr, started, requestID)
+		g.recordGRPC(SignalMetrics, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
 
@@ -161,7 +200,7 @@ func (g *Gateway) exportMetrics(ctx context.Context, req *metricpb.ExportMetrics
 			ErrorMessage:       result.Reason,
 		}
 	}
-	g.recordGRPC(SignalMetrics, events, result.Rejected, nil, started, requestID)
+	g.recordGRPC(SignalMetrics, identity, events, result.Rejected, nil, started, requestID)
 	return response, nil
 }
 
@@ -183,7 +222,8 @@ func validateSinkResult(requestID string, events int, result Result) *requestErr
 	return nil
 }
 
-func (g *Gateway) recordGRPC(signal Signal, events, rejected int, requestErr *requestError, started time.Time, requestID string) {
+func (g *Gateway) recordGRPC(signal Signal, identity Identity, events, rejected int, requestErr *requestError, started time.Time, requestID string) {
+	g.metrics.observeLatency(identity.TenantID, time.Since(started))
 	g.metrics.observeRequest(signal, protocolGRPC)
 	g.metrics.observeEvents(signal, protocolGRPC, events, rejected)
 	if requestErr == nil {
@@ -193,6 +233,8 @@ func (g *Gateway) recordGRPC(signal Signal, events, rejected int, requestErr *re
 	g.logger.Warn(
 		"otlp export rejected",
 		"request_id", requestID,
+		"tenant_id", identity.TenantID,
+		"project_id", identity.ProjectID,
 		"signal", signal.String(),
 		"protocol", "grpc",
 		"events", events,

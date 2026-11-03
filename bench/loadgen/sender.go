@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	grpcgzip "google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
 	logscollectorpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -71,6 +72,7 @@ type grpcSender struct {
 	metrics    metricscollectorpb.MetricsServiceClient
 	traces     tracecollectorpb.TraceServiceClient
 	compressed bool
+	headers    []string
 }
 
 func newGRPCSender(cfg Config) (*grpcSender, error) {
@@ -84,16 +86,24 @@ func newGRPCSender(cfg Config) (*grpcSender, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create gRPC client: %w", err)
 	}
+	headers := make([]string, 0, len(cfg.Headers)*2)
+	for key, value := range cfg.Headers {
+		headers = append(headers, strings.ToLower(key), value)
+	}
 	return &grpcSender{
 		conn:       conn,
 		logs:       logscollectorpb.NewLogsServiceClient(conn),
 		metrics:    metricscollectorpb.NewMetricsServiceClient(conn),
 		traces:     tracecollectorpb.NewTraceServiceClient(conn),
 		compressed: cfg.Compression == CompressionGzip,
+		headers:    headers,
 	}, nil
 }
 
 func (s *grpcSender) Send(ctx context.Context, batch *Batch) (SendResult, error) {
+	if len(s.headers) > 0 {
+		ctx = metadata.AppendToOutgoingContext(ctx, s.headers...)
+	}
 	result := SendResult{Bytes: batch.Size()}
 	if !s.compressed {
 		// Without transport compression the wire size equals the protobuf
@@ -133,6 +143,7 @@ type httpSender struct {
 	client  *http.Client
 	baseURL string
 	gzip    bool
+	headers map[string]string
 }
 
 func newHTTPSender(cfg Config) (*httpSender, error) {
@@ -145,6 +156,7 @@ func newHTTPSender(cfg Config) (*httpSender, error) {
 		client:  &http.Client{Timeout: cfg.RequestTimeout},
 		baseURL: parsed.String(),
 		gzip:    cfg.Compression == CompressionGzip,
+		headers: cfg.Headers,
 	}, nil
 }
 
@@ -171,6 +183,9 @@ func (s *httpSender) Send(ctx context.Context, batch *Batch) (SendResult, error)
 	}
 	request.Header.Set("Content-Type", "application/x-protobuf")
 	request.Header.Set("User-Agent", "observaki-loadgen/1.0")
+	for key, value := range s.headers {
+		request.Header.Set(key, value)
+	}
 	if s.gzip {
 		request.Header.Set("Content-Encoding", "gzip")
 	}

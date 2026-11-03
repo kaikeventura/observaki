@@ -73,6 +73,72 @@ As demais variáveis (`OBSERVAKI_LOG_LEVEL`, `OBSERVAKI_ENV`,
 automaticamente; valores inválidos fazem o processo falhar citando a variável
 e o valor recusado.
 
+## Gateway OTLP e tokens
+
+O comando `gateway` **exige** um snapshot de configuração com tokens de
+ingestão; não existe modo anônimo no binário. O snapshot é um JSON versionado
+(AD-19) com `tenant_id`, `project_id`, `ingest_quota` e o hash SHA-256 de cada
+token. O token em texto claro nunca é gravado no arquivo.
+
+```bash
+TOKEN="$(openssl rand -hex 24)"
+HASH="$(printf '%s' "$TOKEN" | sha256sum | cut -d' ' -f1)"
+mkdir -p /tmp/observaki-dev
+
+cat >/tmp/observaki-dev/ingest-auth.json <<EOF
+{
+  "config_version": "dev-1",
+  "generation": 1,
+  "issued_at": "2026-01-01T00:00:00Z",
+  "expires_at": "2030-01-01T00:00:00Z",
+  "tenants": [{
+    "tenant_id": "tenant-dev",
+    "ingest_quota": {"events_per_second": 100000, "burst_events": 100000},
+    "projects": [{
+      "project_id": "project-dev",
+      "tokens": [{"token_id": "token-dev", "sha256": "${HASH}", "scopes": ["ingest"]}]
+    }]
+  }]
+}
+EOF
+
+OBSERVAKI_INGEST_AUTH_FILE=/tmp/observaki-dev/ingest-auth.json \
+OBSERVAKI_INGEST_AUDIT_FILE=/tmp/observaki-dev/audit.jsonl \
+./bin/observaki gateway
+```
+
+Envie telemetria com o token no header `Authorization: Bearer`:
+
+```bash
+./bin/otlploadgen --protocol http --endpoint http://127.0.0.1:4318 \
+  --rate 100 --duration 5s --batch-size 10 --mix 34,33,33 \
+  --metrics-addr "" --header "Authorization=Bearer ${TOKEN}"
+```
+
+Comportamento:
+
+- token ausente, inválido ou expirado → **401** com `WWW-Authenticate: Bearer`;
+- token de um projeto tentando escrever em outro (header
+  `X-Observaki-Project-Id` ou `X-Observaki-Tenant-Id` divergente) → **403**
+  `cross_project_write`, registrado no audit;
+- tenant acima de `ingest_quota.events_per_second` → **429** com
+  `Retry-After`; o excesso é descartado antes da descompressão/decode quando o
+  `Content-Length` permite estimar os eventos;
+- `/metrics` expõe `observaki_gateway_auth_failures_total`,
+  `observaki_gateway_quota_rejected_requests_total`,
+  `observaki_gateway_config_age_seconds` e o p95 por tenant.
+
+O snapshot é relido a cada `OBSERVAKI_INGEST_AUTH_RELOAD_INTERVAL` (default
+`30s`). Se `expires_at` passar, auth e quota falham fechadas com **503**. Em
+`staging`/`production`, `OBSERVAKI_INGEST_AUTH_PUBLIC_KEY` (Ed25519 em base64)
+e `OBSERVAKI_INGEST_AUDIT_FILE` são obrigatórios; a assinatura destacada fica
+em `<arquivo>.sig`. O audit é JSONL append-only com hash chain, verificado na
+abertura.
+
+Os tokens, o snapshot e o audit de desenvolvimento ficam em `/tmp` e nunca no
+repositório. O `make smoke` gera arquivos temporários equivalentes e valida
+401, 403, audit e 429.
+
 ## Verificação rápida
 
 ```bash

@@ -73,11 +73,42 @@ func gateway() error {
 	if cfg.Environment == config.EnvironmentProduction {
 		return errors.New("otlp gateway: the discard sink is not durable; production requires the WAL from Story 4.3")
 	}
+	if cfg.IngestAuthFile == "" {
+		return fmt.Errorf(
+			"otlp gateway: %s is required; create a config snapshot with hashed ingest tokens (see docs/dev/local-setup.md)",
+			config.EnvIngestAuthFile,
+		)
+	}
+	signedSnapshot := cfg.Environment == config.EnvironmentStaging || cfg.Environment == config.EnvironmentProduction
+	if signedSnapshot && cfg.IngestAuthPublicKey == "" {
+		return fmt.Errorf("otlp gateway: %s is required outside development/test", config.EnvIngestAuthPublicKey)
+	}
+	if signedSnapshot && cfg.IngestAuditFile == "" {
+		return fmt.Errorf("otlp gateway: %s is required outside development/test", config.EnvIngestAuditFile)
+	}
+
+	source, err := ingest.NewFileSnapshotSource(cfg.IngestAuthFile, cfg.IngestAuthPublicKey)
+	if err != nil {
+		return err
+	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel.SlogLevel(),
 	}))
 	logger.Warn("otlp gateway uses the discard sink; telemetry is not persisted until Story 4.3")
+
+	var audit ingest.AuditSink = ingest.LogAudit{Logger: logger}
+	if cfg.IngestAuditFile != "" {
+		fileAudit, err := ingest.OpenFileAudit(cfg.IngestAuditFile)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = fileAudit.Close() }()
+		audit = fileAudit
+	}
+	if cfg.IngestAuthPublicKey == "" {
+		logger.Warn("otlp gateway auth snapshot is not signed; signature verification is required in staging/production")
+	}
 
 	gw, err := ingest.New(ingest.Config{
 		GRPCAddr:        cfg.OTLPGRPCAddr,
@@ -87,6 +118,12 @@ func gateway() error {
 		Redaction: ingest.RedactionConfig{
 			Keys: cfg.RedactKeys,
 			Mask: cfg.RedactMask,
+		},
+		Auth: &ingest.AuthConfig{
+			Source:         source,
+			Audit:          audit,
+			Logger:         logger,
+			ReloadInterval: cfg.IngestAuthReload,
 		},
 		Sink:   ingest.DiscardSink{},
 		Logger: logger,

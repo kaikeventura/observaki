@@ -25,6 +25,7 @@ port="${SMOKE_PORT:-$(find_free_port)}"
 log="$(mktemp -t observaki-smoke.XXXXXX.log)"
 bench_tmp="$(mktemp -d -t observaki-bench.XXXXXX)"
 gateway_log="$(mktemp -t observaki-gateway-smoke.XXXXXX.log)"
+auth_dir="$(mktemp -d -t observaki-auth.XXXXXX)"
 pid=""
 gateway_pid=""
 
@@ -38,7 +39,7 @@ cleanup() {
 		wait "$gateway_pid" 2>/dev/null || true
 	fi
 	rm -f "$log" "$gateway_log"
-	rm -rf "$bench_tmp"
+	rm -rf "$bench_tmp" "$auth_dir"
 }
 trap cleanup EXIT
 
@@ -79,9 +80,44 @@ esac
 gateway_grpc_port="${SMOKE_GATEWAY_GRPC_PORT:-$(find_free_port 18121 18160)}"
 gateway_http_port="${SMOKE_GATEWAY_HTTP_PORT:-$(find_free_port 18161 18200)}"
 
+# Story 4.2: a temp snapshot with hashed tokens. The smoke token and the
+# limited token are generated per run and never committed.
+smoke_token="smoke-$(date -u +%s)-${RANDOM}${RANDOM}"
+limited_token="limited-$(date -u +%s)-${RANDOM}${RANDOM}"
+smoke_hash=$(printf '%s' "$smoke_token" | sha256sum | cut -d' ' -f1)
+limited_hash=$(printf '%s' "$limited_token" | sha256sum | cut -d' ' -f1)
+cat >"$auth_dir/ingest-auth.json" <<EOF
+{
+  "config_version": "smoke-$(date -u +%s)",
+  "generation": 1,
+  "issued_at": "2026-01-01T00:00:00Z",
+  "expires_at": "2030-01-01T00:00:00Z",
+  "tenants": [
+    {
+      "tenant_id": "tenant-smoke",
+      "ingest_quota": {"events_per_second": 1000000, "burst_events": 1000000},
+      "projects": [{
+        "project_id": "project-smoke",
+        "tokens": [{"token_id": "token-smoke", "sha256": "${smoke_hash}", "scopes": ["ingest"]}]
+      }]
+    },
+    {
+      "tenant_id": "tenant-limited",
+      "ingest_quota": {"events_per_second": 1, "burst_events": 1},
+      "projects": [{
+        "project_id": "project-limited",
+        "tokens": [{"token_id": "token-limited", "sha256": "${limited_hash}", "scopes": ["ingest"]}]
+      }]
+    }
+  ]
+}
+EOF
+
 echo "Smoke: starting ./bin/observaki gateway on grpc=127.0.0.1:${gateway_grpc_port} http=127.0.0.1:${gateway_http_port}"
 OBSERVAKI_OTLP_GRPC_ADDR="127.0.0.1:${gateway_grpc_port}" \
 	OBSERVAKI_OTLP_HTTP_ADDR="127.0.0.1:${gateway_http_port}" \
+	OBSERVAKI_INGEST_AUTH_FILE="$auth_dir/ingest-auth.json" \
+	OBSERVAKI_INGEST_AUDIT_FILE="$auth_dir/audit.jsonl" \
 	./bin/observaki gateway >"$gateway_log" 2>&1 &
 gateway_pid=$!
 
@@ -99,15 +135,46 @@ if [ -z "$gateway_ready" ]; then
 	exit 1
 fi
 
+# Story 4.2 AC1/AC2: auth failures never reach the sink, and a cross-project
+# assertion is rejected and audited.
+unauthorized_status=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+	-H 'Content-Type: application/x-protobuf' --data-binary '' \
+	"http://127.0.0.1:${gateway_http_port}/v1/logs")
+[ "$unauthorized_status" = "401" ] || {
+	echo "Smoke: unauthenticated OTLP request returned ${unauthorized_status}, want 401" >&2
+	exit 1
+}
+forbidden_status=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+	-H 'Content-Type: application/x-protobuf' \
+	-H "Authorization: Bearer ${smoke_token}" \
+	-H 'X-Observaki-Project-Id: project-other' \
+	--data-binary '' \
+	"http://127.0.0.1:${gateway_http_port}/v1/logs")
+[ "$forbidden_status" = "403" ] || {
+	echo "Smoke: cross-project OTLP request returned ${forbidden_status}, want 403" >&2
+	exit 1
+}
+grep -q "ingest.cross_project_write" "$auth_dir/audit.jsonl" || {
+	echo "Smoke: cross-project attempt was not audited" >&2
+	exit 1
+}
+
 ./bin/otlploadgen --protocol http --endpoint "http://127.0.0.1:${gateway_http_port}" \
 	--rate 60 --duration 1s --batch-size 3 --workers 1 --mix 34,33,33 --compression gzip \
-	--metrics-addr "" >/dev/null
+	--metrics-addr "" --header "Authorization=Bearer ${smoke_token}" >/dev/null
 ./bin/otlploadgen --protocol grpc --endpoint "127.0.0.1:${gateway_grpc_port}" \
 	--rate 60 --duration 1s --batch-size 3 --workers 1 --mix 34,33,33 --compression gzip \
-	--metrics-addr "" >/dev/null
+	--metrics-addr "" --header "Authorization=Bearer ${smoke_token}" >/dev/null
+
+# Story 4.2 AC3: a 3-event request against a 1 event/s burst is throttled.
+./bin/otlploadgen --protocol http --endpoint "http://127.0.0.1:${gateway_http_port}" \
+	--rate 10 --duration 1s --batch-size 3 --workers 1 --mix 0,100,0 --compression none \
+	--metrics-addr "" --header "Authorization=Bearer ${limited_token}" >/dev/null 2>&1 || true
 
 gateway_metrics="$(curl -fsS "http://127.0.0.1:${gateway_http_port}/metrics")"
-for metric in observaki_gateway_requests_total observaki_gateway_events_total observaki_gateway_up; do
+for metric in observaki_gateway_requests_total observaki_gateway_events_total \
+	observaki_gateway_auth_failures_total observaki_gateway_quota_rejected_events_total \
+	observaki_gateway_config_age_seconds observaki_gateway_up; do
 	case "$gateway_metrics" in
 	*"$metric"*) ;;
 	*)
@@ -116,6 +183,18 @@ for metric in observaki_gateway_requests_total observaki_gateway_events_total ob
 		;;
 	esac
 done
+case "$gateway_metrics" in
+*'observaki_gateway_auth_failures_total{reason="cross_project_write"} 1'*) ;;
+*)
+	echo "Smoke: gateway did not count the cross-project rejection" >&2
+	exit 1
+	;;
+esac
+quota_rejected=$(printf '%s\n' "$gateway_metrics" | awk '/^observaki_gateway_quota_rejected_events_total /{print $2; exit}')
+[ "${quota_rejected:-0}" -gt 0 ] || {
+	echo "Smoke: the limited tenant was not throttled" >&2
+	exit 1
+}
 
 kill -TERM "$gateway_pid"
 if ! wait "$gateway_pid"; then
@@ -155,4 +234,4 @@ for artifact in report.md report.json; do
 	}
 done
 
-echo "Smoke: OK (healthz, api health, gateway OTLP HTTP/gRPC, gateway metrics/SIGTERM, web build, version, loadgen payload, chloadgen, bench scenarios, benchmark report)"
+echo "Smoke: OK (healthz, api health, gateway OTLP HTTP/gRPC, auth 401/403 + audit, quota 429, gateway metrics/SIGTERM, web build, version, loadgen payload, chloadgen, bench scenarios, benchmark report)"

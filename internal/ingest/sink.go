@@ -14,13 +14,18 @@ import (
 // empty until Story 4.2 resolves the ingest token; the sink must not persist a
 // batch without them once auth lands (AD-2).
 type Batch struct {
-	Signal     Signal
-	TenantID   string
-	ProjectID  string
-	ReceivedAt time.Time
-	Traces     *tracepb.ExportTraceServiceRequest
-	Logs       *logspb.ExportLogsServiceRequest
-	Metrics    *metricpb.ExportMetricsServiceRequest
+	Signal    Signal
+	TenantID  string
+	ProjectID string
+	// ConfigVersion and ConfigGeneration identify the auth snapshot that
+	// resolved the identity, so the WAL and audit can reject stale epochs
+	// (AD-19, AD-20).
+	ConfigVersion    string
+	ConfigGeneration int64
+	ReceivedAt       time.Time
+	Traces           *tracepb.ExportTraceServiceRequest
+	Logs             *logspb.ExportLogsServiceRequest
+	Metrics          *metricpb.ExportMetricsServiceRequest
 }
 
 // Events returns the number of spans, log records or data points in the batch.

@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E4
 epic_name: Gateway OTLP e ingestão
-story: "4.1"
-story_name: Gateway OTLP
-task: "AC1–AC4"
-task_name: OTLP gRPC/HTTP, limites, shutdown e redaction
+story: "4.2"
+story_name: Auth por tenant, quotas e rate limiting
+task: "AC1–AC3"
+task_name: Auth 401, isolamento 403/audit e quota 429/Retry-After
 status: done        # not_started | in_progress | blocked | done
-updated: 2026-11-02
+updated: 2026-11-03
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "d6bc9b1"
-next_action: "Story 4.2 — Auth por tenant, quotas e rate limiting; o baseline T1 da 2.4 continua bloqueado por P-07 e 4.2–4.5"
+last_commit: "c19de07"
+next_action: "Story 4.3 — batching, compressão, sharding e WAL NATS; o isolamento p95 <10% em 1M/s da 4.2 fica para o T1 (P-07 + 4.3–4.5)"
 blocked_by: []
-last_session: "Story 4.1: gateway OTLP gRPC/HTTP para traces/logs/métricas; limites 10 MiB/10k; partial_success; redaction por chave/Luhn antes do sink com trace_id preservado; shutdown gracioso; DiscardSink até 4.3; make ci e make smoke verdes; evidência em docs/dev/story-4.1-handoff.md."
+last_session: "Story 4.2: snapshot versionado de tokens/quotas, auth 401, cross-project 403 + audit hash chain, quota 429 com Retry-After e pré-admissão antes do decode; make ci/make smoke verdes; isolamento local +15,13% (inconclusivo por host compartilhado, T1 pendente); evidência em docs/dev/story-4.2-handoff.md."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E4 — Gateway OTLP e ingestão** |
-| Story | **4.1 — Gateway OTLP** |
-| Task | **AC1–AC4 — OTLP gRPC/HTTP, limites, shutdown e redaction** |
+| Story | **4.2 — Auth por tenant, quotas e rate limiting** |
+| Task | **AC1–AC3 — Auth 401, isolamento 403/audit e quota 429/Retry-After** |
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `d6bc9b1` |
-| Próxima ação | Story 4.2 — Auth por tenant, quotas e rate limiting |
-| Bloqueios | 2.4 (T1): P-07, 4.2–4.5 e rampa contínua; não bloqueia a 4.2 |
-| Última sessão | Story 4.1: OTLP gRPC/HTTP, limites 10 MiB/10k, partial_success, redaction antes do sink, SIGTERM drena e sai 0; `make ci`/`make smoke` verdes |
+| Último commit | `c19de07` |
+| Próxima ação | Story 4.3 — batching, compressão, sharding e WAL NATS |
+| Bloqueios | 2.4 (T1): P-07, 4.3–4.5 e rampa contínua; o isolamento p95 <10% da 4.2 depende do T1 |
+| Última sessão | Story 4.2: snapshot de auth/quotas, 401/403/429, audit hash chain e pré-admissão antes do decode; `make ci`/`make smoke` verdes; p95 local +15,13% (inconclusivo) |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -92,7 +92,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E3 | 3.4 | VictoriaMetrics + cardinalidade | `done` | 1M séries a 1M/s por 1h (999.738/s, p95 de carga 13ms, RSS 1,24GiB, 15,27GiB), 20 consultas em 24h (p95 799,5ms, 20/20, 7/7 checks) e admissão por tenant (100k rejeitadas no tenant-a, 0 no tenant-b, drift 4,82%); `m14` 1.305ms; não é G1; evidência em `docs/dev/story-3.4-handoff.md` e `bench/victoriametrics/results/2026-11-02-local-1m-1h/` |
 | P0-E3 | 3.5 | Query/retenção/row policies | `done` | 16 SQL no dataset de 1B eventos (300M logs + 100M spans): p95 máx **431,94ms**, p99 <2x; 4 MetricsQL p95 **799,5ms**; 15/15 testes de isolamento e epoch (AD-20); TTL 7/15/30 e mutação de política em 10M linhas (**493ms**); 10B/7d projetado **617ms**; 86B/24h em rollup 1m (p95 máx **87,14ms**); não é G1; evidência em `docs/dev/story-3.5-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b-mix/` |
 | P0-E4 | 4.1 | Gateway OTLP | `done` | OTLP gRPC :4317 e HTTP :4318 (protobuf/JSON/gzip) para traces/logs/métricas; limites 10 MiB/10k configuráveis; `partial_success`; redaction por chave/Luhn antes do sink com `trace_id` preservado; SIGTERM drena e sai 0; `DiscardSink` até 4.3; `make ci`/`make smoke` verdes; evidência em `docs/dev/story-4.1-handoff.md` |
-| P0-E4 | 4.2 | Auth/quotas | `todo` | Depende de 4.1 |
+| P0-E4 | 4.2 | Auth/quotas | `done` | Snapshot versionado com tokens SHA-256 e quota por tenant; 401/403 + audit hash chain; 429 com `Retry-After` e pré-admissão antes do decode no HTTP; `make smoke` cobre 401/403/audit/429; harness local com 26.703 requests limitados e p95 de processamento +15,13% em 1M/s (inconclusivo por host compartilhado); T1 pendente; evidência em `docs/dev/story-4.2-handoff.md` |
 | P0-E4 | 4.3 | Batching/WAL NATS | `todo` | Depende de 4.1/4.2 |
 | P0-E4 | 4.4 | Writers CH/VM | `todo` | Depende de 4.3/3.3/3.4 |
 | P0-E4 | 4.5 | Caos + go/no-go | `todo` | Depende de 4.3/4.4 |
@@ -118,13 +118,13 @@ Atalho no OpenCode: `/continue`.
 - [ ] p95 < 3s em 10B linhas/7d (**3.5: projeção window-equivalent de 617 ms; raw 10B/T1 pendente**)
 - [ ] Compressão ≥ 5x em logs e traces (logs local 6,98x; traces local 7,52x; 3.5: 7,51x/7,74x no mix; T1 pendente)
 - [x] Métricas: 1M séries a 1M/s por 1h e 20 consultas p95 <1s em 24h (local: 999.738/s, p95 799,5ms; T1 pendente)
-- [ ] Retenção/row policies/quotas validadas (3.5: TTL 7/15/30 e row policies locais pass, epoch AD-20 pass; quotas de consulta e T1 pendentes)
+- [ ] Retenção/row policies/quotas validadas (3.5: TTL 7/15/30 e row policies locais pass, epoch AD-20 pass; 4.2: quota de ingestão local pass com 429/`Retry-After`, isolamento p95 <10% e quotas de consulta pendentes no T1)
 - [ ] Compose single-node < 15 min; Helm em 3 nós; upgrade/rollback
 - [ ] 100k pontos < 100ms; bundle inicial < 180 KB gzip
 - [ ] 3 design partners com dados reais
 - [x] ADRs aprovadas (storage, gateway, fila, frontend, tenancy, benchmark)
-- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; 3.4: go local; 3.5: go local; T1 pendente)
-- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3/3.4/3.5 locais e pré-baseline publicados; baseline T1 pendente de P-07 e 4.1–4.5)
+- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; 3.4: go local; 3.5: go local; 4.2: go funcional local, isolamento p95 inconclusivo; T1 pendente)
+- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3/3.4/3.5 e harness 4.2 locais publicados; baseline T1 pendente de P-07 e 4.3–4.5)
 
 **Só depois de todos os itens:** atualizar `phase: 1` e começar o detalhamento da Fase 1.
 
@@ -163,6 +163,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-02 | Story 3.4 | P0 / 3.4 / AC1–AC3 | Gerador remote write protobuf+snappy, catálogo determinístico de 1M séries (2 tenants), 20 consultas MetricsQL e proxy de admissão por tenant (AD-33); run local de 1M/s por 1h (**3,6B amostras**, 999.738/s, p95 de carga 13ms, RSS 1,24GiB, 15,27GiB), consultas p95 **799,5ms** (20/20, 7/7 checks; `m14` 1.305ms), tenant-a 100k séries rejeitadas, tenant-b 0, drift **4,82%**; `make fmt/lint/test/build`, `make smoke` e `make bench-victoriametrics-check` verdes; **não é G1**; evidência em `docs/dev/story-3.4-handoff.md` e `bench/victoriametrics/results/2026-11-02-local-1m-1h/` | `fc2f0c1` + `9369638` | Story 3.5 |
 | 2026-11-02 | Story 3.5 | P0 / 3.5 / AC1–AC3 | Migração `0004_tenancy` (project_generation/authz_epoch, tenant_scope, row policies), 16 consultas SQL do catálogo, harness `bench/clickhouse/query` e rollups 1m; dataset de **1B eventos** (300M logs + 100M spans) com p95 máx **431,94ms** e p99 <2x, 4 MetricsQL p95 **799,5ms**, 15/15 testes de isolamento + epoch AD-20, TTL 7/15/30 e mutação de política em 10M linhas (**493ms**), 10B/7d projetado **617ms**, 86B/24h em rollup (p95 máx **87,14ms**); `make fmt/lint/test/build`, `make smoke` e `make bench-clickhouse-query-check` verdes; **não é G1**; evidência em `docs/dev/story-3.5-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b-mix/` | `fe3ce08` + `ff79762` + `2cf30b8` | Story 4.1 |
 | 2026-11-02 | Story 4.1 | P0 / 4.1 / AC1–AC4 | Gateway OTLP (`internal/ingest`) com receptores gRPC :4317 e HTTP :4318 para traces/logs/métricas, protobuf/JSON/gzip, `partial_success` a partir do sink, limites configuráveis de 10 MiB/10k eventos, erros `google.rpc.Status` com `request_id` UUIDv7, redaction por chave e Luhn antes do sink preservando `trace_id`/`span_id`, `/healthz`, `/readyz`, `/metrics` e drain no SIGTERM; `DiscardSink` placeholder até 4.3; `go test ./...`, `go test -race`, `golangci-lint`, `make ci` e `make smoke` (OTLP HTTP/gRPC + SIGTERM) verdes; **não é G1**; evidência em `docs/dev/story-4.1-handoff.md` | `05b09e8` + `202a223` + `b03fc52` + `d6bc9b1` | Story 4.2 |
+| 2026-11-03 | Story 4.2 | P0 / 4.2 / AC1–AC3 | Snapshot versionado (`config_version`/`generation`/`issued_at`/`expires_at`) com tokens SHA-256, escopos e quota por tenant; auth Bearer 401, cross-project 403 + audit JSONL com hash chain, quota 429 + `Retry-After` e `RetryInfo`; pré-admissão HTTP por `Content-Length`/EWMA antes do decode; `Batch` carrega tenant/projeto/geração; assinatura Ed25519 em staging/produção; `make ci`/`make smoke` verdes (401/403/audit/429); harness local com 26.703 requests limitados, p95 de processamento +15,13% em 1M/s ofertado (inconclusivo por host compartilhado; T1 pendente); **não é G1**; evidência em `docs/dev/story-4.2-handoff.md` e `bench/gateway/quota/results/20261103T030500Z/` | a registrar | Story 4.3 |
 
 ## Regras de atualização
 

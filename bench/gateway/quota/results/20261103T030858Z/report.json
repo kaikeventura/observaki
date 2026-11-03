@@ -1,0 +1,39 @@
+{
+  "story": "4.2",
+  "status": "pass",
+  "isolation_status": "pass",
+  "isolation_note": "",
+  "client_note": "",
+  "duration": "5s",
+  "quota_events_per_second": 10000,
+  "normal_rate": 1000,
+  "noisy_rate": 100000,
+  "batch_size": 50,
+  "runs": 1,
+  "normal_mix": "0,100,0",
+  "noisy_mix": "60,30,10",
+  "normal_compression": "gzip",
+  "noisy_compression": "none",
+  "payload": {
+    "metric_padding": 832,
+    "log_body": 820,
+    "trace_padding": 2400
+  },
+  "pinned": false,
+  "gateway_cpus": "",
+  "normal_cpus": "",
+  "noisy_cpus": "",
+  "baseline_p95_ms": 3.429314,
+  "loaded_p95_ms": 3.344248,
+  "p95_delta_percent": -2.48,
+  "baseline_server_p95_ms": 1.643000,
+  "loaded_server_p95_ms": 1.727000,
+  "server_p95_delta_percent": 5.11,
+  "quota_rejected_requests": 8801,
+  "reason": "",
+  "limitations": [
+    "local single-process gateway with the discard sink; not G1 evidence",
+    "the quiet tenant quota is 1M events/s so it is never limited",
+    "the noisy tenant over-quota traffic is rejected before the sink"
+  ]
+}

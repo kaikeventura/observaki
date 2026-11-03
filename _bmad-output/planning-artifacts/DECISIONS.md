@@ -76,6 +76,22 @@ rollups de 1 minuto (9 consultas, p95 máximo 87 ms). **Decisão:** TTL por linh
 do ADR-0005 fechada. O raw 10B/86B e o Query Service continuam pendentes de
 P-07/Stories 4.1–4.5; o run **não é evidência do G1**.
 
+**Story 4.2 (2026-11-03):** o gateway passou a exigir um snapshot versionado de
+auth/quotas (`OBSERVAKI_INGEST_AUTH_FILE`), com tokens SHA-256, escopos,
+expiração, `config_version`/`generation` e quota por tenant. Tokens ausentes ou
+inválidos retornam 401; tentativa de escrita cross-project retorna 403 e gera
+audit com hash chain; excesso de quota retorna 429 com `Retry-After`. O caminho
+HTTP reserva uma estimativa de eventos pelo `Content-Length` (EWMA por tenant)
+antes de descomprimir/decodificar e reconcilia após o decode, para derrubar o
+tenant barulhento antes do trabalho caro. **Decisão:** o snapshot local
+(arquivo) é o transporte da Fase 0; a assinatura Ed25519 destacada já é
+verificada, mas o reconciliador/rotação/JWKS é da Fase 1. **Evidência local:**
+401/403/429 e audit verdes; 26.703 requests limitados; p95 de processamento do
+tenant quieto +15,13% em 1M/s ofertado. O isolamento **<10% não foi provado**
+localmente porque gateway e load generators dividem o host; a medição fica para
+o T1, bloqueado por P-07 e Stories 4.3–4.5. Q-03 do ADR-0002 fica parcialmente
+respondida (sem PostgreSQL no hot path), com o cache JWKS ainda pendente.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.

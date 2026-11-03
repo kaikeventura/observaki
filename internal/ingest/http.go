@@ -11,6 +11,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -126,53 +127,99 @@ func (g *Gateway) serveHTTPExport(w http.ResponseWriter, r *http.Request, export
 	if r.Method != http.MethodPost {
 		requestErr := errMethodNotAllowed(requestID, r.Method)
 		writeHTTPError(w, encodingJSON, requestErr)
-		g.recordHTTP(export.signal, 0, 0, requestErr, started, requestID)
+		g.recordHTTP(export.signal, Identity{}, 0, 0, requestErr, started, requestID)
 		return
+	}
+
+	identity, requestErr := g.authenticateHTTP(r, export.signal, requestID)
+	if requestErr != nil {
+		writeHTTPError(w, encodingJSON, requestErr)
+		g.recordHTTP(export.signal, identity, 0, 0, requestErr, started, requestID)
+		return
+	}
+	reservation, requestErr := g.reserveHTTP(r, identity, requestID)
+	if requestErr != nil {
+		writeHTTPError(w, encodingJSON, requestErr)
+		g.recordHTTP(export.signal, identity, 0, 0, requestErr, started, requestID)
+		return
+	}
+	settled := false
+	if reservation != nil {
+		defer func() {
+			if !settled {
+				g.auth.Release(reservation)
+			}
+		}()
 	}
 
 	body, enc, requestErr := g.readBody(w, r, requestID)
 	if requestErr != nil {
 		writeHTTPError(w, enc, requestErr)
-		g.recordHTTP(export.signal, 0, 0, requestErr, started, requestID)
+		g.recordHTTP(export.signal, identity, 0, 0, requestErr, started, requestID)
 		return
 	}
+	// The per-tenant latency window measures gateway processing (decode,
+	// admission, redaction, sink), not the client's upload time.
+	started = time.Now()
 
 	request := export.newRequest()
 	if requestErr := decodeOTLP(body, enc, request, requestID); requestErr != nil {
 		writeHTTPError(w, enc, requestErr)
-		g.recordHTTP(export.signal, 0, 0, requestErr, started, requestID)
+		g.recordHTTP(export.signal, identity, 0, 0, requestErr, started, requestID)
 		return
 	}
 
 	events := export.count(request)
 	if requestErr := g.checkEventLimit(requestID, events); requestErr != nil {
 		writeHTTPError(w, enc, requestErr)
-		g.recordHTTP(export.signal, events, events, requestErr, started, requestID)
+		g.recordHTTP(export.signal, identity, events, events, requestErr, started, requestID)
 		return
 	}
 	if events == 0 {
 		writeHTTPResponse(w, enc, export.newResponse(Result{}), requestID)
-		g.recordHTTP(export.signal, 0, 0, nil, started, requestID)
+		g.recordHTTP(export.signal, identity, 0, 0, nil, started, requestID)
 		return
+	}
+	if reservation != nil {
+		requestErr := g.settleHTTP(requestID, reservation, events)
+		settled = true
+		if requestErr != nil {
+			writeHTTPError(w, enc, requestErr)
+			g.recordHTTP(export.signal, identity, events, events, requestErr, started, requestID)
+			return
+		}
+	} else {
+		if requestErr := g.checkQuota(requestID, identity, events); requestErr != nil {
+			writeHTTPError(w, enc, requestErr)
+			g.recordHTTP(export.signal, identity, events, events, requestErr, started, requestID)
+			return
+		}
+		if g.auth != nil {
+			g.auth.RecordPayload(identity, r.ContentLength, events)
+		}
 	}
 
 	batch := export.newBatch(request)
+	batch.TenantID = identity.TenantID
+	batch.ProjectID = identity.ProjectID
+	batch.ConfigVersion = identity.ConfigVersion
+	batch.ConfigGeneration = identity.Generation
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(r.Context(), batch)
 	if err != nil {
 		requestErr := errSinkUnavailable(requestID, err)
 		writeHTTPError(w, enc, requestErr)
-		g.recordHTTP(export.signal, events, 0, requestErr, started, requestID)
+		g.recordHTTP(export.signal, identity, events, 0, requestErr, started, requestID)
 		return
 	}
 	if requestErr := validateSinkResult(requestID, events, result); requestErr != nil {
 		writeHTTPError(w, enc, requestErr)
-		g.recordHTTP(export.signal, events, 0, requestErr, started, requestID)
+		g.recordHTTP(export.signal, identity, events, 0, requestErr, started, requestID)
 		return
 	}
 
 	writeHTTPResponse(w, enc, export.newResponse(result), requestID)
-	g.recordHTTP(export.signal, events, result.Rejected, nil, started, requestID)
+	g.recordHTTP(export.signal, identity, events, result.Rejected, nil, started, requestID)
 }
 
 func (g *Gateway) readBody(w http.ResponseWriter, r *http.Request, requestID string) ([]byte, encoding, *requestError) {
@@ -318,8 +365,11 @@ func writeHTTPResponse(w http.ResponseWriter, enc encoding, message proto.Messag
 
 func writeHTTPError(w http.ResponseWriter, enc encoding, requestErr *requestError) {
 	w.Header().Set("X-Request-Id", requestErr.requestID)
-	if requestErr.httpStatus == http.StatusServiceUnavailable {
-		w.Header().Set("Retry-After", "1")
+	if requestErr.httpStatus == http.StatusUnauthorized {
+		w.Header().Set("WWW-Authenticate", `Bearer realm="observaki"`)
+	}
+	if seconds := requestErr.retryAfterSeconds(); seconds > 0 {
+		w.Header().Set("Retry-After", strconv.Itoa(seconds))
 	}
 
 	statusProto := requestErr.proto()
@@ -352,7 +402,8 @@ func writeHTTPError(w http.ResponseWriter, enc encoding, requestErr *requestErro
 	_, _ = w.Write(body)
 }
 
-func (g *Gateway) recordHTTP(signal Signal, events, rejected int, requestErr *requestError, started time.Time, requestID string) {
+func (g *Gateway) recordHTTP(signal Signal, identity Identity, events, rejected int, requestErr *requestError, started time.Time, requestID string) {
+	g.metrics.observeLatency(identity.TenantID, time.Since(started))
 	g.metrics.observeRequest(signal, protocolHTTP)
 	g.metrics.observeEvents(signal, protocolHTTP, events, rejected)
 	if requestErr == nil {
@@ -362,6 +413,8 @@ func (g *Gateway) recordHTTP(signal Signal, events, rejected int, requestErr *re
 	g.logger.Warn(
 		"otlp export rejected",
 		"request_id", requestID,
+		"tenant_id", identity.TenantID,
+		"project_id", identity.ProjectID,
 		"signal", signal.String(),
 		"protocol", "http",
 		"events", events,

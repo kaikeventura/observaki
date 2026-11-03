@@ -113,6 +113,15 @@ auth; se falharem, o fallback é acionado sem mudar o contrato OTLP.
 2. S0.7 provar que o cache de auth/JWKS não adiciona dependência do
    PostgreSQL no hot path.
 
+**Evidência da Story 4.2 (2026-11-03):** o gateway resolve tokens, escopos,
+expiração e quotas a partir de um snapshot versionado em memória, relido de um
+arquivo local a cada 30 s; nenhuma consulta ao PostgreSQL acontece no request
+path e o snapshot expirado falha fechado com 503. A assinatura Ed25519
+destacada é verificada; o reconciliador assinado, a rotação de chave e o cache
+JWKS continuam para a Fase 1. **Q-03 fica parcialmente respondida:** o hot path
+já não depende do PostgreSQL para auth/quota, mas o cache JWKS/OIDC ainda não
+foi exercitado.
+
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
@@ -142,3 +151,4 @@ auth; se falharem, o fallback é acionado sem mudar o contrato OTLP.
 | Data | Mudança | Autor |
 |---|---|---|
 | 2026-10-31 | Criação (Story 1.4) | OpenCode |
+| 2026-11-03 | Nota de evidência da Story 4.2 (auth/quota via snapshot local; Q-03 parcial) | OpenCode |

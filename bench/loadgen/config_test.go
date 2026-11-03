@@ -77,3 +77,27 @@ func TestParseProtocolAndCompression(t *testing.T) {
 		t.Fatal("ParseCompression(zstd) = nil error")
 	}
 }
+
+func TestParseHeaders(t *testing.T) {
+	headers, err := ParseHeaders([]string{"Authorization=Bearer abc", "X-Observaki-Project-Id=project-a"})
+	if err != nil {
+		t.Fatalf("ParseHeaders() = %v", err)
+	}
+	if headers["Authorization"] != "Bearer abc" || headers["X-Observaki-Project-Id"] != "project-a" {
+		t.Fatalf("ParseHeaders() = %v", headers)
+	}
+	if _, err := ParseHeaders([]string{"missing-equals"}); err == nil {
+		t.Fatal("ParseHeaders(missing-equals) = nil error")
+	}
+	if _, err := ParseHeaders([]string{"=value"}); err == nil {
+		t.Fatal("ParseHeaders(empty key) = nil error")
+	}
+	if _, err := ParseHeaders([]string{"key=line\nbreak"}); err == nil {
+		t.Fatal("ParseHeaders(newline) = nil error")
+	}
+	cfg := DefaultConfig()
+	cfg.Headers = map[string]string{"bad key": "value"}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() with a header key containing whitespace = nil")
+	}
+}
