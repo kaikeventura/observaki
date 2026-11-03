@@ -12,7 +12,7 @@ status: done        # not_started | in_progress | blocked | done
 updated: 2026-11-02
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "d867eb2"
+last_commit: "2cf30b8"
 next_action: "Story 4.1 — Skeleton do gateway OTLP; o baseline T1 da 2.4 continua bloqueado por P-07 e 4.1–4.5"
 blocked_by: []
 last_session: "Story 3.5: 16 consultas SQL no dataset de 1B eventos (300M logs + 100M spans) com p95 máx 431,94ms e p99 <2x; 4 MetricsQL p95 799,5ms; 15/15 testes de isolamento e epoch (AD-20); TTL 7/15/30 e mutação de política em 10M linhas (493ms); 10B/7d projetado em 617ms; 86B/24h medido em rollup 1m (p95 máx 87,14ms); não é G1; evidência em docs/dev/story-3.5-handoff.md e bench/clickhouse/results/2026-11-02-local-1b-mix/."
@@ -63,7 +63,7 @@ Atalho no OpenCode: `/continue`.
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `d867eb2` |
+| Último commit | `2cf30b8` |
 | Próxima ação | Story 4.1 — Skeleton do gateway OTLP |
 | Bloqueios | 2.4 (T1): P-07, 4.1–4.5 e rampa contínua; não bloqueia a 4.1 |
 | Última sessão | Story 3.5: 1B eventos, 16 SQL p95 máx 431,94ms, 4 MetricsQL 799,5ms, isolamento/epoch 15/15, TTL 7/15/30, rollup 86B p95 87,14ms; não é G1 |
@@ -161,7 +161,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-02 | Diagramas de arquitetura | — | Pacote drawio de 6 páginas renderizado da spine (contexto C4 L1, containers C4 L2, deploy AWS multi-AZ, ingestão com fronteira de ack, consulta com contexto assinado, ERD do control plane), com o AD citado em cada nó/aresta e PNGs exportados; data plane segue self-hosted em EKS (AD-5/AD-12/AD-18) e a AWS entra como hospedagem; divergência `PANEL` do ERD da spine × AD-28 registrada em `docs/architecture/README.md`; nenhum AD novo, nenhuma story alterada | `58f4a68` | Story 3.4 |
 | 2026-11-02 | Correção do ERD da spine | — | ERD do control plane alinhado a AD-28 e ao DDL canônico do addendum: `PANEL` removido, canais via `alert_rule_channel`, retenção só em `retention_policies`, `silences` e `audit_events` com o dono correto e `error_budgets` 1:1 com `slos`; nenhum AD novo e AD-28 inalterado (correção de seed, registrada no log de decisões da spine); `lint_spine.py` com **0 achados**; página 6 do drawio atualizada e reexportada | `f45c5dd` | Story 3.4 |
 | 2026-11-02 | Story 3.4 | P0 / 3.4 / AC1–AC3 | Gerador remote write protobuf+snappy, catálogo determinístico de 1M séries (2 tenants), 20 consultas MetricsQL e proxy de admissão por tenant (AD-33); run local de 1M/s por 1h (**3,6B amostras**, 999.738/s, p95 de carga 13ms, RSS 1,24GiB, 15,27GiB), consultas p95 **799,5ms** (20/20, 7/7 checks; `m14` 1.305ms), tenant-a 100k séries rejeitadas, tenant-b 0, drift **4,82%**; `make fmt/lint/test/build`, `make smoke` e `make bench-victoriametrics-check` verdes; **não é G1**; evidência em `docs/dev/story-3.4-handoff.md` e `bench/victoriametrics/results/2026-11-02-local-1m-1h/` | `fc2f0c1` + `9369638` | Story 3.5 |
-| 2026-11-02 | Story 3.5 | P0 / 3.5 / AC1–AC3 | Migração `0004_tenancy` (project_generation/authz_epoch, tenant_scope, row policies), 16 consultas SQL do catálogo, harness `bench/clickhouse/query` e rollups 1m; dataset de **1B eventos** (300M logs + 100M spans) com p95 máx **431,94ms** e p99 <2x, 4 MetricsQL p95 **799,5ms**, 15/15 testes de isolamento + epoch AD-20, TTL 7/15/30 e mutação de política em 10M linhas (**493ms**), 10B/7d projetado **617ms**, 86B/24h em rollup (p95 máx **87,14ms**); `make fmt/lint/test/build`, `make smoke` e `make bench-clickhouse-query-check` verdes; **não é G1**; evidência em `docs/dev/story-3.5-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b-mix/` | `d867eb2` + commit desta sessão | Story 4.1 |
+| 2026-11-02 | Story 3.5 | P0 / 3.5 / AC1–AC3 | Migração `0004_tenancy` (project_generation/authz_epoch, tenant_scope, row policies), 16 consultas SQL do catálogo, harness `bench/clickhouse/query` e rollups 1m; dataset de **1B eventos** (300M logs + 100M spans) com p95 máx **431,94ms** e p99 <2x, 4 MetricsQL p95 **799,5ms**, 15/15 testes de isolamento + epoch AD-20, TTL 7/15/30 e mutação de política em 10M linhas (**493ms**), 10B/7d projetado **617ms**, 86B/24h em rollup (p95 máx **87,14ms**); `make fmt/lint/test/build`, `make smoke` e `make bench-clickhouse-query-check` verdes; **não é G1**; evidência em `docs/dev/story-3.5-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b-mix/` | `fe3ce08` + `ff79762` + `2cf30b8` | Story 4.1 |
 
 ## Regras de atualização
 
