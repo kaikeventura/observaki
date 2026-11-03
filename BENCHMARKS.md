@@ -398,7 +398,7 @@ armazenamento ou Query Service** e não é evidência do G1.
 | Campo | Valor |
 |---|---|
 | Story | 4.2 — Auth por tenant, quotas e rate limiting |
-| Commit | a registrar no commit final desta sessão |
+| Commit | `dab5e98` |
 | Harness | `bench/gateway/quota/run.sh --small-payload` |
 | Payload | 0 B métrica, 64 B log, 0 B trace |
 | Compressão | quiet gzip; barulhento none |
