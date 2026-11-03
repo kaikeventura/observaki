@@ -12,7 +12,7 @@ status: done        # not_started | in_progress | blocked | done
 updated: 2026-11-03
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "db7f3c4"
+last_commit: "794afd4"
 next_action: "Story 4.4 — writers ClickHouse/VM sobre o WAL NATS (dedupe por event_id, retry e ack após flush); o AC1 de 1M/s/1h e o caos de 15 min ficam para o T1/4.5 (P-07)"
 blocked_by: []
 last_session: "Story 4.3: envelope protobuf v1 + zstd, batching por subject, 32 shards, WAL NATS JetStream com ack só após publish, 429/503 e /readyz; run local de 100k/s por 10 s (1M eventos, 5,46x, 0 duplicatas, p99 28,9 ms); make ci/make smoke verdes; 1M/s/1h no T1 pendente; evidência em docs/dev/story-4.3-handoff.md."
@@ -63,7 +63,7 @@ Atalho no OpenCode: `/continue`.
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `db7f3c4` |
+| Último commit | `794afd4` |
 | Próxima ação | Story 4.4 — writers ClickHouse/VM sobre o WAL NATS |
 | Bloqueios | 2.4 (T1): P-07, 4.4–4.5 e rampa contínua; o AC1 de 1M/s/1h e o caos de 15 min dependem do T1 |
 | Última sessão | Story 4.3: envelope protobuf v1 + zstd, batching/sharding, WAL NATS com ack durável, 429/503 e `/readyz`; run local 100k/s (1M eventos, 5,46x, p99 28,9 ms); `make ci`/`make smoke` verdes; T1 pendente |
@@ -164,7 +164,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-02 | Story 3.5 | P0 / 3.5 / AC1–AC3 | Migração `0004_tenancy` (project_generation/authz_epoch, tenant_scope, row policies), 16 consultas SQL do catálogo, harness `bench/clickhouse/query` e rollups 1m; dataset de **1B eventos** (300M logs + 100M spans) com p95 máx **431,94ms** e p99 <2x, 4 MetricsQL p95 **799,5ms**, 15/15 testes de isolamento + epoch AD-20, TTL 7/15/30 e mutação de política em 10M linhas (**493ms**), 10B/7d projetado **617ms**, 86B/24h em rollup (p95 máx **87,14ms**); `make fmt/lint/test/build`, `make smoke` e `make bench-clickhouse-query-check` verdes; **não é G1**; evidência em `docs/dev/story-3.5-handoff.md` e `bench/clickhouse/results/2026-11-02-local-1b-mix/` | `fe3ce08` + `ff79762` + `2cf30b8` | Story 4.1 |
 | 2026-11-02 | Story 4.1 | P0 / 4.1 / AC1–AC4 | Gateway OTLP (`internal/ingest`) com receptores gRPC :4317 e HTTP :4318 para traces/logs/métricas, protobuf/JSON/gzip, `partial_success` a partir do sink, limites configuráveis de 10 MiB/10k eventos, erros `google.rpc.Status` com `request_id` UUIDv7, redaction por chave e Luhn antes do sink preservando `trace_id`/`span_id`, `/healthz`, `/readyz`, `/metrics` e drain no SIGTERM; `DiscardSink` placeholder até 4.3; `go test ./...`, `go test -race`, `golangci-lint`, `make ci` e `make smoke` (OTLP HTTP/gRPC + SIGTERM) verdes; **não é G1**; evidência em `docs/dev/story-4.1-handoff.md` | `05b09e8` + `202a223` + `b03fc52` + `d6bc9b1` | Story 4.2 |
 | 2026-11-03 | Story 4.2 | P0 / 4.2 / AC1–AC3 | Snapshot versionado (`config_version`/`generation`/`issued_at`/`expires_at`) com tokens SHA-256, escopos e quota por tenant; auth Bearer 401, cross-project 403 + audit JSONL com hash chain, quota 429 + `Retry-After` e `RetryInfo`; pré-admissão HTTP por `Content-Length`/EWMA antes do decode; `Batch` carrega tenant/projeto/geração; assinatura Ed25519 em staging/produção; `make ci`/`make smoke` verdes (401/403/audit/429); harness local com 26.703 requests limitados, p95 de processamento +15,13% em 1M/s ofertado (inconclusivo por host compartilhado; T1 pendente); **não é G1**; evidência em `docs/dev/story-4.2-handoff.md` e `bench/gateway/quota/results/20261103T030500Z/` | `dab5e98` | Story 4.3 |
-| 2026-11-03 | Story 4.3 | P0 / 4.3 / AC1–AC3 | Envelope protobuf v1 (`observaki.ingest.v1`) com zstd, batching por subject, 32 shards por tenant/projeto/epoch/signal e `event_id` determinístico por evento; sink NATS JetStream com streams por sinal (`DiscardNew`/MaxAge/MaxBytes), ack só após publish, retry com `Nats-Msg-Id`, 429 `wal_backpressure`, 503 e `/readyz`; `walcheck` relê sem ack; smoke cobre OTLP HTTP/gRPC + WAL; run local 100k/s por 10 s (1M eventos, **5,46x**, 32 shards, 0 duplicatas, p99 **28,9 ms**) e 1M/s mínimo (5M eventos, ~740k/s, p99 25,4 ms); redaction Luhn passou de regex para scanner linear (~8,9 ms → ~1,8 ms por batch de 500); **não é G1**; 1M/s/1h no T1 pendente; evidência em `docs/dev/story-4.3-handoff.md` e `bench/gateway/wal/results/2026-11-03-local-100k/` | `PENDING` | Story 4.4 |
+| 2026-11-03 | Story 4.3 | P0 / 4.3 / AC1–AC3 | Envelope protobuf v1 (`observaki.ingest.v1`) com zstd, batching por subject, 32 shards por tenant/projeto/epoch/signal e `event_id` determinístico por evento; sink NATS JetStream com streams por sinal (`DiscardNew`/MaxAge/MaxBytes), ack só após publish, retry com `Nats-Msg-Id`, 429 `wal_backpressure`, 503 e `/readyz`; `walcheck` relê sem ack; smoke cobre OTLP HTTP/gRPC + WAL; run local 100k/s por 10 s (1M eventos, **5,46x**, 32 shards, 0 duplicatas, p99 **28,9 ms**) e 1M/s mínimo (5M eventos, ~740k/s, p99 25,4 ms); redaction Luhn passou de regex para scanner linear (~8,9 ms → ~1,8 ms por batch de 500); **não é G1**; 1M/s/1h no T1 pendente; evidência em `docs/dev/story-4.3-handoff.md` e `bench/gateway/wal/results/2026-11-03-local-100k/` | `794afd4` | Story 4.4 |
 
 ## Regras de atualização
 

@@ -4,6 +4,7 @@
 local de 100k/s (p99 28,9 ms). O alvo de 1M/s por 1 h no cluster T1 **não** foi
 executado; **não é o Gate G1**.
 **Data:** 2026-11-03.
+**Commit:** `794afd4`.
 **Epic:** P0-E4 — Gateway OTLP e ingestão.
 **ADs:** AD-1, AD-2, AD-3, AD-4, AD-9, AD-10, AD-18, AD-19, AD-20, AD-22,
 AD-29, AD-31, AD-33; ADR-0003.
