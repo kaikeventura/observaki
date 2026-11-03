@@ -123,7 +123,7 @@ estão documentados em [`.env.example`](.env.example):
 | `OBSERVAKI_OTLP_HTTP_ADDR` | `:4318` | endereço do receptor OTLP/HTTP |
 | `OBSERVAKI_INGEST_MAX_REQUEST_BYTES` | `10485760` | limite do corpo após descompressão |
 | `OBSERVAKI_INGEST_MAX_EVENTS` | `10000` | limite de spans/logs/data points por request |
-| `OBSERVAKI_REDACT_ATTRIBUTE_KEYS` | lista de campos de cartão | chaves mascaradas pela redação |
+| `OBSERVAKI_REDACT_ATTRIBUTE_KEYS` | `credit_card,card_number,card.number,cc_number,pan,cvv,cvc` | chaves mascaradas pela redação |
 | `OBSERVAKI_REDACT_MASK` | `[REDACTED]` | valor que substitui o campo sensível |
 
 `make bootstrap` cria `.env` a partir de `.env.example` e `make dev` carrega o
