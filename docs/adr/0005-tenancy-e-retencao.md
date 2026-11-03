@@ -79,6 +79,31 @@ As restrições que governam a decisão:
     default conservador é 15 dias para logs/traces (valor do DDL de referência
     do addendum), explicitamente registrado como provisório.
 
+### Decisão do spike da Fase 0 (Story 3.5)
+
+14. **Estratégia escolhida: TTL por linha (`retention_days`) em uma única
+    tabela.** O spike de 2026-11-02 validou 7/15/30 dias com um probe de TTL
+    (`project-0` 7d, `project-1` 15d, `project-2` 30d) e mediu a mutação de
+    troca de política em 10M linhas (~0,49 s). O custo é o merge de TTL: uma
+    part com retenções mistas reescreve também as linhas vivas quando a
+    primeira linha expira. O fallback de tabelas por bucket 7/15/30 continua
+    documentado e é a saída se o custo de merge no T1 (10B/86B) estourar o
+    orçamento. A estratégia por bucket evita a reescrita de linhas vivas, mas
+    triplica o schema, o roteamento do gateway e o número de parts; por isso
+    não é o default do MVP.
+15. **Consulta e rollups.** As 20 consultas de dashboard rodaram no dataset de
+    1B eventos (300M logs + 100M spans + 600M amostras de métricas): 16 no
+    ClickHouse com p95 < 1 s e 4 no VictoriaMetrics com p95 799,5 ms. O tier
+    de 10B/7d é uma projeção linear window-equivalent (1,43x o de 1B/24h,
+    617 ms projetados) e o de 86B/24h foi medido em rollups de 1 minuto
+    (9 consultas agregadas, p95 máximo 87 ms). O raw 10B/86B continua sendo
+    item do T1/G1; os rollups não substituem a medição raw.
+16. **Isolamento.** Row policies por tenant com `project_generation` e
+    `authz_epoch` foram validadas no ClickHouse; table functions perigosas e
+    tabelas de sistema sensíveis foram bloqueadas. O Query Service ainda não
+    existe, então o predicado injetado pelo QS (AD-3/AD-17) é simulado pelo
+    usuário de benchmark e continua sendo requisito da Fase 1.
+
 ### Auditoria e testes
 
 12. **`audit_events` append-only com hash chain**, permissões restritas,
@@ -156,14 +181,14 @@ de retenção e P-03 decide a retenção de métricas por projeto.
 
 | ID | Questão | Spike/story da Fase 0 | Dono | Prazo | Fallback |
 |---|---|---|---|---|---|
-| Q-01 | Row policies + predicado do QS isolam logs/traces sem bypass por MVs/views? | S0.8 / Story 3.5 | Segurança | Semana 4 | Role dedicado, views com `SQL SECURITY INVOKER`, teste de ataque |
-| Q-02 | TTL por projeto é viável por coluna ou exige tabelas por bucket? | S0.8 / Story 3.5 | Arquitetura | Semana 4 | Tabelas/MVs por bucket 7/15/30 |
+| Q-01 | Row policies + predicado do QS isolam logs/traces sem bypass por MVs/views? | S0.8 / Story 3.5 | Segurança | Semana 4 | Role dedicado, views com `SQL SECURITY INVOKER`, teste de ataque. **Parcial (Story 3.5):** row policies + `authz_epoch` validados no ClickHouse; o predicado do QS entra na Fase 1. |
+| Q-02 | TTL por projeto é viável por coluna ou exige tabelas por bucket? | S0.8 / Story 3.5 | Arquitetura | Semana 4 | **Fechada (Story 3.5):** TTL por linha validado para 7/15/30; fallback de tabelas por bucket documentado para o T1. |
 | Q-03 | Qual o default de retenção: 7, 15 ou 30 dias? | P-02 / Story 3.5 | Produto | Semana 2 | 15 dias provisório, documentado na UI |
 | Q-04 | O MVP suporta `project move` ou proíbe com emenda ao FR-45? | Story 3.5 / Story 5.5 | Produto + Arquitetura | Semana 4 | Proibir move no MVP e registrar a emenda |
 | Q-05 | O path/vmauth do VictoriaMetrics isola tenants de forma testável? | S0.4 / Story 3.4–3.5 | Segurança | Semana 3 | Proxy dedicado com tenant no path e teste de query vazia |
 | Q-06 | Delete hot/cold em 24 h (FR-44) entra na Fase 3? | Story 3.5 / Fase 3 | Produto | Antes da Fase 3 | Declarar SLA do MVP e manter tombstone + auditoria |
 | Q-07 | Retenção de métricas por projeto fica no OSS ou no enterprise (P-03)? | S0.4 / Fase 2 | Fundador | Antes da Fase 2 | Manter global no OSS e documentar a limitação |
-| Q-08 | Qual o teste de cache que prova invalidação por `authz_epoch`? | Story 3.5 / Story 5.5 | Plataforma | Semana 4 | Invalidar todo o cache em mudança de epoch; teste de revogação |
+| Q-08 | Qual o teste de cache que prova invalidação por `authz_epoch`? | Story 3.5 / Story 5.5 | Plataforma | Semana 4 | Invalidar todo o cache em mudança de epoch; teste de revogação. **Parcial (Story 3.5):** epoch invalida linhas no ClickHouse; o cache entra na Story 5.5. |
 
 ## Referências
 
@@ -178,3 +203,4 @@ de retenção e P-03 decide a retenção de métricas por projeto.
 | Data | Mudança | Autor |
 |---|---|---|
 | 2026-10-31 | Criação (Story 1.4) | OpenCode |
+| 2026-11-02 | Decisão do spike 3.5: TTL por linha para 7/15/30, rollups 1m para 86B/24h, Q-02 fechada | OpenCode |

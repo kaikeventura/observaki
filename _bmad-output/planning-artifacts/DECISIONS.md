@@ -64,6 +64,18 @@ duplicatas de produtor entre restarts fica para a Fase 1 (FR-4). O run local
 satura em ~400k/s e **não é evidência do G1**; 1M/s por 1 h no T1 depende de
 P-07 e das Stories 4.1/4.3.
 
+**Story 3.5 (2026-11-02):** a consulta, a retenção e o isolamento foram
+validados localmente (`bench/clickhouse/results/2026-11-02-local-1b-mix/`):
+16 consultas ClickHouse no dataset de 1B eventos (300M logs + 100M spans) com
+p95 máximo 432 ms, 4 consultas MetricsQL com p95 799,5 ms, row policies por
+tenant com `project_generation`/`authz_epoch` (15 testes de isolamento e epoch
+pass), TTL 7/15/30 e mutação de política em 10M linhas (~0,49 s). O tier de
+10B/7d é uma projeção window-equivalent (617 ms) e o de 86B/24h foi medido em
+rollups de 1 minuto (9 consultas, p95 máximo 87 ms). **Decisão:** TTL por linha
+(`retention_days`) no MVP, com o fallback de tabelas por bucket para o T1; Q-02
+do ADR-0005 fechada. O raw 10B/86B e o Query Service continuam pendentes de
+P-07/Stories 4.1–4.5; o run **não é evidência do G1**.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.
