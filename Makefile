@@ -38,7 +38,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-victoriametrics bench-victoriametrics-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -128,6 +128,12 @@ bench-clickhouse-ingest: ## run the ClickHouse ingestion spike (400k/s local, 60
 
 bench-clickhouse-ingest-check: ## run the short ClickHouse ingestion smoke (100k/s, 5s)
 	./bench/clickhouse/ingest/run.sh --smoke
+
+bench-clickhouse-query: ## run the query/retention/row-policy spike (1B-event mix)
+	./bench/clickhouse/query/run.sh --runs $(RUNS) --stop-merges
+
+bench-clickhouse-query-check: ## validate the query/retention/row-policy spike on a smoke dataset
+	./bench/clickhouse/query/run.sh --logs 10000000 --traces 1000000 --runs 5 --stop-merges
 
 bench-victoriametrics: ## run the VictoriaMetrics spike (1M series, 1M samples/s, 1h)
 	./bench/victoriametrics/run.sh --reset --series $(VM_SERIES) --rate $(VM_RATE) --duration $(VM_DURATION) --runs $(VM_RUNS)

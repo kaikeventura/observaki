@@ -1,0 +1,12 @@
+# Story 3.5 — the 4 MetricsQL dashboard queries from the 20-query catalog.
+#
+# These are the q16–q19 entries of bench/queries/dashboard.tsv, mapped to the
+# Story 3.4 VictoriaMetrics dataset (1M series, tenant-a/project-0). The query
+# runner executes them with vmquerybench against the running VM instance.
+#
+# Columns: id, surface, description, expr, window, step.
+id	surface	description	expr	window	step
+q16	Dashboard	Request rate by service	sum by (service) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+q17	Dashboard	Error ratio by service	sum by (service) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0",status=~"5.."}[5m])) / sum by (service) (rate(http_requests_total{tenant_id="tenant-a",project_id="project-0"}[5m]))	24h	5m
+q18	Dashboard	p95 latency from histogram buckets	histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{tenant_id="tenant-a",project_id="project-0"}[5m])))	24h	5m
+q19	Explorer/Metrics	Top 10 metric series by cardinality	topk(10, count by (service) (http_requests_total{tenant_id="tenant-a",project_id="project-0"}))	24h	5m

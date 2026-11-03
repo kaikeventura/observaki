@@ -1,0 +1,28 @@
+# Story 3.5 — dashboard query catalog for the ClickHouse side.
+#
+# Columns: id, signal, engine, window, target_ms, file.
+# q16–q19 are MetricsQL and are executed against VictoriaMetrics by the
+# Story 3.4 harness; the query runner records them from that report.
+# Every SQL query receives the tenant/project parameters the Query Service
+# injects in production (AD-3/AD-17); the ClickHouse row policy is the backstop.
+id	signal	engine	window	target_ms	file
+q01	logs	sql	5m	1000	q01_log_volume_by_service.sql
+q02	logs	sql	24h	1000	q02_error_log_ratio.sql
+q03	logs	sql	1h	1000	q03_filtered_logs.sql
+q04	logs	sql	24h	1000	q04_top_services_by_volume.sql
+q05	logs	sql	24h	1000	q05_log_volume_by_host_pod.sql
+q06	logs	sql	15m	1000	q06_free_text_incident.sql
+q07	traces	sql	24h	1000	q07_p95_duration_by_service.sql
+q08	traces	sql	24h	1000	q08_p99_duration_by_operation.sql
+q09	traces	sql	24h	1000	q09_span_error_ratio.sql
+q10	traces	sql	1h	1000	q10_span_count_by_status.sql
+q11	traces	sql	15m	1000	q11_slow_spans.sql
+q12	traces	sql	point	1000	q12_trace_by_id.sql
+q13	traces	sql	1h	1000	q13_service_map_edges.sql
+q14	traces	sql	24h	1000	q14_duration_histogram.sql
+q15	logs	sql	point	1000	q15_logs_by_trace_id.sql
+q16	metrics	metricsql	24h	1000	-
+q17	metrics	metricsql	24h	1000	-
+q18	metrics	metricsql	24h	1000	-
+q19	metrics	metricsql	24h	1000	-
+q20	traces	sql	5m	1000	q20_p99_trend_by_service.sql

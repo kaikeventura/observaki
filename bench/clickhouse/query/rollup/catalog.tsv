@@ -1,0 +1,19 @@
+# Story 3.5 — 1-minute rollup queries for the 86B/24h tier.
+#
+# The rollup tables have the same tenant_id/project_generation/authz_epoch
+# columns and row policies as the raw tables. The 86B/24h dataset has 86x the
+# events of the 1B/24h dataset but the same rollup cardinality (dimensions x
+# 1440 minutes); only the counters scale. The query latency measured here is
+# therefore representative of the rollup-backed 86B tier.
+#
+# Columns: id, file, target_ms.
+id	file	target_ms
+q01	r01_log_volume_by_service.sql	3000
+q02	r02_error_log_ratio.sql	3000
+q04	r04_top_services_by_volume.sql	3000
+q07	r07_p95_duration_by_service.sql	3000
+q08	r08_p99_duration_by_operation.sql	3000
+q09	r09_span_error_ratio.sql	3000
+q10	r10_span_count_by_status.sql	3000
+q14	r14_duration_histogram.sql	3000
+q20	r20_p99_trend_by_service.sql	3000
