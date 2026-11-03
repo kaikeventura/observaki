@@ -30,6 +30,24 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.WebDir != DefaultWebDir {
 		t.Errorf("WebDir = %q, want %q", cfg.WebDir, DefaultWebDir)
 	}
+	if cfg.OTLPGRPCAddr != DefaultOTLPGRPCAddr {
+		t.Errorf("OTLPGRPCAddr = %q, want %q", cfg.OTLPGRPCAddr, DefaultOTLPGRPCAddr)
+	}
+	if cfg.OTLPHTTPAddr != DefaultOTLPHTTPAddr {
+		t.Errorf("OTLPHTTPAddr = %q, want %q", cfg.OTLPHTTPAddr, DefaultOTLPHTTPAddr)
+	}
+	if cfg.IngestMaxRequestBytes != DefaultIngestMaxRequestBytes {
+		t.Errorf("IngestMaxRequestBytes = %d, want %d", cfg.IngestMaxRequestBytes, DefaultIngestMaxRequestBytes)
+	}
+	if cfg.IngestMaxEvents != DefaultIngestMaxEvents {
+		t.Errorf("IngestMaxEvents = %d, want %d", cfg.IngestMaxEvents, DefaultIngestMaxEvents)
+	}
+	if cfg.RedactMask != DefaultRedactMask {
+		t.Errorf("RedactMask = %q, want %q", cfg.RedactMask, DefaultRedactMask)
+	}
+	if got := strings.Join(cfg.RedactKeys, ","); got != DefaultRedactKeys {
+		t.Errorf("RedactKeys = %q, want %q", got, DefaultRedactKeys)
+	}
 }
 
 func TestLoadOverrides(t *testing.T) {
@@ -39,6 +57,13 @@ func TestLoadOverrides(t *testing.T) {
 		EnvEnvironment: "Staging",
 		EnvDatabaseURL: "postgres://db.internal:5432/observaki",
 		EnvWebDir:      "/srv/observaki/web",
+
+		EnvOTLPGRPCAddr:          "127.0.0.1:14317",
+		EnvOTLPHTTPAddr:          "127.0.0.1:14318",
+		EnvIngestMaxRequestBytes: "2048",
+		EnvIngestMaxEvents:       "42",
+		EnvRedactKeys:            "secret, token",
+		EnvRedactMask:            "***",
 	}))
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -58,6 +83,24 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.WebDir != "/srv/observaki/web" {
 		t.Errorf("WebDir = %q", cfg.WebDir)
+	}
+	if cfg.OTLPGRPCAddr != "127.0.0.1:14317" {
+		t.Errorf("OTLPGRPCAddr = %q", cfg.OTLPGRPCAddr)
+	}
+	if cfg.OTLPHTTPAddr != "127.0.0.1:14318" {
+		t.Errorf("OTLPHTTPAddr = %q", cfg.OTLPHTTPAddr)
+	}
+	if cfg.IngestMaxRequestBytes != 2048 {
+		t.Errorf("IngestMaxRequestBytes = %d", cfg.IngestMaxRequestBytes)
+	}
+	if cfg.IngestMaxEvents != 42 {
+		t.Errorf("IngestMaxEvents = %d", cfg.IngestMaxEvents)
+	}
+	if got := strings.Join(cfg.RedactKeys, ","); got != "secret,token" {
+		t.Errorf("RedactKeys = %q", got)
+	}
+	if cfg.RedactMask != "***" {
+		t.Errorf("RedactMask = %q", cfg.RedactMask)
 	}
 }
 
@@ -128,6 +171,46 @@ func TestLoadInvalidValues(t *testing.T) {
 			env:     map[string]string{EnvDatabaseURL: "postgres:///observaki"},
 			wantVar: EnvDatabaseURL,
 			wantVal: "postgres:///observaki",
+		},
+		{
+			name:    "otlp grpc address without port",
+			env:     map[string]string{EnvOTLPGRPCAddr: "localhost"},
+			wantVar: EnvOTLPGRPCAddr,
+			wantVal: "localhost",
+		},
+		{
+			name:    "otlp addresses collide",
+			env:     map[string]string{EnvOTLPGRPCAddr: ":4317", EnvOTLPHTTPAddr: ":4317"},
+			wantVar: EnvOTLPGRPCAddr,
+		},
+		{
+			name:    "max request bytes not a number",
+			env:     map[string]string{EnvIngestMaxRequestBytes: "ten"},
+			wantVar: EnvIngestMaxRequestBytes,
+			wantVal: "ten",
+		},
+		{
+			name:    "max request bytes too small",
+			env:     map[string]string{EnvIngestMaxRequestBytes: "0"},
+			wantVar: EnvIngestMaxRequestBytes,
+			wantVal: "0",
+		},
+		{
+			name:    "max events not a number",
+			env:     map[string]string{EnvIngestMaxEvents: "many"},
+			wantVar: EnvIngestMaxEvents,
+			wantVal: "many",
+		},
+		{
+			name:    "max events zero",
+			env:     map[string]string{EnvIngestMaxEvents: "0"},
+			wantVar: EnvIngestMaxEvents,
+			wantVal: "0",
+		},
+		{
+			name:    "redact keys empty",
+			env:     map[string]string{EnvRedactKeys: " , , "},
+			wantVar: EnvRedactKeys,
 		},
 	}
 

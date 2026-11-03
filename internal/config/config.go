@@ -15,11 +15,17 @@ import (
 
 // Environment variable names.
 const (
-	EnvHTTPAddr    = "OBSERVAKI_HTTP_ADDR"
-	EnvLogLevel    = "OBSERVAKI_LOG_LEVEL"
-	EnvEnvironment = "OBSERVAKI_ENV"
-	EnvDatabaseURL = "OBSERVAKI_DATABASE_URL"
-	EnvWebDir      = "OBSERVAKI_WEB_DIR"
+	EnvHTTPAddr              = "OBSERVAKI_HTTP_ADDR"
+	EnvLogLevel              = "OBSERVAKI_LOG_LEVEL"
+	EnvEnvironment           = "OBSERVAKI_ENV"
+	EnvDatabaseURL           = "OBSERVAKI_DATABASE_URL"
+	EnvWebDir                = "OBSERVAKI_WEB_DIR"
+	EnvOTLPGRPCAddr          = "OBSERVAKI_OTLP_GRPC_ADDR"
+	EnvOTLPHTTPAddr          = "OBSERVAKI_OTLP_HTTP_ADDR"
+	EnvIngestMaxRequestBytes = "OBSERVAKI_INGEST_MAX_REQUEST_BYTES"
+	EnvIngestMaxEvents       = "OBSERVAKI_INGEST_MAX_EVENTS"
+	EnvRedactKeys            = "OBSERVAKI_REDACT_ATTRIBUTE_KEYS"
+	EnvRedactMask            = "OBSERVAKI_REDACT_MASK"
 )
 
 // Defaults applied when a variable is unset or empty.
@@ -28,6 +34,19 @@ const (
 	DefaultLogLevel    = LogLevelInfo
 	DefaultEnvironment = EnvironmentDevelopment
 	DefaultWebDir      = "web/build"
+
+	DefaultOTLPGRPCAddr = ":4317"
+	DefaultOTLPHTTPAddr = ":4318"
+
+	// DefaultIngestMaxRequestBytes is the OTLP request limit after
+	// decompression (10 MiB).
+	DefaultIngestMaxRequestBytes int64 = 10 << 20
+	// DefaultIngestMaxEvents is the OTLP batch event limit.
+	DefaultIngestMaxEvents = 10_000
+
+	DefaultRedactMask = "[REDACTED]"
+	// DefaultRedactKeys masks credit-card fields in attributes.
+	DefaultRedactKeys = "credit_card,card_number,card.number,cc_number,pan,cvv,cvc"
 )
 
 // LogLevel is a validated logging level.
@@ -73,6 +92,13 @@ type Config struct {
 	Environment Environment
 	DatabaseURL string
 	WebDir      string
+
+	OTLPGRPCAddr          string
+	OTLPHTTPAddr          string
+	IngestMaxRequestBytes int64
+	IngestMaxEvents       int
+	RedactKeys            []string
+	RedactMask            string
 }
 
 // Lookup returns the value of an environment variable (os.Getenv compatible).
@@ -97,6 +123,24 @@ func Load(lookup Lookup) (Config, error) {
 		Environment: Environment(strings.ToLower(valueOr(lookup(EnvEnvironment), string(DefaultEnvironment)))),
 		DatabaseURL: strings.TrimSpace(lookup(EnvDatabaseURL)),
 		WebDir:      strings.TrimSpace(valueOr(lookup(EnvWebDir), DefaultWebDir)),
+
+		OTLPGRPCAddr: valueOr(lookup(EnvOTLPGRPCAddr), DefaultOTLPGRPCAddr),
+		OTLPHTTPAddr: valueOr(lookup(EnvOTLPHTTPAddr), DefaultOTLPHTTPAddr),
+		RedactMask:   valueOr(lookup(EnvRedactMask), DefaultRedactMask),
+	}
+
+	var err error
+	cfg.IngestMaxRequestBytes, err = int64Value(lookup, EnvIngestMaxRequestBytes, DefaultIngestMaxRequestBytes)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.IngestMaxEvents, err = intValue(lookup, EnvIngestMaxEvents, DefaultIngestMaxEvents)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.RedactKeys, err = redactKeysValue(lookup)
+	if err != nil {
+		return Config{}, err
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -137,7 +181,72 @@ func (c Config) Validate() error {
 		return fmt.Errorf("invalid %s: must not be empty", EnvWebDir)
 	}
 
+	if err := validateAddr(c.OTLPGRPCAddr); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvOTLPGRPCAddr, c.OTLPGRPCAddr, err)
+	}
+	if err := validateAddr(c.OTLPHTTPAddr); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvOTLPHTTPAddr, c.OTLPHTTPAddr, err)
+	}
+	if c.OTLPGRPCAddr == c.OTLPHTTPAddr {
+		return fmt.Errorf("%s and %s must differ, both are %q", EnvOTLPGRPCAddr, EnvOTLPHTTPAddr, c.OTLPGRPCAddr)
+	}
+
+	if c.IngestMaxRequestBytes < 1024 || c.IngestMaxRequestBytes > 1<<30 {
+		return fmt.Errorf("invalid %s %d: must be between 1024 and 1073741824 bytes", EnvIngestMaxRequestBytes, c.IngestMaxRequestBytes)
+	}
+	if c.IngestMaxEvents < 1 || c.IngestMaxEvents > 10_000_000 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 10000000", EnvIngestMaxEvents, c.IngestMaxEvents)
+	}
+	if strings.TrimSpace(c.RedactMask) == "" {
+		return fmt.Errorf("invalid %s: must not be empty", EnvRedactMask)
+	}
+	if len(c.RedactKeys) == 0 {
+		return fmt.Errorf("invalid %s: must contain at least one key", EnvRedactKeys)
+	}
+
 	return nil
+}
+
+func int64Value(lookup Lookup, key string, fallback int64) (int64, error) {
+	raw := strings.TrimSpace(lookup(key))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s %q: %w", key, raw, err)
+	}
+	return value, nil
+}
+
+func intValue(lookup Lookup, key string, fallback int) (int, error) {
+	raw := strings.TrimSpace(lookup(key))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s %q: %w", key, raw, err)
+	}
+	return value, nil
+}
+
+func redactKeysValue(lookup Lookup) ([]string, error) {
+	raw := strings.TrimSpace(lookup(EnvRedactKeys))
+	if raw == "" {
+		raw = DefaultRedactKeys
+	}
+	parts := strings.Split(raw, ",")
+	keys := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if key := strings.TrimSpace(part); key != "" {
+			keys = append(keys, key)
+		}
+	}
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("invalid %s %q: must contain at least one key", EnvRedactKeys, raw)
+	}
+	return keys, nil
 }
 
 func validateAddr(addr string) error {

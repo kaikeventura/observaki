@@ -41,6 +41,25 @@ make build
 O workload de referência e as limitações de taxa estão em
 [`bench/README.md`](bench/README.md).
 
+## Gateway OTLP (Fase 0)
+
+O comando `gateway` sobe os receptores OTLP/gRPC (`:4317`) e OTLP/HTTP
+(`:4318`) para traces, logs e métricas. Ele aplica os limites de requisição
+(10 MiB e 10k eventos por padrão) e a redação de campos de cartão antes do
+sink.
+
+```bash
+make build
+./bin/observaki gateway
+./bin/otlploadgen --protocol http --endpoint http://127.0.0.1:4318 \
+  --rate 100 --duration 5s --mix 34,33,33 --metrics-addr ""
+```
+
+O sink ainda é o `DiscardSink` — nada é persistido — até a Story 4.3. Auth,
+quotas e o WAL NATS entram nas Stories 4.2/4.3; RED e writers, na 4.4. Os
+detalhes e as limitações estão em
+[`docs/dev/story-4.1-handoff.md`](docs/dev/story-4.1-handoff.md).
+
 O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
 em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em
 [`bench/clickhouse/README.md`](bench/clickhouse/README.md#limpeza-importante).
@@ -100,6 +119,12 @@ estão documentados em [`.env.example`](.env.example):
 | `OBSERVAKI_ENV` | `development` | `development`, `test`, `staging` ou `production` |
 | `OBSERVAKI_DATABASE_URL` | — | PostgreSQL do control plane (opcional na Fase 0) |
 | `OBSERVAKI_WEB_DIR` | `web/build` | build estático servido pelo binário |
+| `OBSERVAKI_OTLP_GRPC_ADDR` | `:4317` | endereço do receptor OTLP/gRPC |
+| `OBSERVAKI_OTLP_HTTP_ADDR` | `:4318` | endereço do receptor OTLP/HTTP |
+| `OBSERVAKI_INGEST_MAX_REQUEST_BYTES` | `10485760` | limite do corpo após descompressão |
+| `OBSERVAKI_INGEST_MAX_EVENTS` | `10000` | limite de spans/logs/data points por request |
+| `OBSERVAKI_REDACT_ATTRIBUTE_KEYS` | lista de campos de cartão | chaves mascaradas pela redação |
+| `OBSERVAKI_REDACT_MASK` | `[REDACTED]` | valor que substitui o campo sensível |
 
 `make bootstrap` cria `.env` a partir de `.env.example` e `make dev` carrega o
 arquivo antes de subir a API e o SvelteKit. Valores inválidos falham com o nome
