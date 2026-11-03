@@ -52,8 +52,10 @@ campos de cartão.
 ```bash
 make build
 # crie o snapshot com o hash SHA-256 do token (veja docs/dev/local-setup.md)
+# e suba um NATS com JetStream (docker run ... nats:2.15.2-alpine -js)
 OBSERVAKI_INGEST_AUTH_FILE=/tmp/observaki-dev/ingest-auth.json \
 OBSERVAKI_INGEST_AUDIT_FILE=/tmp/observaki-dev/audit.jsonl \
+OBSERVAKI_NATS_URL=nats://127.0.0.1:4222 \
   ./bin/observaki gateway
 ./bin/otlploadgen --protocol http --endpoint http://127.0.0.1:4318 \
   --rate 100 --duration 5s --batch-size 10 --mix 34,33,33 --metrics-addr "" \
@@ -62,9 +64,11 @@ OBSERVAKI_INGEST_AUDIT_FILE=/tmp/observaki-dev/audit.jsonl \
 
 Token inválido ou expirado retorna 401; tentativa de escrever em outro
 projeto retorna 403 e vai para o audit; excesso de quota retorna 429 com
-`Retry-After`. O sink ainda é o `DiscardSink` — nada é persistido — até a
-Story 4.3; o WAL NATS entra na 4.3, e RED/writers na 4.4. Detalhes em
-[`docs/dev/story-4.2-handoff.md`](docs/dev/story-4.2-handoff.md).
+`Retry-After`. O gateway publica no WAL NATS JetStream (envelope protobuf v1
+comprimido com zstd, shards por tenant/projeto/epoch/signal) e só confirma
+depois do ack durável; fila cheia retorna 429 e NATS indisponível retorna 503.
+Duplicatas são deduplicadas por `event_id`; o writer ClickHouse/VM é a Story
+4.4. Detalhes em [`docs/dev/story-4.3-handoff.md`](docs/dev/story-4.3-handoff.md).
 
 O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
 em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em
@@ -135,6 +139,21 @@ estão documentados em [`.env.example`](.env.example):
 | `OBSERVAKI_INGEST_AUDIT_FILE` | — | audit JSONL append-only (obrigatório em staging/produção) |
 | `OBSERVAKI_REDACT_ATTRIBUTE_KEYS` | `credit_card,card_number,card.number,cc_number,pan,cvv,cvc` | chaves mascaradas pela redação |
 | `OBSERVAKI_REDACT_MASK` | `[REDACTED]` | valor que substitui o campo sensível |
+| `OBSERVAKI_NATS_URL` | `nats://127.0.0.1:4222` | WAL NATS JetStream (obrigatório no `gateway`) |
+| `OBSERVAKI_NATS_CREDENTIALS_FILE` | — | credenciais NATS (`.creds`) |
+| `OBSERVAKI_NATS_SUBJECT_PREFIX` | `observaki.ingest.v1` | prefixo dos subjects do WAL |
+| `OBSERVAKI_NATS_STREAM_PREFIX` | `OBSERVAKI` | prefixo dos streams por sinal |
+| `OBSERVAKI_NATS_SHARDS` | `32` | shards por tenant/projeto/epoch/signal |
+| `OBSERVAKI_NATS_STREAM_REPLICAS` | `1` | réplicas do stream (3 no cluster) |
+| `OBSERVAKI_NATS_STREAM_MAX_AGE` | `24h` | janela de retenção do WAL |
+| `OBSERVAKI_NATS_STREAM_MAX_BYTES` | `34359738368` | teto de bytes por stream |
+| `OBSERVAKI_NATS_STREAM_STORAGE` | `file` | `file` ou `memory` |
+| `OBSERVAKI_NATS_BATCH_MAX_EVENTS` | `100000` | eventos por envelope antes do flush |
+| `OBSERVAKI_NATS_BATCH_MAX_BYTES` | `4194304` | bytes por envelope antes do flush |
+| `OBSERVAKI_NATS_BATCH_LINGER` | `5ms` | espera máxima para fechar um envelope |
+| `OBSERVAKI_NATS_PUBLISH_TIMEOUT` | `5s` | timeout de cada publish no JetStream |
+| `OBSERVAKI_NATS_MAX_PENDING_BYTES` | `268435456` | fila máxima antes de 429 |
+| `OBSERVAKI_NATS_PUBLISH_WORKERS` | `8` | publishers concorrentes |
 
 `make bootstrap` cria `.env` a partir de `.env.example` e `make dev` carrega o
 arquivo antes de subir a API e o SvelteKit. Valores inválidos falham com o nome

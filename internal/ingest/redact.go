@@ -1,7 +1,6 @@
 package ingest
 
 import (
-	"regexp"
 	"strings"
 
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -25,10 +24,6 @@ var DefaultRedactKeys = []string{
 	"cvv",
 	"cvc",
 }
-
-// cardNumberPattern matches 13-19 digit sequences with optional spaces or
-// dashes. A Luhn check keeps ordinary numeric identifiers out of the mask.
-var cardNumberPattern = regexp.MustCompile(`\b\d(?:[ -]?\d){12,18}\b`)
 
 // RedactionConfig configures the pipeline's redaction stage.
 type RedactionConfig struct {
@@ -218,12 +213,72 @@ func (r *redactor) maskString(value string) string {
 	if value == "" {
 		return value
 	}
-	return cardNumberPattern.ReplaceAllStringFunc(value, func(candidate string) string {
-		if luhnValid(candidate) {
-			return r.mask
+	return maskCardNumbers(value, r.mask)
+}
+
+// maskCardNumbers replaces Luhn-valid 13-19 digit sequences with mask. It is a
+// linear scan instead of a backtracking regex: redaction runs on every string
+// of every event before the WAL, and the benchmark payload is large.
+func maskCardNumbers(value, mask string) string {
+	firstMatch := -1
+	lastWritten := 0
+	var out strings.Builder
+	for index := 0; index < len(value); {
+		if !isASCIIDigit(value[index]) {
+			index++
+			continue
 		}
-		return candidate
-	})
+		start := index
+		digits := 0
+		end := index
+		for end < len(value) {
+			char := value[end]
+			if isASCIIDigit(char) {
+				digits++
+				end++
+				continue
+			}
+			if (char == ' ' || char == '-') && end+1 < len(value) && isASCIIDigit(value[end+1]) && digits < 19 {
+				end++
+				continue
+			}
+			break
+		}
+		if digits >= 13 && digits <= 19 && cardBoundaries(value, start, end) && luhnValid(value[start:end]) {
+			if firstMatch < 0 {
+				firstMatch = start
+				out.Grow(len(value))
+			}
+			out.WriteString(value[lastWritten:start])
+			out.WriteString(mask)
+			lastWritten = end
+		}
+		index = end
+	}
+	if firstMatch < 0 {
+		return value
+	}
+	out.WriteString(value[lastWritten:])
+	return out.String()
+}
+
+func isASCIIDigit(char byte) bool { return char >= '0' && char <= '9' }
+
+func isASCIIWord(char byte) bool {
+	return isASCIIDigit(char) ||
+		char >= 'a' && char <= 'z' ||
+		char >= 'A' && char <= 'Z' ||
+		char == '_'
+}
+
+func cardBoundaries(value string, start, end int) bool {
+	if start > 0 && isASCIIWord(value[start-1]) {
+		return false
+	}
+	if end < len(value) && isASCIIWord(value[end]) {
+		return false
+	}
+	return true
 }
 
 func normalizeRedactKey(key string) string {

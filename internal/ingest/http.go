@@ -202,12 +202,13 @@ func (g *Gateway) serveHTTPExport(w http.ResponseWriter, r *http.Request, export
 	batch := export.newBatch(request)
 	batch.TenantID = identity.TenantID
 	batch.ProjectID = identity.ProjectID
+	batch.RequestID = requestID
 	batch.ConfigVersion = identity.ConfigVersion
 	batch.ConfigGeneration = identity.Generation
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(r.Context(), batch)
 	if err != nil {
-		requestErr := errSinkUnavailable(requestID, err)
+		requestErr := errFromSink(requestID, err)
 		writeHTTPError(w, enc, requestErr)
 		g.recordHTTP(export.signal, identity, events, 0, requestErr, started, requestID)
 		return
@@ -410,6 +411,9 @@ func (g *Gateway) recordHTTP(signal Signal, identity Identity, events, rejected 
 		return
 	}
 	g.metrics.observeError(signal, protocolHTTP)
+	if requestErr.reason == "wal_backpressure" {
+		g.metrics.observeWALBackpressure()
+	}
 	g.logger.Warn(
 		"otlp export rejected",
 		"request_id", requestID,
@@ -434,6 +438,12 @@ func (g *Gateway) handleReadyz(w http.ResponseWriter, _ *http.Request) {
 	if !g.ready.Load() {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not_ready"})
 		return
+	}
+	if health, ok := g.sink.(SinkHealth); ok {
+		if err := health.Healthy(); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "wal_unavailable"})
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

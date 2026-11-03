@@ -3,9 +3,10 @@
 Guia para sair de um clone vazio até a API e o frontend rodando em Linux,
 com a toolchain validada. Tempo esperado: **≤ 10 minutos** com rede razoável.
 
-Nesta fase (Fase 0 / Story 1.1) **não** sobem ClickHouse, VictoriaMetrics,
-PostgreSQL nem NATS — isso é a Story 5.1. O `make dev` sobe apenas a API Go e
-o dev server do SvelteKit.
+Nesta fase (Fase 0 / Story 1.1) **não** sobem ClickHouse, VictoriaMetrics nem
+PostgreSQL — isso é a Story 5.1. O `make dev` sobe apenas a API Go e o dev
+server do SvelteKit. O `observaki gateway` a partir da Story 4.3 exige um NATS
+JetStream; o exemplo abaixo sobe um container local descartável.
 
 ## Pré-requisitos
 
@@ -107,6 +108,14 @@ OBSERVAKI_INGEST_AUDIT_FILE=/tmp/observaki-dev/audit.jsonl \
 ./bin/observaki gateway
 ```
 
+Antes, suba um NATS com JetStream (o gateway falha fechado se o WAL não
+conectar):
+
+```bash
+docker run -d --rm --name observaki-nats -p 4222:4222 \
+  nats:2.15.2-alpine -js -sd /data
+```
+
 Envie telemetria com o token no header `Authorization: Bearer`:
 
 ```bash
@@ -124,9 +133,20 @@ Comportamento:
 - tenant acima de `ingest_quota.events_per_second` → **429** com
   `Retry-After`; o excesso é descartado antes da descompressão/decode quando o
   `Content-Length` permite estimar os eventos;
+- WAL cheio ou fila acima de `OBSERVAKI_NATS_MAX_PENDING_BYTES` → **429**
+  `wal_backpressure`; NATS indisponível → **503** `sink_unavailable` e
+  `/readyz` falha enquanto o WAL estiver desconectado;
+- o gateway só responde depois do ack durável do JetStream; o envelope protobuf
+  v1 é comprimido com zstd e o subject carrega tenant/projeto/epoch/signal/shard
+  (tenant/projeto em base64url);
 - `/metrics` expõe `observaki_gateway_auth_failures_total`,
   `observaki_gateway_quota_rejected_requests_total`,
-  `observaki_gateway_config_age_seconds` e o p95 por tenant.
+  `observaki_gateway_wal_published_events_total`,
+  `observaki_gateway_wal_pending_bytes`,
+  `observaki_gateway_wal_publish_duration_seconds`,
+  `observaki_gateway_config_age_seconds` e o p95/p99 por tenant.
+- `bin/walcheck` lê o WAL sem dar ack e confere mensagens, eventos, IDs únicos,
+  compressão e distribuição por shard.
 
 O snapshot é relido a cada `OBSERVAKI_INGEST_AUTH_RELOAD_INTERVAL` (default
 `30s`). Se `expires_at` passar, auth e quota falham fechadas com **503**. Em

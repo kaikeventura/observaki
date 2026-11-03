@@ -62,7 +62,7 @@ durável é o modo single-node permitido pelo AD-4; o NATS é a Story 4.3. A
 janela de dedupe em memória não sobrevive ao restart; o índice durável para
 duplicatas de produtor entre restarts fica para a Fase 1 (FR-4). O run local
 satura em ~400k/s e **não é evidência do G1**; 1M/s por 1 h no T1 depende de
-P-07 e das Stories 4.1/4.3.
+P-07 e da Story 4.4.
 
 **Story 3.5 (2026-11-02):** a consulta, a retenção e o isolamento foram
 validados localmente (`bench/clickhouse/results/2026-11-02-local-1b-mix/`):
@@ -91,6 +91,24 @@ tenant quieto +15,13% em 1M/s ofertado. O isolamento **<10% não foi provado**
 localmente porque gateway e load generators dividem o host; a medição fica para
 o T1, bloqueado por P-07 e Stories 4.3–4.5. Q-03 do ADR-0002 fica parcialmente
 respondida (sem PostgreSQL no hot path), com o cache JWKS ainda pendente.
+
+**Story 4.3 (2026-11-03):** o gateway passou a publicar no WAL NATS JetStream
+com envelope protobuf v1 (`observaki.ingest.v1`), zstd e batching por subject.
+O subject carrega tenant/projeto em base64url, `authz_epoch`, sinal e shard
+(`observaki.ingest.v1.<tenant>.<project>.e<epoch>.<signal>.<shard>`), com 32
+shards por default; streams por sinal usam `LimitsPolicy`/`DiscardNew`, `MaxAge`
+de 24 h e `MaxBytes` de 32 GiB por stream (o T1 deve configurar o sizing de
+15 min de outage). O ack OTLP só acontece depois do `PublishMsg` confirmado; o
+retry usa o mesmo `Nats-Msg-Id`, e a dedupe de retry do SDK fica no `event_id`
+determinístico (hash canônico pós-redaction) para o writer da 4.4. Fila cheia
+retorna 429 `wal_backpressure`; NATS fora retorna 503 e `/readyz` 503.
+**Decisão:** NATS é o WAL em todos os ambientes; `DiscardSink` fica apenas como
+fixture de teste. O single-node do Compose pode usar NATS local (Q-03 do
+ADR-0003 continua aberta para o fallback de buffer local). **Evidência local:**
+100k/s por 10 s com 1M eventos, 5,46x de compressão, 32 shards, zero duplicatas
+e p99 de processamento 28,9 ms; 1M/s com payload mínimo sustentou ~740k/s e 5M
+eventos íntegros. **Não é G1:** 1M/s por 1 h, retenção de 15 min e o caos de
+NATS/ClickHouse continuam pendentes do T1/4.5 (P-07).
 
 ## ADRs da Fase 0
 

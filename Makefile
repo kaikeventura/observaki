@@ -15,6 +15,7 @@ CHLOADGEN := $(BIN_DIR)/chloadgen
 VM_LOADGEN := $(BIN_DIR)/vmloadgen
 VM_QUERYBENCH := $(BIN_DIR)/vmquerybench
 VM_ADMISSION := $(BIN_DIR)/vmadmission
+WALCHECK := $(BIN_DIR)/walcheck
 WEB_DIR := web
 AGENT_MANIFEST := agent/Cargo.toml
 ROWS ?= 1000000000
@@ -38,7 +39,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -88,6 +89,7 @@ build: ## build the Go binary, the load generator, the web app and the agent
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(VM_LOADGEN) ./bench/cmd/vmloadgen
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(VM_QUERYBENCH) ./bench/cmd/vmquerybench
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(VM_ADMISSION) ./bench/cmd/vmadmission
+	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(WALCHECK) ./bench/cmd/walcheck
 	$(PNPM) --dir $(WEB_DIR) build
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 
@@ -146,5 +148,11 @@ bench-gateway-quota: ## run the gateway quota isolation workload (100k/s quota, 
 
 bench-gateway-quota-check: ## run the short gateway auth/quota isolation smoke
 	./bench/gateway/quota/run.sh --smoke
+
+bench-gateway-wal: ## run the gateway batching/sharding/NATS WAL workload
+	./bench/gateway/wal/run.sh
+
+bench-gateway-wal-check: ## run the short gateway WAL smoke
+	./bench/gateway/wal/run.sh --smoke
 
 ci: bootstrap lint test build ## run the full local CI suite

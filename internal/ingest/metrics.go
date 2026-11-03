@@ -73,6 +73,7 @@ type gatewayMetrics struct {
 	authFailures         [7]atomic.Uint64
 	quotaRejectedEvents  atomic.Uint64
 	quotaRejectedRequest atomic.Uint64
+	walBackpressure      atomic.Uint64
 	latency              *latencyWindows
 }
 
@@ -100,6 +101,10 @@ func (m *gatewayMetrics) observeQuotaRejection(events int) {
 	}
 }
 
+func (m *gatewayMetrics) observeWALBackpressure() {
+	m.walBackpressure.Add(1)
+}
+
 func (m *gatewayMetrics) observeLatency(tenant string, duration time.Duration) {
 	if m.latency == nil {
 		return
@@ -125,6 +130,9 @@ func (g *Gateway) handleSelfMetrics() http.Handler {
 		out.WriteString("# HELP observaki_gateway_quota_rejected_requests_total Requests rejected with 429 because the tenant exhausted its ingest quota.\n")
 		out.WriteString("# TYPE observaki_gateway_quota_rejected_requests_total counter\n")
 		fmt.Fprintf(&out, "observaki_gateway_quota_rejected_requests_total %d\n", g.metrics.quotaRejectedRequest.Load())
+		out.WriteString("# HELP observaki_gateway_wal_backpressure_total Requests rejected with 429 because the WAL was at capacity.\n")
+		out.WriteString("# TYPE observaki_gateway_wal_backpressure_total counter\n")
+		fmt.Fprintf(&out, "observaki_gateway_wal_backpressure_total %d\n", g.metrics.walBackpressure.Load())
 
 		authEnabled := 0
 		if g.auth != nil {
@@ -152,6 +160,10 @@ func (g *Gateway) handleSelfMetrics() http.Handler {
 			out.WriteString("# HELP observaki_gateway_config_tenants Tenants in the loaded config snapshot.\n")
 			out.WriteString("# TYPE observaki_gateway_config_tenants gauge\n")
 			fmt.Fprintf(&out, "observaki_gateway_config_tenants %d\n", state.Tenants)
+		}
+
+		if provider, ok := g.sink.(SinkStatsProvider); ok {
+			writeSinkStats(&out, provider.Stats())
 		}
 
 		if g.metrics.latency != nil {
@@ -185,6 +197,45 @@ func (g *Gateway) handleSelfMetrics() http.Handler {
 
 		_, _ = io.WriteString(w, out.String())
 	})
+}
+
+func writeSinkStats(out *strings.Builder, stats SinkStats) {
+	connected := 0
+	if stats.Connected {
+		connected = 1
+	}
+	out.WriteString("# HELP observaki_gateway_wal_connected Whether the WAL connection is healthy.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_connected gauge\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_connected %d\n", connected)
+	out.WriteString("# HELP observaki_gateway_wal_published_batches_total Envelopes acknowledged by the WAL.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_published_batches_total counter\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_published_batches_total %d\n", stats.PublishedBatches)
+	out.WriteString("# HELP observaki_gateway_wal_published_events_total Events acknowledged by the WAL.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_published_events_total counter\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_published_events_total %d\n", stats.PublishedEvents)
+	out.WriteString("# HELP observaki_gateway_wal_publish_errors_total Envelope publishes that failed after retries.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_publish_errors_total counter\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_publish_errors_total %d\n", stats.PublishErrors)
+	out.WriteString("# HELP observaki_gateway_wal_publish_retries_total Envelope publish retries.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_publish_retries_total counter\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_publish_retries_total %d\n", stats.PublishRetries)
+	out.WriteString("# HELP observaki_gateway_wal_backpressure_rejections_total Requests rejected because the WAL queue was full.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_backpressure_rejections_total counter\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_backpressure_rejections_total %d\n", stats.Backpressure)
+	out.WriteString("# HELP observaki_gateway_wal_pending_bytes Bytes reserved in the WAL queue.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_pending_bytes gauge\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_pending_bytes %d\n", stats.PendingBytes)
+	out.WriteString("# HELP observaki_gateway_wal_pending_events Events reserved in the WAL queue.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_pending_events gauge\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_pending_events %d\n", stats.PendingEvents)
+	out.WriteString("# HELP observaki_gateway_wal_in_flight_batches Envelopes currently being built or published.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_in_flight_batches gauge\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_in_flight_batches %d\n", stats.InFlightBatches)
+	out.WriteString("# HELP observaki_gateway_wal_publish_duration_seconds Recent WAL publish latency per quantile.\n")
+	out.WriteString("# TYPE observaki_gateway_wal_publish_duration_seconds gauge\n")
+	fmt.Fprintf(out, "observaki_gateway_wal_publish_duration_seconds{quantile=\"0.5\"} %.6f\n", stats.PublishP50.Seconds())
+	fmt.Fprintf(out, "observaki_gateway_wal_publish_duration_seconds{quantile=\"0.95\"} %.6f\n", stats.PublishP95.Seconds())
+	fmt.Fprintf(out, "observaki_gateway_wal_publish_duration_seconds{quantile=\"0.99\"} %.6f\n", stats.PublishP99.Seconds())
 }
 
 func (m *gatewayMetrics) write(out *strings.Builder) {

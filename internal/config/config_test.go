@@ -55,6 +55,33 @@ func TestLoadDefaults(t *testing.T) {
 	if got := strings.Join(cfg.RedactKeys, ","); got != DefaultRedactKeys {
 		t.Errorf("RedactKeys = %q, want %q", got, DefaultRedactKeys)
 	}
+	if cfg.NATSURL != DefaultNATSURL {
+		t.Errorf("NATSURL = %q, want %q", cfg.NATSURL, DefaultNATSURL)
+	}
+	if cfg.NATSSubjectPrefix != DefaultNATSSubjectPrefix || cfg.NATSStreamPrefix != DefaultNATSStreamPrefix {
+		t.Errorf("NATS prefixes = %q/%q", cfg.NATSSubjectPrefix, cfg.NATSStreamPrefix)
+	}
+	if cfg.NATSShards != DefaultNATSShards || cfg.NATSStreamReplicas != DefaultNATSStreamReplicas {
+		t.Errorf("NATS shards/replicas = %d/%d", cfg.NATSShards, cfg.NATSStreamReplicas)
+	}
+	if cfg.NATSStreamMaxAge != DefaultNATSStreamMaxAge || cfg.NATSStreamMaxBytes != DefaultNATSStreamMaxBytes {
+		t.Errorf("NATS retention = %s/%d", cfg.NATSStreamMaxAge, cfg.NATSStreamMaxBytes)
+	}
+	if cfg.NATSStreamStorage != DefaultNATSStreamStorage {
+		t.Errorf("NATSStreamStorage = %q", cfg.NATSStreamStorage)
+	}
+	if cfg.NATSBatchMaxEvents != DefaultNATSBatchMaxEvents || cfg.NATSBatchMaxBytes != DefaultNATSBatchMaxBytes {
+		t.Errorf("NATS batch = %d/%d", cfg.NATSBatchMaxEvents, cfg.NATSBatchMaxBytes)
+	}
+	if cfg.NATSBatchLinger != DefaultNATSBatchLinger {
+		t.Errorf("NATSBatchLinger = %s", cfg.NATSBatchLinger)
+	}
+	if cfg.NATSPublishTimeout != DefaultNATSPublishTimeout || cfg.NATSConnectTimeout != DefaultNATSConnectTimeout {
+		t.Errorf("NATS timeouts = %s/%s", cfg.NATSPublishTimeout, cfg.NATSConnectTimeout)
+	}
+	if cfg.NATSMaxPendingBytes != DefaultNATSMaxPendingBytes || cfg.NATSPublishWorkers != DefaultNATSPublishWorkers {
+		t.Errorf("NATS pending/workers = %d/%d", cfg.NATSMaxPendingBytes, cfg.NATSPublishWorkers)
+	}
 }
 
 func TestLoadOverrides(t *testing.T) {
@@ -75,6 +102,22 @@ func TestLoadOverrides(t *testing.T) {
 		EnvIngestAuditFile:       "/var/log/observaki/audit.jsonl",
 		EnvRedactKeys:            "secret, token",
 		EnvRedactMask:            "***",
+		EnvNATSURL:               "tls://nats.internal:4222",
+		EnvNATSCredentialsFile:   "/etc/observaki/nats.creds",
+		EnvNATSSubjectPrefix:     "obs.ingest.v1",
+		EnvNATSStreamPrefix:      "OBS_TEST",
+		EnvNATSShards:            "64",
+		EnvNATSStreamReplicas:    "3",
+		EnvNATSStreamMaxAge:      "12h",
+		EnvNATSStreamMaxBytes:    "10737418240",
+		EnvNATSStreamStorage:     "memory",
+		EnvNATSBatchMaxEvents:    "5000",
+		EnvNATSBatchMaxBytes:     "1048576",
+		EnvNATSBatchLinger:       "10ms",
+		EnvNATSConnectTimeout:    "3s",
+		EnvNATSPublishTimeout:    "2s",
+		EnvNATSMaxPendingBytes:   "67108864",
+		EnvNATSPublishWorkers:    "4",
 	}))
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -124,6 +167,30 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.RedactMask != "***" {
 		t.Errorf("RedactMask = %q", cfg.RedactMask)
+	}
+	if cfg.NATSURL != "tls://nats.internal:4222" || cfg.NATSCredentialsFile != "/etc/observaki/nats.creds" {
+		t.Errorf("NATS connection = %q/%q", cfg.NATSURL, cfg.NATSCredentialsFile)
+	}
+	if cfg.NATSSubjectPrefix != "obs.ingest.v1" || cfg.NATSStreamPrefix != "OBS_TEST" {
+		t.Errorf("NATS prefixes = %q/%q", cfg.NATSSubjectPrefix, cfg.NATSStreamPrefix)
+	}
+	if cfg.NATSShards != 64 || cfg.NATSStreamReplicas != 3 {
+		t.Errorf("NATS shards/replicas = %d/%d", cfg.NATSShards, cfg.NATSStreamReplicas)
+	}
+	if cfg.NATSStreamMaxAge != 12*time.Hour || cfg.NATSStreamMaxBytes != 10<<30 {
+		t.Errorf("NATS retention = %s/%d", cfg.NATSStreamMaxAge, cfg.NATSStreamMaxBytes)
+	}
+	if cfg.NATSStreamStorage != "memory" {
+		t.Errorf("NATSStreamStorage = %q", cfg.NATSStreamStorage)
+	}
+	if cfg.NATSBatchMaxEvents != 5000 || cfg.NATSBatchMaxBytes != 1<<20 || cfg.NATSBatchLinger != 10*time.Millisecond {
+		t.Errorf("NATS batch = %d/%d/%s", cfg.NATSBatchMaxEvents, cfg.NATSBatchMaxBytes, cfg.NATSBatchLinger)
+	}
+	if cfg.NATSConnectTimeout != 3*time.Second || cfg.NATSPublishTimeout != 2*time.Second {
+		t.Errorf("NATS timeouts = %s/%s", cfg.NATSConnectTimeout, cfg.NATSPublishTimeout)
+	}
+	if cfg.NATSMaxPendingBytes != 64<<20 || cfg.NATSPublishWorkers != 4 {
+		t.Errorf("NATS pending/workers = %d/%d", cfg.NATSMaxPendingBytes, cfg.NATSPublishWorkers)
 	}
 }
 
@@ -246,6 +313,48 @@ func TestLoadInvalidValues(t *testing.T) {
 			name:    "redact keys empty",
 			env:     map[string]string{EnvRedactKeys: " , , "},
 			wantVar: EnvRedactKeys,
+		},
+		{
+			name:    "nats url invalid scheme",
+			env:     map[string]string{EnvNATSURL: "http://nats:4222"},
+			wantVar: EnvNATSURL,
+			wantVal: "http://nats:4222",
+		},
+		{
+			name:    "nats subject prefix has wildcard",
+			env:     map[string]string{EnvNATSSubjectPrefix: "observaki.*"},
+			wantVar: EnvNATSSubjectPrefix,
+			wantVal: "observaki.*",
+		},
+		{
+			name:    "nats shards zero",
+			env:     map[string]string{EnvNATSShards: "0"},
+			wantVar: EnvNATSShards,
+			wantVal: "0",
+		},
+		{
+			name:    "nats replicas too high",
+			env:     map[string]string{EnvNATSStreamReplicas: "6"},
+			wantVar: EnvNATSStreamReplicas,
+			wantVal: "6",
+		},
+		{
+			name:    "nats storage unknown",
+			env:     map[string]string{EnvNATSStreamStorage: "ssd"},
+			wantVar: EnvNATSStreamStorage,
+			wantVal: "ssd",
+		},
+		{
+			name:    "nats batch linger too small",
+			env:     map[string]string{EnvNATSBatchLinger: "1us"},
+			wantVar: EnvNATSBatchLinger,
+			wantVal: "1µs",
+		},
+		{
+			name:    "nats publish workers zero",
+			env:     map[string]string{EnvNATSPublishWorkers: "0"},
+			wantVar: EnvNATSPublishWorkers,
+			wantVal: "0",
 		},
 	}
 

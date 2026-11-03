@@ -66,6 +66,7 @@ func (g *Gateway) exportTraces(ctx context.Context, req *tracepb.ExportTraceServ
 		Signal:           SignalTraces,
 		TenantID:         identity.TenantID,
 		ProjectID:        identity.ProjectID,
+		RequestID:        requestID,
 		ConfigVersion:    identity.ConfigVersion,
 		ConfigGeneration: identity.Generation,
 		ReceivedAt:       time.Now().UTC(),
@@ -74,7 +75,7 @@ func (g *Gateway) exportTraces(ctx context.Context, req *tracepb.ExportTraceServ
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(ctx, batch)
 	if err != nil {
-		requestErr := errSinkUnavailable(requestID, err)
+		requestErr := errFromSink(requestID, err)
 		g.recordGRPC(SignalTraces, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
@@ -121,6 +122,7 @@ func (g *Gateway) exportLogs(ctx context.Context, req *logspb.ExportLogsServiceR
 		Signal:           SignalLogs,
 		TenantID:         identity.TenantID,
 		ProjectID:        identity.ProjectID,
+		RequestID:        requestID,
 		ConfigVersion:    identity.ConfigVersion,
 		ConfigGeneration: identity.Generation,
 		ReceivedAt:       time.Now().UTC(),
@@ -129,7 +131,7 @@ func (g *Gateway) exportLogs(ctx context.Context, req *logspb.ExportLogsServiceR
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(ctx, batch)
 	if err != nil {
-		requestErr := errSinkUnavailable(requestID, err)
+		requestErr := errFromSink(requestID, err)
 		g.recordGRPC(SignalLogs, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
@@ -176,6 +178,7 @@ func (g *Gateway) exportMetrics(ctx context.Context, req *metricpb.ExportMetrics
 		Signal:           SignalMetrics,
 		TenantID:         identity.TenantID,
 		ProjectID:        identity.ProjectID,
+		RequestID:        requestID,
 		ConfigVersion:    identity.ConfigVersion,
 		ConfigGeneration: identity.Generation,
 		ReceivedAt:       time.Now().UTC(),
@@ -184,7 +187,7 @@ func (g *Gateway) exportMetrics(ctx context.Context, req *metricpb.ExportMetrics
 	g.redactor.apply(batch)
 	result, err := g.sink.Consume(ctx, batch)
 	if err != nil {
-		requestErr := errSinkUnavailable(requestID, err)
+		requestErr := errFromSink(requestID, err)
 		g.recordGRPC(SignalMetrics, identity, events, 0, requestErr, started, requestID)
 		return nil, requestErr.grpcStatus()
 	}
@@ -230,6 +233,9 @@ func (g *Gateway) recordGRPC(signal Signal, identity Identity, events, rejected 
 		return
 	}
 	g.metrics.observeError(signal, protocolGRPC)
+	if requestErr.reason == "wal_backpressure" {
+		g.metrics.observeWALBackpressure()
+	}
 	g.logger.Warn(
 		"otlp export rejected",
 		"request_id", requestID,

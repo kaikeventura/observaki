@@ -439,6 +439,63 @@ separados, e continua bloqueada por **P-07** e pelas Stories 4.3–4.5. O veredi
 funcional e a pré-admissão antes do decode estão registrados em
 [`docs/dev/story-4.2-handoff.md`](docs/dev/story-4.2-handoff.md).
 
+## Story 4.3 — gateway, zstd e WAL NATS (local)
+
+**O que é:** dois tenants enviam 100k eventos/s no total (50k/s cada) por 10 s
+para o gateway, que aplica redaction, sintetiza `event_id`, agrupa em envelopes
+protobuf, comprime com zstd e publica em 32 shards por sinal no NATS JetStream.
+O gateway só confirma depois do ack do JetStream. O `walcheck` relê todas as
+mensagens sem ack e confere contagem, IDs únicos, compressão e distribuição.
+**Não é o run de 1M/s por 1 h do T1** e não é evidência do G1.
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Story | 4.3 — Batching, compressão, sharding e WAL NATS |
+| Harness | `bench/gateway/wal/run.sh` |
+| Resultado | `bench/gateway/wal/results/2026-11-03-local-100k/` |
+| NATS | 2.15.2-alpine, JetStream, `max_payload` 16 MiB |
+| Shards | 32 por tenant/projeto/epoch/signal |
+| Batch | 500 eventos/request; linger 5 ms |
+| Compressão | gzip no cliente, zstd no envelope |
+| Duração | 10 s |
+| Host | Intel Core Ultra 7 155H, 22 threads, 15 GiB RAM |
+| Data | 2026-11-03 |
+
+### Resultados
+
+| Métrica | Valor |
+|---|---:|
+| Taxa ofertada | 100.000 eventos/s |
+| Eventos aceitos | 1.000.000 |
+| Eventos no WAL | 1.000.000 |
+| `event_id` únicos | 1.000.000 |
+| Duplicatas | 0 |
+| Compressão do envelope | **5,46x** |
+| Subjects | 192 (2 tenants × 3 sinais × 32 shards) |
+| Maior subject | 0,95% das mensagens |
+| p99 de processamento do gateway | **28,9 ms** (alvo AC1 < 50 ms) |
+| p99 cliente | 54,5 ms |
+| Falhas / rejeições | 0 / 0 |
+| Mensagens publicadas | 2.000 |
+| WAL publish p99 | 1,9 ms |
+
+**Run de 1M/s com payload mínimo:** 5.000.000 eventos, ~740k/s sustentados no
+host compartilhado, 32 shards, 5M IDs únicos, compressão 3,13x e p99 de
+processamento **25,4 ms**. O payload de referência não sustenta 1M/s localmente
+com os load generators no mesmo host.
+
+### Veredito
+
+**Pass funcional local; AC1 de throughput pendente do T1.** O caminho de
+batching, compressão, sharding, ack durável e backpressure funciona, e o run de
+100k/s ficou bem abaixo do alvo de p99. O AC1 exige 1M/s por 1 h na frota T1,
+com load generators em hosts separados; P-07 e o baseline T1 continuam
+bloqueados. O teste de NATS/ClickHouse fora por 15 min é a Story 4.5.
+
+**Evidência:** [`docs/dev/story-4.3-handoff.md`](docs/dev/story-4.3-handoff.md).
+
 ## Cluster de referência T1 (pendente)
 
 O perfil está em [`bench/env/t1.json`](bench/env/t1.json) e a documentação de

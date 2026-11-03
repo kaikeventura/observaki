@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 	"testing"
@@ -245,5 +246,62 @@ func TestGRPCBackpressureIsRetryable(t *testing.T) {
 	}
 	if got := status.Code(err); got != codes.Unavailable {
 		t.Fatalf("code = %v, want Unavailable", got)
+	}
+}
+
+func TestGatewayWALBackpressureMapsTo429(t *testing.T) {
+	sink := &recordingSink{result: func(*Batch) (Result, error) {
+		return Result{}, fmt.Errorf("%w: queue full", ErrBackpressure)
+	}}
+	gw := newTestGateway(t, sink, nil)
+	startTestGateway(t, gw)
+	waitReady(t, gw)
+
+	body, err := proto.Marshal(logsRequest(&logspb.LogRecord{Body: stringValue("hello")}))
+	if err != nil {
+		t.Fatalf("proto.Marshal() error = %v", err)
+	}
+	response, err := testHTTPClient.Post("http://"+gw.HTTPAddr()+"/v1/logs", "application/x-protobuf", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("POST /v1/logs error = %v", err)
+	}
+	defer closeResponse(t, response)
+	if response.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429", response.StatusCode)
+	}
+	if got := response.Header.Get("Retry-After"); got != "1" {
+		t.Fatalf("Retry-After = %q, want 1", got)
+	}
+}
+
+type unhealthySink struct {
+	recordingSink
+}
+
+func (*unhealthySink) Healthy() error { return errors.New("wal disconnected") }
+
+func TestReadyzFailsWhenWALSinkIsUnhealthy(t *testing.T) {
+	gw := newTestGateway(t, &unhealthySink{}, nil)
+	startTestGateway(t, gw)
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		response, err := testHTTPClient.Get("http://" + gw.HTTPAddr() + "/healthz")
+		if err == nil {
+			_ = response.Body.Close()
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("gateway did not start: %v", err)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	response, err := testHTTPClient.Get("http://" + gw.HTTPAddr() + "/readyz")
+	if err != nil {
+		t.Fatalf("GET /readyz error = %v", err)
+	}
+	defer closeResponse(t, response)
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", response.StatusCode)
 	}
 }

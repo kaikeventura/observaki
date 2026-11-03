@@ -165,3 +165,34 @@ func TestLuhnValid(t *testing.T) {
 func TestRedactNilBatch(t *testing.T) {
 	newRedactor(DefaultRedactionConfig()).apply(nil)
 }
+
+func BenchmarkMaskCardNumbers(b *testing.B) {
+	payload := strings.Repeat("0123456789abcdef", 64)
+	b.SetBytes(int64(len(payload)))
+	for index := 0; index < b.N; index++ {
+		_ = maskCardNumbers(payload, DefaultRedactMask)
+	}
+}
+
+func TestMaskCardNumbersBoundaries(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{name: "plain", value: "4111111111111111", want: "[REDACTED]"},
+		{name: "grouped", value: "card 4111 1111 1111 1111 ok", want: "card [REDACTED] ok"},
+		{name: "dashed", value: "5500-0000-0000-0004", want: "[REDACTED]"},
+		{name: "two cards", value: "4111111111111111,5500000000000004", want: "[REDACTED],[REDACTED]"},
+		{name: "embedded in a word", value: "x4111111111111111", want: "x4111111111111111"},
+		{name: "20 digits", value: "41111111111111111111", want: "41111111111111111111"},
+		{name: "ordinary number", value: "1234567890123", want: "1234567890123"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := maskCardNumbers(test.value, DefaultRedactMask); got != test.want {
+				t.Fatalf("maskCardNumbers(%q) = %q, want %q", test.value, got, test.want)
+			}
+		})
+	}
+}

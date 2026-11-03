@@ -28,6 +28,7 @@ gateway_log="$(mktemp -t observaki-gateway-smoke.XXXXXX.log)"
 auth_dir="$(mktemp -d -t observaki-auth.XXXXXX)"
 pid=""
 gateway_pid=""
+nats_container=""
 
 cleanup() {
 	if [ -n "$pid" ]; then
@@ -38,8 +39,11 @@ cleanup() {
 		kill "$gateway_pid" 2>/dev/null || true
 		wait "$gateway_pid" 2>/dev/null || true
 	fi
+	if [ -n "$nats_container" ]; then
+		docker rm -f "$nats_container" >/dev/null 2>&1 || true
+	fi
 	rm -f "$log" "$gateway_log"
-	rm -rf "$bench_tmp" "$auth_dir"
+	rm -rf "$bench_tmp" "$auth_dir" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -114,10 +118,50 @@ cat >"$auth_dir/ingest-auth.json" <<EOF
 EOF
 
 echo "Smoke: starting ./bin/observaki gateway on grpc=127.0.0.1:${gateway_grpc_port} http=127.0.0.1:${gateway_http_port}"
+nats_url="${SMOKE_NATS_URL:-}"
+if [ -z "$nats_url" ]; then
+	command -v docker >/dev/null || {
+		echo "Smoke: docker is required to start NATS (or set SMOKE_NATS_URL to a JetStream server)" >&2
+		exit 1
+	}
+	nats_port="${SMOKE_NATS_PORT:-$(find_free_port 18201 18240)}"
+	nats_monitor_port="${SMOKE_NATS_MONITOR_PORT:-$(find_free_port 18241 18280)}"
+	mkdir -p "$auth_dir/nats/js"
+	cat >"$auth_dir/nats/nats.conf" <<EOF
+port: 4222
+http_port: 8222
+max_payload: 16777216
+jetstream {
+  store_dir: "/data/js"
+}
+EOF
+	nats_container="observaki-smoke-nats-$$"
+	docker run -d --rm --user "$(id -u):$(id -g)" --name "$nats_container" \
+		-p "${nats_port}:4222" -p "${nats_monitor_port}:8222" \
+		-v "$auth_dir/nats:/data" nats:2.15.2-alpine -c /data/nats.conf >/dev/null
+	nats_url="nats://127.0.0.1:${nats_port}"
+	nats_ready=""
+	for _ in $(seq 1 50); do
+		if curl -fsS "http://127.0.0.1:${nats_monitor_port}/varz" >/dev/null 2>&1; then
+			nats_ready="yes"
+			break
+		fi
+		sleep 0.2
+	done
+	[ "$nats_ready" = "yes" ] || {
+		echo "Smoke: NATS did not become ready" >&2
+		docker logs "$nats_container" >&2 || true
+		exit 1
+	}
+fi
+
 OBSERVAKI_OTLP_GRPC_ADDR="127.0.0.1:${gateway_grpc_port}" \
 	OBSERVAKI_OTLP_HTTP_ADDR="127.0.0.1:${gateway_http_port}" \
 	OBSERVAKI_INGEST_AUTH_FILE="$auth_dir/ingest-auth.json" \
 	OBSERVAKI_INGEST_AUDIT_FILE="$auth_dir/audit.jsonl" \
+	OBSERVAKI_NATS_URL="$nats_url" \
+	OBSERVAKI_NATS_SHARDS=8 \
+	OBSERVAKI_NATS_BATCH_LINGER=2ms \
 	./bin/observaki gateway >"$gateway_log" 2>&1 &
 gateway_pid=$!
 
@@ -164,17 +208,19 @@ grep -q "ingest.cross_project_write" "$auth_dir/audit.jsonl" || {
 	--metrics-addr "" --header "Authorization=Bearer ${smoke_token}" >/dev/null
 ./bin/otlploadgen --protocol grpc --endpoint "127.0.0.1:${gateway_grpc_port}" \
 	--rate 60 --duration 1s --batch-size 3 --workers 1 --mix 34,33,33 --compression gzip \
-	--metrics-addr "" --header "Authorization=Bearer ${smoke_token}" >/dev/null
+	--seed 2 --metrics-addr "" --header "Authorization=Bearer ${smoke_token}" >/dev/null
 
 # Story 4.2 AC3: a 3-event request against a 1 event/s burst is throttled.
 ./bin/otlploadgen --protocol http --endpoint "http://127.0.0.1:${gateway_http_port}" \
 	--rate 10 --duration 1s --batch-size 3 --workers 1 --mix 0,100,0 --compression none \
-	--metrics-addr "" --header "Authorization=Bearer ${limited_token}" >/dev/null 2>&1 || true
+	--seed 3 --metrics-addr "" --header "Authorization=Bearer ${limited_token}" >/dev/null 2>&1 || true
 
 gateway_metrics="$(curl -fsS "http://127.0.0.1:${gateway_http_port}/metrics")"
 for metric in observaki_gateway_requests_total observaki_gateway_events_total \
 	observaki_gateway_auth_failures_total observaki_gateway_quota_rejected_events_total \
-	observaki_gateway_config_age_seconds observaki_gateway_up; do
+	observaki_gateway_config_age_seconds observaki_gateway_up \
+	observaki_gateway_wal_connected observaki_gateway_wal_published_events_total \
+	observaki_gateway_wal_pending_bytes; do
 	case "$gateway_metrics" in
 	*"$metric"*) ;;
 	*)
@@ -196,6 +242,28 @@ quota_rejected=$(printf '%s\n' "$gateway_metrics" | awk '/^observaki_gateway_quo
 	exit 1
 }
 
+wal_events=""
+for _ in $(seq 1 50); do
+	gateway_metrics="$(curl -fsS "http://127.0.0.1:${gateway_http_port}/metrics")"
+	wal_events=$(printf '%s\n' "$gateway_metrics" | awk '/^observaki_gateway_wal_published_events_total /{print $2; exit}')
+	wal_pending=$(printf '%s\n' "$gateway_metrics" | awk '/^observaki_gateway_wal_pending_bytes /{print $2; exit}')
+	if [ "${wal_events:-0}" -gt 0 ] && [ "${wal_pending:-1}" = "0" ]; then
+		break
+	fi
+	sleep 0.1
+done
+[ "${wal_events:-0}" -gt 0 ] || {
+	echo "Smoke: no events were acknowledged by the NATS WAL" >&2
+	exit 1
+}
+case "$gateway_metrics" in
+*'observaki_gateway_wal_connected 1'*) ;;
+*)
+	echo "Smoke: the NATS WAL is not connected" >&2
+	exit 1
+	;;
+esac
+
 kill -TERM "$gateway_pid"
 if ! wait "$gateway_pid"; then
 	echo "Smoke: gateway did not exit cleanly after SIGTERM; gateway log:" >&2
@@ -203,6 +271,15 @@ if ! wait "$gateway_pid"; then
 	exit 1
 fi
 gateway_pid=""
+
+./bin/walcheck --url "$nats_url" --expect-events "$wal_events" \
+	--fail-on-duplicates --out "$auth_dir/wal.json" >/dev/null
+walcheck_status=$?
+if [ "$walcheck_status" -ne 0 ]; then
+	echo "Smoke: WAL verification failed" >&2
+	cat "$auth_dir/wal.json" >&2 || true
+	exit 1
+fi
 
 [ -f web/build/index.html ] || {
 	echo "Smoke: web/build/index.html is missing" >&2

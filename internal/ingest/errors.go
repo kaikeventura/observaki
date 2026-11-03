@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -181,6 +182,23 @@ func errSinkUnavailable(requestID string, cause error) *requestError {
 		"ingest sink is unavailable; retry with backoff",
 		requestID,
 	).withRetryAfter(time.Second).withCause(cause)
+}
+
+func errWALBackpressure(requestID string, cause error) *requestError {
+	return newRequestError(
+		http.StatusTooManyRequests,
+		codes.ResourceExhausted,
+		"wal_backpressure",
+		"ingest WAL is at capacity; retry with backoff",
+		requestID,
+	).withRetryAfter(time.Second).withCause(cause)
+}
+
+func errFromSink(requestID string, cause error) *requestError {
+	if errors.Is(cause, ErrBackpressure) {
+		return errWALBackpressure(requestID, cause)
+	}
+	return errSinkUnavailable(requestID, cause)
 }
 
 func errInternal(requestID, message string, cause error) *requestError {

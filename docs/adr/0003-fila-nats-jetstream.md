@@ -129,10 +129,10 @@ local + Kafka opcional, sem mudar o contrato de envelope.
 
 | ID | Questão | Spike/story da Fase 0 | Dono | Prazo | Fallback |
 |---|---|---|---|---|---|
-| Q-01 | O JetStream sustenta 1M/s com zero perda em 15 min de ClickHouse fora? | S0.3 / Story 4.3, 4.5 | Benchmark | Semana 3 | WAL local em disco + retry; Kafka opcional em produção |
-| Q-02 | Qual a retenção mínima do stream para cobrir outage + reparo? | S0.3 / Story 4.3 | Plataforma | Semana 3 | Aumentar disco/replicação; alerta de idade da fila |
+| Q-01 | O JetStream sustenta 1M/s com zero perda em 15 min de ClickHouse fora? | S0.3 / Story 4.3, 4.5 | Benchmark | Semana 3 | WAL local em disco + retry; Kafka opcional em produção. **4.3:** 100k/s local e 1M/s mínimo; T1/4.5 pendentes |
+| Q-02 | Qual a retenção mínima do stream para cobrir outage + reparo? | S0.3 / Story 4.3 | Plataforma | Semana 3 | Aumentar disco/replicação; alerta de idade da fila. **4.3:** 24h/32 GiB por stream default; sizing do T1 pendente |
 | Q-03 | Single-node usa NATS local ou buffer em disco? | S0.3 / Story 5.1 | Arquitetura | Semana 4 | Buffer local com RPO declarado; NATS no Compose se o custo couber |
-| Q-04 | Qual o fator de replicação do stream no cluster? | S0.3 / Story 2.4 | Benchmark | Fim da Fase 0 | R3 conservador com headroom; revisar após o primeiro parceiro |
+| Q-04 | Qual o fator de replicação do stream no cluster? | S0.3 / Story 2.4 | Benchmark | Fim da Fase 0 | R3 conservador com headroom; revisar após o primeiro parceiro. **4.3:** réplica 1 local; T1 configura 3 |
 | Q-05 | O contrato N-1 cobre replay após upgrade? | Story 4.3 / AD-22 | Plataforma | Semana 4 | Dual-read no writer e janela de compatibilidade estendida |
 | Q-06 | Há demanda real por adaptador Kafka no MVP? | Story 4.3 / Epic 7 | Produto | Semana 4 | Manter interface de fila e adiar o adaptador para a Fase 1 |
 

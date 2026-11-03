@@ -65,3 +65,4 @@ bench/env/terraform/crash.*.log
 # Benchmark evidence keeps its harness log.
 !bench/clickhouse/results/**/run.log
 !bench/victoriametrics/results/**/run.log
+!bench/gateway/wal/results/**/run.log

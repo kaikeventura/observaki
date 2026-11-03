@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	natsadapter "github.com/observaki/observaki/internal/adapters/nats"
 	"github.com/observaki/observaki/internal/config"
 	"github.com/observaki/observaki/internal/httpserver"
 	"github.com/observaki/observaki/internal/ingest"
@@ -70,9 +71,6 @@ func gateway() error {
 		return err
 	}
 
-	if cfg.Environment == config.EnvironmentProduction {
-		return errors.New("otlp gateway: the discard sink is not durable; production requires the WAL from Story 4.3")
-	}
 	if cfg.IngestAuthFile == "" {
 		return fmt.Errorf(
 			"otlp gateway: %s is required; create a config snapshot with hashed ingest tokens (see docs/dev/local-setup.md)",
@@ -95,12 +93,38 @@ func gateway() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel.SlogLevel(),
 	}))
-	logger.Warn("otlp gateway uses the discard sink; telemetry is not persisted until Story 4.3")
+
+	walCtx, cancelWAL := context.WithTimeout(context.Background(), cfg.NATSConnectTimeout)
+	wal, err := natsadapter.Open(walCtx, natsadapter.Config{
+		URL:             cfg.NATSURL,
+		CredentialsFile: cfg.NATSCredentialsFile,
+		SubjectPrefix:   cfg.NATSSubjectPrefix,
+		StreamPrefix:    cfg.NATSStreamPrefix,
+		Shards:          cfg.NATSShards,
+		StreamReplicas:  cfg.NATSStreamReplicas,
+		StreamStorage:   cfg.NATSStreamStorage,
+		StreamMaxAge:    cfg.NATSStreamMaxAge,
+		StreamMaxBytes:  cfg.NATSStreamMaxBytes,
+		BatchMaxEvents:  cfg.NATSBatchMaxEvents,
+		BatchMaxBytes:   cfg.NATSBatchMaxBytes,
+		BatchLinger:     cfg.NATSBatchLinger,
+		ConnectTimeout:  cfg.NATSConnectTimeout,
+		PublishTimeout:  cfg.NATSPublishTimeout,
+		MaxPendingBytes: cfg.NATSMaxPendingBytes,
+		PublishWorkers:  cfg.NATSPublishWorkers,
+		Logger:          logger,
+	})
+	cancelWAL()
+	if err != nil {
+		return fmt.Errorf("otlp gateway: open NATS WAL: %w", err)
+	}
+	logger.Info("otlp gateway uses the NATS JetStream WAL", "url", cfg.NATSURL, "shards", cfg.NATSShards)
 
 	var audit ingest.AuditSink = ingest.LogAudit{Logger: logger}
 	if cfg.IngestAuditFile != "" {
 		fileAudit, err := ingest.OpenFileAudit(cfg.IngestAuditFile)
 		if err != nil {
+			_ = wal.Close()
 			return err
 		}
 		defer func() { _ = fileAudit.Close() }()
@@ -125,10 +149,11 @@ func gateway() error {
 			Logger:         logger,
 			ReloadInterval: cfg.IngestAuthReload,
 		},
-		Sink:   ingest.DiscardSink{},
+		Sink:   wal,
 		Logger: logger,
 	})
 	if err != nil {
+		_ = wal.Close()
 		return err
 	}
 

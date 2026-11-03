@@ -31,6 +31,22 @@ const (
 	EnvIngestAuditFile       = "OBSERVAKI_INGEST_AUDIT_FILE"
 	EnvRedactKeys            = "OBSERVAKI_REDACT_ATTRIBUTE_KEYS"
 	EnvRedactMask            = "OBSERVAKI_REDACT_MASK"
+	EnvNATSURL               = "OBSERVAKI_NATS_URL"
+	EnvNATSCredentialsFile   = "OBSERVAKI_NATS_CREDENTIALS_FILE"
+	EnvNATSSubjectPrefix     = "OBSERVAKI_NATS_SUBJECT_PREFIX"
+	EnvNATSStreamPrefix      = "OBSERVAKI_NATS_STREAM_PREFIX"
+	EnvNATSShards            = "OBSERVAKI_NATS_SHARDS"
+	EnvNATSStreamReplicas    = "OBSERVAKI_NATS_STREAM_REPLICAS"
+	EnvNATSStreamMaxAge      = "OBSERVAKI_NATS_STREAM_MAX_AGE"
+	EnvNATSStreamMaxBytes    = "OBSERVAKI_NATS_STREAM_MAX_BYTES"
+	EnvNATSStreamStorage     = "OBSERVAKI_NATS_STREAM_STORAGE"
+	EnvNATSBatchMaxEvents    = "OBSERVAKI_NATS_BATCH_MAX_EVENTS"
+	EnvNATSBatchMaxBytes     = "OBSERVAKI_NATS_BATCH_MAX_BYTES"
+	EnvNATSBatchLinger       = "OBSERVAKI_NATS_BATCH_LINGER"
+	EnvNATSConnectTimeout    = "OBSERVAKI_NATS_CONNECT_TIMEOUT"
+	EnvNATSPublishTimeout    = "OBSERVAKI_NATS_PUBLISH_TIMEOUT"
+	EnvNATSMaxPendingBytes   = "OBSERVAKI_NATS_MAX_PENDING_BYTES"
+	EnvNATSPublishWorkers    = "OBSERVAKI_NATS_PUBLISH_WORKERS"
 )
 
 // Defaults applied when a variable is unset or empty.
@@ -55,6 +71,23 @@ const (
 	DefaultRedactMask = "[REDACTED]"
 	// DefaultRedactKeys masks credit-card fields in attributes.
 	DefaultRedactKeys = "credit_card,card_number,card.number,cc_number,pan,cvv,cvc"
+
+	DefaultNATSURL            = "nats://127.0.0.1:4222"
+	DefaultNATSSubjectPrefix  = "observaki.ingest.v1"
+	DefaultNATSStreamPrefix   = "OBSERVAKI"
+	DefaultNATSShards         = 32
+	DefaultNATSStreamReplicas = 1
+	// DefaultNATSStreamMaxAge covers a declared outage window plus repair.
+	DefaultNATSStreamMaxAge    = 24 * time.Hour
+	DefaultNATSStreamMaxBytes  = int64(32) << 30
+	DefaultNATSStreamStorage   = "file"
+	DefaultNATSBatchMaxEvents  = 100_000
+	DefaultNATSBatchMaxBytes   = 4 << 20
+	DefaultNATSBatchLinger     = 5 * time.Millisecond
+	DefaultNATSConnectTimeout  = 10 * time.Second
+	DefaultNATSPublishTimeout  = 5 * time.Second
+	DefaultNATSMaxPendingBytes = int64(256) << 20
+	DefaultNATSPublishWorkers  = 8
 )
 
 // LogLevel is a validated logging level.
@@ -111,6 +144,23 @@ type Config struct {
 	IngestAuditFile       string
 	RedactKeys            []string
 	RedactMask            string
+
+	NATSURL             string
+	NATSCredentialsFile string
+	NATSSubjectPrefix   string
+	NATSStreamPrefix    string
+	NATSShards          int
+	NATSStreamReplicas  int
+	NATSStreamMaxAge    time.Duration
+	NATSStreamMaxBytes  int64
+	NATSStreamStorage   string
+	NATSBatchMaxEvents  int
+	NATSBatchMaxBytes   int
+	NATSBatchLinger     time.Duration
+	NATSConnectTimeout  time.Duration
+	NATSPublishTimeout  time.Duration
+	NATSMaxPendingBytes int64
+	NATSPublishWorkers  int
 }
 
 // Lookup returns the value of an environment variable (os.Getenv compatible).
@@ -142,6 +192,12 @@ func Load(lookup Lookup) (Config, error) {
 		IngestAuthPublicKey: strings.TrimSpace(lookup(EnvIngestAuthPublicKey)),
 		IngestAuditFile:     strings.TrimSpace(lookup(EnvIngestAuditFile)),
 		RedactMask:          valueOr(lookup(EnvRedactMask), DefaultRedactMask),
+
+		NATSURL:             valueOr(lookup(EnvNATSURL), DefaultNATSURL),
+		NATSCredentialsFile: strings.TrimSpace(lookup(EnvNATSCredentialsFile)),
+		NATSSubjectPrefix:   valueOr(lookup(EnvNATSSubjectPrefix), DefaultNATSSubjectPrefix),
+		NATSStreamPrefix:    valueOr(lookup(EnvNATSStreamPrefix), DefaultNATSStreamPrefix),
+		NATSStreamStorage:   strings.ToLower(valueOr(lookup(EnvNATSStreamStorage), DefaultNATSStreamStorage)),
 	}
 
 	var err error
@@ -158,6 +214,50 @@ func Load(lookup Lookup) (Config, error) {
 		return Config{}, err
 	}
 	cfg.RedactKeys, err = redactKeysValue(lookup)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSShards, err = intValue(lookup, EnvNATSShards, DefaultNATSShards)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSStreamReplicas, err = intValue(lookup, EnvNATSStreamReplicas, DefaultNATSStreamReplicas)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSStreamMaxAge, err = durationValue(lookup, EnvNATSStreamMaxAge, DefaultNATSStreamMaxAge)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSStreamMaxBytes, err = int64Value(lookup, EnvNATSStreamMaxBytes, DefaultNATSStreamMaxBytes)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSBatchMaxEvents, err = intValue(lookup, EnvNATSBatchMaxEvents, DefaultNATSBatchMaxEvents)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSBatchMaxBytes, err = intValue(lookup, EnvNATSBatchMaxBytes, DefaultNATSBatchMaxBytes)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSBatchLinger, err = durationValue(lookup, EnvNATSBatchLinger, DefaultNATSBatchLinger)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSConnectTimeout, err = durationValue(lookup, EnvNATSConnectTimeout, DefaultNATSConnectTimeout)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSPublishTimeout, err = durationValue(lookup, EnvNATSPublishTimeout, DefaultNATSPublishTimeout)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSMaxPendingBytes, err = int64Value(lookup, EnvNATSMaxPendingBytes, DefaultNATSMaxPendingBytes)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.NATSPublishWorkers, err = intValue(lookup, EnvNATSPublishWorkers, DefaultNATSPublishWorkers)
 	if err != nil {
 		return Config{}, err
 	}
@@ -226,7 +326,108 @@ func (c Config) Validate() error {
 		return fmt.Errorf("invalid %s: must contain at least one key", EnvRedactKeys)
 	}
 
+	if err := validateNATSURL(c.NATSURL); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvNATSURL, c.NATSURL, err)
+	}
+	if err := validateSubjectPrefix(c.NATSSubjectPrefix); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvNATSSubjectPrefix, c.NATSSubjectPrefix, err)
+	}
+	if err := validateStreamPrefix(c.NATSStreamPrefix); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvNATSStreamPrefix, c.NATSStreamPrefix, err)
+	}
+	if c.NATSShards < 1 || c.NATSShards > 1024 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 1024", EnvNATSShards, c.NATSShards)
+	}
+	if c.NATSStreamReplicas < 1 || c.NATSStreamReplicas > 5 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 5", EnvNATSStreamReplicas, c.NATSStreamReplicas)
+	}
+	if c.NATSStreamMaxAge < time.Minute || c.NATSStreamMaxAge > 30*24*time.Hour {
+		return fmt.Errorf("invalid %s %s: must be between 1m and 720h", EnvNATSStreamMaxAge, c.NATSStreamMaxAge)
+	}
+	if c.NATSStreamMaxBytes < 1<<20 || c.NATSStreamMaxBytes > 1<<40 {
+		return fmt.Errorf("invalid %s %d: must be between 1048576 and 1099511627776 bytes", EnvNATSStreamMaxBytes, c.NATSStreamMaxBytes)
+	}
+	switch c.NATSStreamStorage {
+	case "file", "memory":
+	default:
+		return fmt.Errorf("invalid %s %q: must be file or memory", EnvNATSStreamStorage, c.NATSStreamStorage)
+	}
+	if c.NATSBatchMaxEvents < 1 || c.NATSBatchMaxEvents > 1_000_000 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 1000000", EnvNATSBatchMaxEvents, c.NATSBatchMaxEvents)
+	}
+	if c.NATSBatchMaxBytes < 1024 || c.NATSBatchMaxBytes > 16<<20 {
+		return fmt.Errorf("invalid %s %d: must be between 1024 and 16777216 bytes", EnvNATSBatchMaxBytes, c.NATSBatchMaxBytes)
+	}
+	if c.NATSBatchLinger < time.Millisecond || c.NATSBatchLinger > 5*time.Second {
+		return fmt.Errorf("invalid %s %s: must be between 1ms and 5s", EnvNATSBatchLinger, c.NATSBatchLinger)
+	}
+	if c.NATSConnectTimeout < 500*time.Millisecond || c.NATSConnectTimeout > time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 500ms and 1m", EnvNATSConnectTimeout, c.NATSConnectTimeout)
+	}
+	if c.NATSPublishTimeout < 100*time.Millisecond || c.NATSPublishTimeout > time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 100ms and 1m", EnvNATSPublishTimeout, c.NATSPublishTimeout)
+	}
+	if c.NATSMaxPendingBytes < 1<<20 || c.NATSMaxPendingBytes > 8<<30 {
+		return fmt.Errorf("invalid %s %d: must be between 1048576 and 8589934592 bytes", EnvNATSMaxPendingBytes, c.NATSMaxPendingBytes)
+	}
+	if c.NATSPublishWorkers < 1 || c.NATSPublishWorkers > 64 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 64", EnvNATSPublishWorkers, c.NATSPublishWorkers)
+	}
+
 	return nil
+}
+
+func validateNATSURL(raw string) error {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+	switch parsed.Scheme {
+	case "nats", "tls", "ws", "wss":
+	default:
+		return fmt.Errorf("scheme %q is not nats, tls, ws or wss", parsed.Scheme)
+	}
+	if parsed.Host == "" {
+		return errors.New("host is missing")
+	}
+	return nil
+}
+
+func validateSubjectPrefix(value string) error {
+	tokens := strings.Split(value, ".")
+	if len(tokens) == 0 {
+		return errors.New("must not be empty")
+	}
+	for _, token := range tokens {
+		if token == "" {
+			return errors.New("must not contain empty tokens")
+		}
+		for _, r := range token {
+			if !isNATSSafeRune(r) {
+				return fmt.Errorf("token %q contains %q; use letters, digits, _ or -", token, r)
+			}
+		}
+	}
+	return nil
+}
+
+func validateStreamPrefix(value string) error {
+	if strings.TrimSpace(value) == "" {
+		return errors.New("must not be empty")
+	}
+	for _, r := range value {
+		if !isNATSSafeRune(r) {
+			return fmt.Errorf("contains %q; use letters, digits, _ or -", r)
+		}
+	}
+	return nil
+}
+
+func isNATSSafeRune(r rune) bool {
+	return r >= 'a' && r <= 'z' ||
+		r >= 'A' && r <= 'Z' ||
+		r >= '0' && r <= '9' ||
+		r == '_' || r == '-'
 }
 
 func int64Value(lookup Lookup, key string, fallback int64) (int64, error) {

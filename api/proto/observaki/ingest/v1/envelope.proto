@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package observaki.ingest.v1;
+
+option go_package = "github.com/observaki/observaki/internal/ingestpb";
+
+// Envelope is the gateway -> NATS WAL -> writer contract (AD-22).
+//
+// Field numbers are stable. Additive changes use new field numbers and old
+// readers must ignore them; a breaking change requires a new schema_version and
+// a dual-publish/dual-read window. Version 1 is the only version accepted by
+// the Phase 0 gateway and writer.
+message Envelope {
+  // Schema version of this envelope. Readers reject versions they do not
+  // understand instead of guessing.
+  uint32 schema_version = 1;
+
+  // MessageID is the JetStream Nats-Msg-Id for publish dedupe within the
+  // stream's duplicate window. It is stable across retries of the same
+  // publish attempt.
+  string message_id = 2;
+
+  // Tenant and project resolved from the ingest token before the WAL (AD-2).
+  string tenant_id = 3;
+  string project_id = 4;
+
+  // Auth snapshot version/generation that resolved the tenant/project. The
+  // generation is also the authz epoch carried in the subject (AD-19, AD-20).
+  string config_version = 5;
+  int64 config_generation = 6;
+  int64 authz_epoch = 7;
+
+  // Signal is one of "traces", "logs" or "metrics".
+  string signal = 8;
+
+  // Shard is the subject shard this envelope was published to.
+  uint32 shard = 9;
+
+  // CreatedAtUnixNano is the gateway wall clock when the envelope was built.
+  int64 created_at_unix_nano = 10;
+
+  // Requests are one or more redacted OTLP export requests batched together.
+  // Every request belongs to the same tenant, project, signal and shard.
+  repeated Request requests = 11;
+
+  // Reserved for additive evolution. Do not reuse these numbers.
+  reserved 12 to 19;
+}
+
+// Request is one OTLP export request inside an envelope.
+message Request {
+  // RequestID is the gateway request ID (UUIDv7) used in logs and errors.
+  string request_id = 1;
+
+  // OtlpProtobuf is the redacted OTLP Export*ServiceRequest protobuf. It is
+  // decoded according to Envelope.signal.
+  bytes otlp_protobuf = 2;
+
+  // EventIDs has one deterministic event_id per leaf event in OtlpProtobuf,
+  // in the same traversal order used by the gateway counters: spans, log
+  // records or data points. Writers use it to deduplicate at-least-once
+  // redelivery (AD-2, AD-18).
+  repeated string event_ids = 3;
+
+  // ReceivedAtUnixNano is the gateway wall clock when the OTLP request was
+  // received, used for end-to-end lag.
+  int64 received_at_unix_nano = 4;
+
+  reserved 5 to 9;
+}
