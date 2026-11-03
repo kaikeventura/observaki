@@ -118,6 +118,36 @@ func TestGRPCPartialSuccess(t *testing.T) {
 	}
 }
 
+func TestGRPCMetricsPartialSuccess(t *testing.T) {
+	sink := &recordingSink{result: func(batch *Batch) (Result, error) {
+		return Result{
+			Accepted: batch.Events() - 1,
+			Rejected: 1,
+			Reason:   "one data point was invalid",
+		}, nil
+	}}
+	gw := newTestGateway(t, sink, nil)
+	startTestGateway(t, gw)
+	waitReady(t, gw)
+
+	client := collectormetricspb.NewMetricsServiceClient(dialGRPC(t, gw.GRPCAddr()))
+	response, err := client.Export(context.Background(), metricsRequest(
+		gaugeMetric("test.metric", &metricpb.NumberDataPoint{}, &metricpb.NumberDataPoint{}),
+	))
+	if err != nil {
+		t.Fatalf("Export() error = %v", err)
+	}
+	if response.GetPartialSuccess() == nil {
+		t.Fatal("PartialSuccess = nil, want rejected count and reason")
+	}
+	if got := response.GetPartialSuccess().GetRejectedDataPoints(); got != 1 {
+		t.Errorf("RejectedDataPoints = %d, want 1", got)
+	}
+	if got := response.GetPartialSuccess().GetErrorMessage(); got != "one data point was invalid" {
+		t.Errorf("ErrorMessage = %q", got)
+	}
+}
+
 func TestGRPCEventLimit(t *testing.T) {
 	sink := &recordingSink{}
 	gw := newTestGateway(t, sink, func(cfg *Config) { cfg.MaxEvents = 2 })
