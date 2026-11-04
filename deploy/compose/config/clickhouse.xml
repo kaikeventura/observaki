@@ -1,0 +1,23 @@
+<clickhouse>
+  <!-- Observaki single-node profile (Story 5.1). The official image listens on
+       all interfaces by default; this override also bounds memory so the
+       evaluation stack leaves room for the rest of the laptop/CI host. -->
+  <listen_host>0.0.0.0</listen_host>
+  <logger>
+    <level>information</level>
+    <console>1</console>
+  </logger>
+  <max_server_memory_usage>4294967296</max_server_memory_usage>
+  <merge_tree>
+    <!-- Cap merge size so a long evaluation run cannot fill the volume with a
+         single merge, mirroring the benchmark profile. -->
+    <max_bytes_to_merge_at_max_space_in_pool>16000000000</max_bytes_to_merge_at_max_space_in_pool>
+  </merge_tree>
+  <profiles>
+    <default>
+      <max_threads>8</max_threads>
+      <max_insert_threads>4</max_insert_threads>
+      <max_concurrent_queries>8</max_concurrent_queries>
+    </default>
+  </profiles>
+</clickhouse>

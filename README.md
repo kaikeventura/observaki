@@ -12,7 +12,7 @@
 | Node.js | 26 LTS | frontend SvelteKit |
 | pnpm | 10 | gerenciador de pacotes do `web/` |
 | Rust | 1.85 (stable) | agente, com `rustfmt` e `clippy` |
-| Docker Compose | v2 | opcional nesta fase (Story 5.1) |
+| Docker Compose | v2 | stack single-node da Story 5.1 |
 | make, curl | recente | orquestração e smoke test |
 
 ## Quickstart (5 comandos)
@@ -87,6 +87,19 @@ curl -s http://127.0.0.1:8082/stats
 O harness end-to-end (gateway + WAL + writers + storage + caos) está em
 [`bench/pipeline/README.md`](bench/pipeline/README.md) e a evidência local em
 [`docs/dev/story-4.4-handoff.md`](docs/dev/story-4.4-handoff.md).
+
+## Stack single-node com Docker Compose (Fase 0)
+
+```bash
+make compose-up      # build + up de API/UI, gateway, writer, CH, VM, PG e NATS
+./deploy/compose/sample.sh   # métricas, logs e traces de exemplo
+open http://localhost:8080   # UI (saúde da API) e API
+make compose-smoke   # AC1/AC2/AC3 da Story 5.1 com relatório
+make compose-down    # para a stack e mantém os volumes
+```
+
+Configuração, portas, token de desenvolvimento e troubleshooting estão em
+[`deploy/compose/README.md`](deploy/compose/README.md).
 
 O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
 em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em

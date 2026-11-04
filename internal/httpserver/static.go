@@ -1,0 +1,117 @@
+package httpserver
+
+import (
+	"log/slog"
+	"mime"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+)
+
+const (
+	indexFile          = "index.html"
+	immutableAssetPath = "/_app/immutable/"
+	immutableCache     = "public, max-age=31536000, immutable"
+	revalidateCache    = "no-cache"
+)
+
+// staticHandler serves a SvelteKit static build and falls back to index.html
+// for client-side routes. Assets under /_app/immutable/ are content-hashed and
+// cache forever; everything else revalidates so an upgrade is picked up
+// immediately.
+type staticHandler struct {
+	dir    string
+	logger *slog.Logger
+}
+
+func newStaticHandler(dir string, logger *slog.Logger) *staticHandler {
+	absolute, err := filepath.Abs(dir)
+	if err != nil {
+		absolute = dir
+	}
+	handler := &staticHandler{dir: absolute, logger: logger}
+	if info, err := os.Stat(absolute); err != nil {
+		logger.Warn("web build directory is not readable; the UI is disabled", "web_dir", absolute, "error", err)
+	} else if !info.IsDir() {
+		logger.Warn("web build path is not a directory; the UI is disabled", "web_dir", absolute)
+	}
+	return handler
+}
+
+func (h *staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{
+			Code:    "method_not_allowed",
+			Message: r.Method + " is not supported by the web UI",
+		})
+		return
+	}
+
+	requestedPath := strings.TrimSpace(r.URL.Path)
+	if requestedPath == "" || requestedPath == "/" {
+		requestedPath = "/" + indexFile
+	}
+	if strings.Contains(requestedPath, "..") {
+		h.notFound(w, r)
+		return
+	}
+
+	filePath := filepath.Join(h.dir, filepath.FromSlash(path.Clean("/"+requestedPath)))
+	if !strings.HasPrefix(filePath, h.dir+string(filepath.Separator)) {
+		h.notFound(w, r)
+		return
+	}
+
+	if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+		h.serveFile(w, r, filePath, requestedPath)
+		return
+	}
+
+	// A path with an extension is a missing asset, not a client-side route.
+	if filepath.Ext(requestedPath) != "" {
+		h.notFound(w, r)
+		return
+	}
+
+	indexPath := filepath.Join(h.dir, indexFile)
+	if _, err := os.Stat(indexPath); err != nil {
+		h.notFound(w, r)
+		return
+	}
+	h.serveFile(w, r, indexPath, "/"+indexFile)
+}
+
+func (h *staticHandler) serveFile(w http.ResponseWriter, r *http.Request, filePath, servedPath string) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		h.notFound(w, r)
+		return
+	}
+	defer func() { _ = file.Close() }()
+
+	info, err := file.Stat()
+	if err != nil || info.IsDir() {
+		h.notFound(w, r)
+		return
+	}
+
+	if contentType := mime.TypeByExtension(filepath.Ext(filePath)); contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	}
+	if strings.HasPrefix(servedPath, immutableAssetPath) {
+		w.Header().Set("Cache-Control", immutableCache)
+	} else {
+		w.Header().Set("Cache-Control", revalidateCache)
+	}
+	http.ServeContent(w, r, info.Name(), info.ModTime(), file)
+}
+
+func (h *staticHandler) notFound(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusNotFound, errorResponse{
+		Code:    "not_found",
+		Message: "no file matches " + r.URL.Path,
+	})
+}

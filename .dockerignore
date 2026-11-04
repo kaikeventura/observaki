@@ -1,3 +1,38 @@
-*
-!dist
-!dist/observaki-linux-*
+# Files that never belong in the container build context.
+#
+# Two images share this context: the release image (root Dockerfile) copies
+# dist/observaki-linux-*, and the single-node image
+# (deploy/compose/Dockerfile) builds from the source tree. Keep dist/ available
+# and everything that is generated or huge out.
+.git
+.gitignore
+.github
+bin
+coverage.out
+*.test
+*.prof
+
+# Node build output and dependencies are built inside the image.
+web/node_modules
+web/build
+web/.svelte-kit
+web/coverage
+web/*.tsbuildinfo
+
+# Rust agent artifacts are not part of the server image.
+agent/target
+
+# Local state, benchmark output and logs.
+data
+tmp
+*.log
+bench/results
+bench/reports
+bench/.tmp
+bench/**/results
+deploy/compose/results
+
+# Benchmark environment state.
+bench/env/terraform/.terraform
+bench/env/terraform/*.tfstate*
+bench/env/terraform/*.tfplan

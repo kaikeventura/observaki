@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"github.com/observaki/observaki/internal/adapters/victoriametrics"
 	"github.com/observaki/observaki/internal/adapters/walconsumer"
 	"github.com/observaki/observaki/internal/config"
+	"github.com/observaki/observaki/internal/healthcheck"
 	"github.com/observaki/observaki/internal/httpserver"
 	"github.com/observaki/observaki/internal/ingest"
 	"github.com/observaki/observaki/internal/version"
@@ -43,6 +45,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return gateway()
 	case "writer":
 		return writerCommand()
+	case "healthcheck":
+		return healthcheckCommand(args[1:], stdout)
 	case "help", "-h", "--help":
 		return usage(stdout)
 	default:
@@ -62,7 +66,7 @@ func serve() error {
 	}))
 	logger.Info("starting observaki", "env", cfg.Environment, "web_dir", cfg.WebDir)
 
-	srv := httpserver.New(cfg.HTTPAddr, version.Version, logger)
+	srv := httpserver.New(cfg.HTTPAddr, version.Version, logger, httpserver.WithWebDir(cfg.WebDir))
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -278,16 +282,39 @@ Usage:
   observaki <command>
 
 Commands:
-  version   print version, commit and build date
-  serve     start the HTTP API (env %s, default %s)
-  gateway   start the OTLP gateway (env %s/%s, default %s/%s)
-  writer    consume the NATS WAL and write ClickHouse/VictoriaMetrics (env %s, default %s)
-  help      show this help
+  version      print version, commit and build date
+  serve        start the HTTP API and UI (env %s, default %s)
+  gateway      start the OTLP gateway (env %s/%s, default %s/%s)
+  writer       consume the NATS WAL and write ClickHouse/VictoriaMetrics (env %s, default %s)
+  healthcheck  probe an HTTP health endpoint (used by container healthchecks)
+  help         show this help
 `,
 		config.EnvHTTPAddr, config.DefaultHTTPAddr,
 		config.EnvOTLPGRPCAddr, config.EnvOTLPHTTPAddr,
 		config.DefaultOTLPGRPCAddr, config.DefaultOTLPHTTPAddr,
 		config.EnvWriterAddr, config.DefaultWriterAddr,
 	)
+	return err
+}
+
+// healthcheckCommand probes an HTTP health endpoint and exits non-zero when it
+// is not healthy. It deliberately does not load the process configuration: it
+// runs in a distroless container that may not have the data plane settings.
+func healthcheckCommand(args []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("healthcheck", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	url := flags.String("url", healthcheck.DefaultURL, "health endpoint URL")
+	timeout := flags.Duration("timeout", healthcheck.DefaultTimeout, "probe timeout")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+
+	if err := healthcheck.Probe(ctx, healthcheck.DefaultClient, *url); err != nil {
+		return err
+	}
+	_, err := fmt.Fprintf(stdout, "ok: %s\n", *url)
 	return err
 }

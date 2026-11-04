@@ -144,6 +144,24 @@ do MVP; OTel Collector só na borda; fallback Rust/Rotel se o T1 falhar
 `docs/dev/story-4.5-hot-path-recommendation.md`). **Não é G1:** 1M/s por 1 h,
 R3 do NATS e o sizing do WAL no T1 continuam pendentes (P-07).
 
+**Story 5.1 (2026-11-04):** a stack single-node sobe com `docker compose up`
+(raiz do repositório) e usa uma imagem multi-stage que compila o SvelteKit e o
+binário Go do zero. Decisões de empacotamento: portas publicadas só em
+`127.0.0.1`; healthcheck dos serviços Observaki via `observaki healthcheck`
+(imagem distroless não tem shell/curl); a API Go passou a servir
+`OBSERVAKI_WEB_DIR` com fallback de SPA e 404 JSON em `/api/*`; o snapshot de
+auth de desenvolvimento é público (`tenant-dev`/`project-dev`, token
+`observaki-local-dev-token`) e vale só para avaliação local (AD-19 continua
+exigindo snapshot assinado em staging/produção); as migrações do ClickHouse
+rodam em um serviço one-shot idempotente a cada `up`, então `down`/`up` não
+exige passo manual; volumes nomeados guardam ClickHouse, VictoriaMetrics,
+PostgreSQL, NATS e o spool do writer. **Evidência local (Linux):** 28 s do
+`up --build` sem imagem/volumes até todos os healthchecks verdes; 2 logs, 2
+spans e a métrica de amostra gravados; `down`/`up` preservou as linhas e o
+`clickhouse-migrate` reaplicou o schema (relatório em
+`deploy/compose/results/`). **Pendências:** validação em macOS, Helm 3 nós
+(5.2), sample app/quickstart (5.3) e Explore na UI (6.1–6.4); não é G1.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.

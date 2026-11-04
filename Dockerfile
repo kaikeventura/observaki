@@ -1,8 +1,9 @@
 # Minimal runtime image for the Observaki server.
 #
 # The release workflow builds dist/observaki-linux-${TARGETARCH} before this
-# image is assembled. Compose/Helm packaging is Story 5.1; this image only
-# packages the alpha server binary.
+# image is assembled. The single-node Compose stack builds its own image from
+# source in deploy/compose/Dockerfile; this file only packages the alpha
+# server binary for releases.
 
 FROM gcr.io/distroless/static-debian12:nonroot
 

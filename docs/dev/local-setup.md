@@ -3,10 +3,12 @@
 Guia para sair de um clone vazio até a API e o frontend rodando em Linux,
 com a toolchain validada. Tempo esperado: **≤ 10 minutos** com rede razoável.
 
-Nesta fase (Fase 0 / Story 1.1) **não** sobem ClickHouse, VictoriaMetrics nem
-PostgreSQL — isso é a Story 5.1. O `make dev` sobe apenas a API Go e o dev
-server do SvelteKit. O `observaki gateway` a partir da Story 4.3 exige um NATS
-JetStream; o exemplo abaixo sobe um container local descartável.
+O `make dev` sobe apenas a API Go e o dev server do SvelteKit. A stack
+completa — API/UI, gateway, writer, ClickHouse, VictoriaMetrics, PostgreSQL e
+NATS — sobe com `make compose-up` (Story 5.1), documentada em
+[`deploy/compose/README.md`](../../deploy/compose/README.md). O
+`observaki gateway` exige um NATS JetStream; o exemplo abaixo sobe um container
+local descartável.
 
 ## Pré-requisitos
 
@@ -19,7 +21,7 @@ JetStream; o exemplo abaixo sobe um container local descartável.
 | rustfmt / clippy | 1.93.0 | — | `rustup component add rustfmt clippy` |
 | golangci-lint | 2.15.0 | 2.x | `make tools` |
 | make, curl, git | — | recente | gerenciador de pacotes da distro |
-| Docker Compose | v5.6.0 | v2 (opcional) | só a partir da Story 5.1 |
+| Docker Compose | v5.6.0 | v2 | `make compose-up` (Story 5.1); opcional para `make dev` |
 
 Verifique tudo de uma vez:
 
@@ -257,7 +259,8 @@ rustup component add rustfmt clippy
 
 **Sintoma:** aviso `Docker Compose v2 not found (not required until Story 5.1)`.
 
-**Ação:** nenhuma nesta fase. O Compose real entra na Story 5.1.
+**Ação:** só é necessário para a stack single-node (`make compose-up`). Para
+`make dev` e `make ci`, o aviso pode ser ignorado.
 
 ## Limpeza
 

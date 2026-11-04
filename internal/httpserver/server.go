@@ -1,4 +1,4 @@
-// Package httpserver exposes the Observaki HTTP API.
+// Package httpserver exposes the Observaki HTTP API and the web UI.
 package httpserver
 
 import (
@@ -16,16 +16,29 @@ const (
 	readHeaderTimeout      = 5 * time.Second
 )
 
-// Server serves the Observaki API over HTTP.
+// Option configures the HTTP server.
+type Option func(*Server)
+
+// WithWebDir serves the static web build from dir (OBSERVAKI_WEB_DIR), with an
+// index.html fallback for client-side routes. An empty or missing directory
+// leaves the API reachable and disables the UI.
+func WithWebDir(dir string) Option {
+	return func(s *Server) {
+		s.webDir = dir
+	}
+}
+
+// Server serves the Observaki API and UI over HTTP.
 type Server struct {
 	version         string
+	webDir          string
 	shutdownTimeout time.Duration
 	logger          *slog.Logger
 	httpServer      *http.Server
 }
 
 // New builds a server listening on addr and advertising the given version.
-func New(addr, ver string, logger *slog.Logger) *Server {
+func New(addr, ver string, logger *slog.Logger, options ...Option) *Server {
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
@@ -35,10 +48,21 @@ func New(addr, ver string, logger *slog.Logger) *Server {
 		shutdownTimeout: DefaultShutdownTimeout,
 		logger:          logger,
 	}
+	for _, option := range options {
+		if option != nil {
+			option(s)
+		}
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /healthz", http.HandlerFunc(s.handleHealthz))
 	mux.Handle("GET /api/v1/health", http.HandlerFunc(s.handleHealth))
+	mux.Handle("/api/", http.HandlerFunc(handleAPINotFound))
+	if s.webDir != "" {
+		mux.Handle("/", newStaticHandler(s.webDir, logger))
+	} else {
+		mux.HandleFunc("/", handleNoWebUI)
+	}
 
 	s.httpServer = &http.Server{
 		Addr:              addr,
@@ -59,7 +83,7 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) Run(ctx context.Context) error {
 	errCh := make(chan error, 1)
 	go func() {
-		s.logger.Info("http server listening", "addr", s.httpServer.Addr)
+		s.logger.Info("http server listening", "addr", s.httpServer.Addr, "web_dir", s.webDir)
 		errCh <- s.listenAndServe()
 	}()
 
@@ -89,6 +113,11 @@ type healthResponse struct {
 	Version string `json:"version,omitempty"`
 }
 
+type errorResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 // handleHealthz reports liveness and never depends on downstream systems.
 func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
@@ -97,6 +126,32 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 // handleHealth reports liveness plus the running build version.
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, healthResponse{Status: "ok", Version: s.version})
+}
+
+// handleAPINotFound keeps unknown API routes JSON so a client never receives
+// the SPA shell instead of an error.
+func handleAPINotFound(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusNotFound, errorResponse{
+		Code:    "not_found",
+		Message: "no route matches " + r.URL.Path,
+	})
+}
+
+// handleNoWebUI answers every non-API route when the web build is not
+// installed, keeping method semantics for the API paths.
+func handleNoWebUI(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("Allow", "GET, HEAD")
+		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{
+			Code:    "method_not_allowed",
+			Message: r.Method + " is not supported",
+		})
+		return
+	}
+	writeJSON(w, http.StatusNotFound, errorResponse{
+		Code:    "ui_not_installed",
+		Message: "the web build is not installed; set OBSERVAKI_WEB_DIR or run the SvelteKit dev server",
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {

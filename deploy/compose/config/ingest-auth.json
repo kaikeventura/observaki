@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Development ingest auth snapshot for the single-node stack (Story 5.1).",
+    "The bearer token is public on purpose: 'observaki-local-dev-token'.",
+    "sha256(observaki-local-dev-token) = 722b353212f4a61dd07acf5d613a15028a99f55517dd04893d344b0493b6c934",
+    "Never reuse this snapshot or token outside a local evaluation stack;",
+    "staging/production snapshots are signed (AD-19) and rotated by the control plane.",
+    "expires_at is far in the future so the stack keeps working without a",
+    "regeneration step; quota (100k events/s) is per tenant, before sampling."
+  ],
+  "config_version": "compose-dev-v1",
+  "generation": 1,
+  "issued_at": "2026-01-01T00:00:00Z",
+  "expires_at": "2126-01-01T00:00:00Z",
+  "tenants": [
+    {
+      "tenant_id": "tenant-dev",
+      "ingest_quota": {
+        "events_per_second": 100000,
+        "burst_events": 200000
+      },
+      "projects": [
+        {
+          "project_id": "project-dev",
+          "tokens": [
+            {
+              "token_id": "token-dev",
+              "sha256": "722b353212f4a61dd07acf5d613a15028a99f55517dd04893d344b0493b6c934",
+              "scopes": ["ingest"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
