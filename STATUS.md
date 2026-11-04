@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E4
 epic_name: Gateway OTLP e ingestão
-story: "4.4"
-story_name: Writers para ClickHouse e VictoriaMetrics
+story: "4.5"
+story_name: Teste de caos e go/no-go da stack de ingestão
 task: "AC1–AC3"
-task_name: End-to-end, retry e observabilidade
+task_name: Falha de storage, falha de NATS/gateway e recomendação
 status: done        # not_started | in_progress | blocked | done
 updated: 2026-11-04
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "0699eed"
-next_action: "Story 4.5 — teste de caos (ClickHouse fora 15 min, falha de gateway/NATS) e go/no-go da stack de ingestão; o AC1 de 1M/s/1h e o sizing do WAL/spool ficam para o T1 (P-07)"
+last_commit: "0c5244c"
+next_action: "Story 5.1 — Docker Compose single-node; o AC1 de 1M/s/1h, o R3 do NATS e o sizing do WAL/spool continuam pendentes do T1 (P-07)"
 blocked_by: []
-last_session: "Story 4.4: writers ClickHouse/VM com três consumidores duráveis, dedupe por event_id + geração/epoch, OnDone só após insert/DLQ, retry exponencial, DLQ NATS, INSERT de 17 colunas e remote write; run local de 20k/s por 20 s (400k eventos, lag p95 0,80 s, contagens exatas) e caos de 3 s/2 s (8 retries, zero perda, lag p95 7,97 s); make fmt/lint/test/build/smoke e bench-clickhouse-ingest-check verdes; T1 pendente; evidência em docs/dev/story-4.4-handoff.md."
+last_session: "Story 4.5: caos local com ClickHouse fora 15 min (6M confirmados, zero perda, 625 duplicatas 0,0158%, recuperação 241 s), NATS + gateway (zero perda, retomada 120 s) e capacidade do WAL (1.552 respostas 429 e retomada); achado de design corrigido (retenção WorkQueue + 429); recomendação Go/Collector/Rust; make fmt/lint/test/build/smoke, bench-pipeline-check e bench-gateway-wal-check verdes; T1 pendente; evidência em docs/dev/story-4.5-handoff.md."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E4 — Gateway OTLP e ingestão** |
-| Story | **4.4 — Writers para ClickHouse e VictoriaMetrics** |
-| Task | **AC1–AC3 — End-to-end, retry e observabilidade** |
+| Story | **4.5 — Teste de caos e go/no-go da stack de ingestão** |
+| Task | **AC1–AC3 — Falha de storage, falha de NATS/gateway e recomendação** |
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `0699eed` |
-| Próxima ação | Story 4.5 — teste de caos e go/no-go da stack de ingestão |
-| Bloqueios | 2.4 (T1): P-07 e Story 4.5; o AC1 de 1M/s/1h, o caos de 15 min e o sizing do WAL/spool dependem do T1 |
-| Última sessão | Story 4.4: writers CH/VM com consumidores duráveis, dedupe, retry, DLQ e métricas; 20k/s local (400k eventos, lag p95 0,80 s) e caos 3 s/2 s (8 retries, zero perda); T1 pendente |
+| Último commit | `0c5244c` |
+| Próxima ação | Story 5.1 — Docker Compose single-node |
+| Bloqueios | T1 (P-07): 1M/s por 1 h, R3 do NATS e sizing do WAL/spool; AC1 de 1M/s/1h ainda pendente |
+| Última sessão | Story 4.5: caos com ClickHouse fora 15 min (6M confirmados, zero perda, recuperação 241 s), NATS/gateway (zero perda, 120 s) e capacidade do WAL (1.552 respostas 429 e retomada); retenção WorkQueue + 429; recomendação Go/Collector/Rust |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -95,7 +95,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E4 | 4.2 | Auth/quotas | `done` | Snapshot versionado com tokens SHA-256 e quota por tenant; 401/403 + audit hash chain; 429 com `Retry-After` e pré-admissão antes do decode no HTTP; `make smoke` cobre 401/403/audit/429; harness local com 26.703 requests limitados e p95 de processamento +15,13% em 1M/s (inconclusivo por host compartilhado); T1 pendente; evidência em `docs/dev/story-4.2-handoff.md` |
 | P0-E4 | 4.3 | Batching/WAL NATS | `done` | Envelope protobuf v1 com zstd, batching por subject, 32 shards e `event_id` determinístico; WAL JetStream com ack só após publish, retry com `Nats-Msg-Id`, 429/503 e `/readyz`; streams por sinal com `DiscardNew`; `walcheck` relê sem ack; run local 100k/s por 10 s (1M eventos, **5,46x**, 32 shards, 0 duplicatas, p99 **28,9 ms**); 1M/s/1h no T1 pendente; não é G1; evidência em `docs/dev/story-4.3-handoff.md` e `bench/gateway/wal/results/2026-11-03-local-100k/` |
 | P0-E4 | 4.4 | Writers CH/VM | `done` | Três consumidores duráveis JetStream; ack só após insert/DLQ do ClickHouse ou HTTP 2xx do VM; dedupe por `event_id` + geração/epoch; token estável por eventos; retry exponencial; DLQ `OBSERVAKI_DLQ`; INSERT de 17 colunas; `/metrics` e `/stats`; run local 20k/s por 20 s (400k eventos, lag p95 **0,80 s**, contagens exatas, 0 falhas) e caos 3 s/2 s (8 retries, zero perda, lag p95 7,97 s); `make fmt/lint/test/build/smoke` e `bench-clickhouse-ingest-check` verdes; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.4-handoff.md` e `bench/pipeline/results/2026-11-03-local-20k/` |
-| P0-E4 | 4.5 | Caos + go/no-go | `todo` | Depende de 4.3/4.4 |
+| P0-E4 | 4.5 | Caos + go/no-go | `done` | `bench/chaos` com ClickHouse fora 15 min (**6M confirmados, zero perda**, 625 duplicatas 0,0158%, recuperação 241 s), NATS + gateway (zero perda, 120 s) e capacidade do WAL (**1.552 respostas 429** e retomada); achado de design corrigido (retenção WorkQueue + 429); recomendação Go/Collector/Rust condicional; `make fmt/lint/test/build/smoke`, `bench-pipeline-check` e `bench-gateway-wal-check` verdes; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.5-handoff.md` |
 | P0-E5 | 5.1 | Docker Compose | `todo` | Depende de 4.1/3.1/1.2 |
 | P0-E5 | 5.2 | Helm chart | `todo` | Depende de 5.1 |
 | P0-E5 | 5.3 | Quickstart + sample app | `todo` | Depende de 5.1 |
@@ -112,19 +112,19 @@ Atalho no OpenCode: `/continue`.
 
 ## Gate G1 — checklist de saída da Fase 0
 
-- [ ] 1M eventos/s por 1 hora no workload de referência (4.3: WAL local a 100k/s e 1M/s mínimo; T1 pendente)
-- [ ] Lag p95 < 10s; zero perda para eventos confirmados (local 3.3: p95 1,4s e crash/replay de 100k sem perda; 4.3: ack só após JetStream e NATS restart sem perda; **4.4: lag p95 0,80s a 20k/s e 7,97s sob caos de 3s/2s, zero perda**; T1/caos de 15 min pendentes)
+- [ ] 1M eventos/s por 1 hora no workload de referência (4.3: WAL local a 100k/s e 1M/s mínimo; **4.5: proxy local a 5k/s com ClickHouse fora 15 min, zero perda**; T1 pendente)
+- [ ] Lag p95 < 10s; zero perda para eventos confirmados (local 3.3: p95 1,4s e crash/replay de 100k sem perda; 4.3: ack só após JetStream e NATS restart sem perda; **4.4: lag p95 0,80s a 20k/s e 7,97s sob caos de 3s/2s, zero perda**; **4.5: zero perda com ClickHouse 15 min, NATS e gateway; p95 de operação normal coberto pela 4.4**; T1 pendente)
 - [ ] p95 < 1s em 1B linhas/24h (logs local: `q03` p95 263 ms; traces local: trace lookup p95 328 ms; **3.5: 16 consultas SQL p95 máx 431,94 ms + 4 MetricsQL 799,5 ms no mix de 1B eventos**; T1/gateway pendentes)
 - [ ] p95 < 3s em 10B linhas/7d (**3.5: projeção window-equivalent de 617 ms; raw 10B/T1 pendente**)
 - [ ] Compressão ≥ 5x em logs e traces (logs local 6,98x; traces local 7,52x; 3.5: 7,51x/7,74x no mix; T1 pendente)
 - [x] Métricas: 1M séries a 1M/s por 1h e 20 consultas p95 <1s em 24h (local: 999.738/s, p95 799,5ms; T1 pendente)
-- [ ] Retenção/row policies/quotas validadas (3.5: TTL 7/15/30 e row policies locais pass, epoch AD-20 pass; 4.2: quota de ingestão local pass com 429/`Retry-After`, isolamento p95 <10% e quotas de consulta pendentes no T1; 4.3: `DiscardNew`/MaxAge/MaxBytes do WAL e 429 `wal_backpressure` locais pass; **4.4: linhas com `project_generation`/`authz_epoch` e dedupe escopado por epoch**)
+- [ ] Retenção/row policies/quotas validadas (3.5: TTL 7/15/30 e row policies locais pass, epoch AD-20 pass; 4.2: quota de ingestão local pass com 429/`Retry-After`, isolamento p95 <10% e quotas de consulta pendentes no T1; 4.3: `DiscardNew`/MaxAge/MaxBytes do WAL e 429 `wal_backpressure` locais pass; **4.4: linhas com `project_generation`/`authz_epoch` e dedupe escopado por epoch**; **4.5: WAL em WorkQueue libera espaço após o ack, 429 no stream cheio e retomada após o dreno**) 
 - [ ] Compose single-node < 15 min; Helm em 3 nós; upgrade/rollback
 - [ ] 100k pontos < 100ms; bundle inicial < 180 KB gzip
 - [ ] 3 design partners com dados reais
 - [x] ADRs aprovadas (storage, gateway, fila, frontend, tenancy, benchmark)
-- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; 3.4: go local; 3.5: go local; 4.2: go funcional local, isolamento p95 inconclusivo; 4.3: go funcional local, AC1/T1 pendente; 4.4: go funcional local, retry/caos curto pass, AC1/T1 pendente; T1 pendente)
-- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3/3.4/3.5 e harness 4.2/4.3/4.4 locais publicados; baseline T1 pendente de P-07 e 4.5)
+- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; 3.4: go local; 3.5: go local; 4.2: go funcional local, isolamento p95 inconclusivo; 4.3: go funcional local, AC1/T1 pendente; 4.4: go funcional local, retry/caos curto pass, AC1/T1 pendente; **4.5: go funcional local com zero perda nos três cenários; recomendação Go no MVP, Collector na borda e fallback Rust/Rotel condicionado ao T1**; T1 pendente)
+- [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3/3.4/3.5 e harness 4.2/4.3/4.4/4.5 locais publicados; baseline T1 pendente de P-07)
 
 **Só depois de todos os itens:** atualizar `phase: 1` e começar o detalhamento da Fase 1.
 
@@ -166,6 +166,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-03 | Story 4.2 | P0 / 4.2 / AC1–AC3 | Snapshot versionado (`config_version`/`generation`/`issued_at`/`expires_at`) com tokens SHA-256, escopos e quota por tenant; auth Bearer 401, cross-project 403 + audit JSONL com hash chain, quota 429 + `Retry-After` e `RetryInfo`; pré-admissão HTTP por `Content-Length`/EWMA antes do decode; `Batch` carrega tenant/projeto/geração; assinatura Ed25519 em staging/produção; `make ci`/`make smoke` verdes (401/403/audit/429); harness local com 26.703 requests limitados, p95 de processamento +15,13% em 1M/s ofertado (inconclusivo por host compartilhado; T1 pendente); **não é G1**; evidência em `docs/dev/story-4.2-handoff.md` e `bench/gateway/quota/results/20261103T030500Z/` | `dab5e98` | Story 4.3 |
 | 2026-11-03 | Story 4.3 | P0 / 4.3 / AC1–AC3 | Envelope protobuf v1 (`observaki.ingest.v1`) com zstd, batching por subject, 32 shards por tenant/projeto/epoch/signal e `event_id` determinístico por evento; sink NATS JetStream com streams por sinal (`DiscardNew`/MaxAge/MaxBytes), ack só após publish, retry com `Nats-Msg-Id`, 429 `wal_backpressure`, 503 e `/readyz`; `walcheck` relê sem ack; smoke cobre OTLP HTTP/gRPC + WAL; run local 100k/s por 10 s (1M eventos, **5,46x**, 32 shards, 0 duplicatas, p99 **28,9 ms**) e 1M/s mínimo (5M eventos, ~740k/s, p99 25,4 ms); redaction Luhn passou de regex para scanner linear (~8,9 ms → ~1,8 ms por batch de 500); **não é G1**; 1M/s/1h no T1 pendente; evidência em `docs/dev/story-4.3-handoff.md` e `bench/gateway/wal/results/2026-11-03-local-100k/` | `794afd4` | Story 4.4 |
 | 2026-11-04 | Story 4.4 | P0 / 4.4 / AC1–AC3 | Writers (`observaki writer`) com três consumidores duráveis JetStream, ack só após o insert confirmado no ClickHouse (ou DLQ) ou o HTTP 2xx do VictoriaMetrics, dedupe por `event_id` + geração/epoch, `insert_deduplication_token` derivado dos eventos, retry exponencial, DLQ `OBSERVAKI_DLQ`, INSERT de 17 colunas explícitas (inclui `project_generation`/`authz_epoch`) e adaptador remote write; run local 20k/s por 20 s (400k eventos, lag p95 **0,80 s**, 135.300 logs/132.000 traces exatos, 139.400 amostras no VM, 0 falhas) e caos de 3 s no CH/2 s no VM (8 retries, zero perda, lag p95 7,97 s); `make fmt/lint/test/build/smoke` e `bench-clickhouse-ingest-check` verdes; **não é G1**; T1/4.5 pendentes; evidência em `docs/dev/story-4.4-handoff.md` e `bench/pipeline/results/2026-11-03-local-20k/` | `0699eed` | Story 4.5 |
+| 2026-11-04 | Story 4.5 | P0 / 4.5 / AC1–AC3 | `bench/chaos/run.sh` com cenários `storage`/`nats`/`gateway`/`capacity`/`all`, timeline a 1 Hz e verificação de perda por sinal; ClickHouse fora 15 min (6M confirmados, **zero perda**, 625 duplicatas 0,0158%, recuperação 241 s), NATS + gateway (zero perda, 28/14 amostras `/readyz` não-200, recuperação 120 s) e capacidade do WAL (1.552 respostas **429**, zero perda, retomada +573.600 eventos); achado de design corrigido: retenção **WorkQueue** nos streams de sinal (LimitsPolicy + DiscardNew nunca liberava o WAL cheio) e stream cheio mapeado para 429; default de `MaxBytes` 16 GiB; `make fmt/lint/test/build/smoke`, `bench-pipeline-check` e `bench-gateway-wal-check` verdes; recomendação Go no MVP/Collector na borda/Rust de fallback; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.5-handoff.md`, `docs/dev/story-4.5-hot-path-recommendation.md` e `bench/chaos/results/` | `0c5244c` | Story 5.1 |
 
 ## Regras de atualização
 

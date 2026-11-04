@@ -5,7 +5,7 @@
 condicional. O alvo de 1M/s por 1 h, o R3 do NATS e o sizing do WAL no T1
 **não** foram executados; **não é o Gate G1**.
 **Data:** 2026-11-04 (UTC).
-**Commit:** `<preencher>`.
+**Commit:** `0c5244c` (feature) + docs de status.
 **Epic:** P0-E4 — Gateway OTLP e ingestão.
 **ADs:** AD-4, AD-5, AD-9, AD-18, AD-20, AD-21, AD-22, AD-29, AD-31, AD-33;
 ADR-0002, ADR-0003.
