@@ -5,8 +5,12 @@
   de auth de desenvolvimento, script de migração, sample app e smoke de AC1/AC3.
   O `compose.yaml` fica na raiz do repositório para `docker compose up` funcionar
   sem `-f`.
-- Helm chart alpha (Story 5.2), jobs de backup/restore e auto-observabilidade
-  (Story 5.4) ainda não existem.
+- [`helm/observaki/`](helm/observaki/README.md) — Helm chart alpha da Story 5.2
+  para um cluster de 3 nós: API/UI, gateway, writer, migrações e (no perfil de
+  avaliação) ClickHouse, VictoriaMetrics, PostgreSQL e NATS. `make chart-check`
+  valida o chart sem cluster; `make chart-smoke` instala, faz upgrade e rollback
+  em um kind de 3 nós.
+- Jobs de backup/restore e auto-observabilidade (Story 5.4) ainda não existem.
 
 O cluster de **benchmark** T1 (Story 2.4) não é o Compose do produto: ele vive
 em [`bench/env/`](../bench/env/README.md) e provisiona apenas hosts, rede e

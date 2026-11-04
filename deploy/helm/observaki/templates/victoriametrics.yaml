@@ -1,0 +1,93 @@
+{{- if eq .Values.dependencies.mode "bundled" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "observaki.fullname" . }}-victoriametrics
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8428
+      targetPort: http
+  selector:
+    {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "observaki.fullname" . }}-victoriametrics
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "victoriametrics") | nindent 4 }}
+spec:
+  serviceName: {{ include "observaki.fullname" . }}-victoriametrics
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "victoriametrics") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "observaki.componentLabels" (dict "root" . "component" "victoriametrics") | nindent 8 }}
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: victoriametrics
+          image: "{{ .Values.victoriametrics.image.repository }}:{{ .Values.victoriametrics.image.tag }}"
+          imagePullPolicy: {{ .Values.victoriametrics.image.pullPolicy }}
+          args:
+            - -storageDataPath=/victoria-metrics-data
+            - -httpListenAddr=:8428
+            - -retentionPeriod={{ .Values.victoriametrics.retentionPeriod }}
+          ports:
+            - name: http
+              containerPort: 8428
+          resources:
+            {{- toYaml .Values.victoriametrics.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /victoria-metrics-data
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+      {{- with .Values.victoriametrics.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.victoriametrics.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.victoriametrics.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - {{ .Values.victoriametrics.persistence.accessMode }}
+        {{- with .Values.victoriametrics.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.victoriametrics.persistence.size }}
+{{- end }}

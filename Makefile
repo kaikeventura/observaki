@@ -39,7 +39,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check compose-check compose-up compose-down compose-smoke bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -173,6 +173,12 @@ ci: bootstrap lint test build ## run the full local CI suite
 
 compose-check: ## validate the single-node Compose file
 	docker compose config --quiet
+
+chart-check: ## lint/render the Helm chart and check the embedded file copies
+	./deploy/helm/check.sh
+
+chart-smoke: ## install the chart on a 3-node kind cluster (AC1/AC2/AC3)
+	./deploy/helm/smoke.sh
 
 compose-up: ## start the single-node Docker Compose stack and wait for health
 	docker compose up -d --build --wait

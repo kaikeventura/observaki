@@ -1,0 +1,144 @@
+{{- if eq .Values.dependencies.mode "bundled" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "observaki.fullname" . }}-clickhouse
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "clickhouse") | nindent 4 }}
+data:
+  observaki.xml: |
+    <clickhouse>
+      <listen_host>0.0.0.0</listen_host>
+      <logger>
+        <level>information</level>
+        <console>1</console>
+      </logger>
+      <max_server_memory_usage>{{ .Values.clickhouse.config.maxServerMemoryBytes }}</max_server_memory_usage>
+      <merge_tree>
+        <max_bytes_to_merge_at_max_space_in_pool>{{ .Values.clickhouse.config.maxBytesToMergeAtMaxSpaceInPool }}</max_bytes_to_merge_at_max_space_in_pool>
+      </merge_tree>
+      <profiles>
+        <default>
+          <max_threads>{{ .Values.clickhouse.config.maxThreads }}</max_threads>
+          <max_insert_threads>{{ .Values.clickhouse.config.maxInsertThreads }}</max_insert_threads>
+          <max_concurrent_queries>{{ .Values.clickhouse.config.maxConcurrentQueries }}</max_concurrent_queries>
+        </default>
+      </profiles>
+    </clickhouse>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "observaki.fullname" . }}-clickhouse
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "clickhouse") | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8123
+      targetPort: http
+    - name: native
+      port: 9000
+      targetPort: native
+  selector:
+    {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "clickhouse") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "observaki.fullname" . }}-clickhouse
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "clickhouse") | nindent 4 }}
+spec:
+  serviceName: {{ include "observaki.fullname" . }}-clickhouse
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "clickhouse") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "observaki.componentLabels" (dict "root" . "component" "clickhouse") | nindent 8 }}
+      annotations:
+        checksum/config: {{ printf "%v|%v" .Values.clickhouse.config .Values.clickhouse.image.tag | sha256sum }}
+    spec:
+      securityContext:
+        fsGroup: 101
+      containers:
+        - name: clickhouse
+          image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+          imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8123
+            - name: native
+              containerPort: 9000
+          env:
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "observaki.clickhouseCredentialSecret" . }}
+                  key: user
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "observaki.clickhouseCredentialSecret" . }}
+                  key: password
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
+          resources:
+            {{- toYaml .Values.clickhouse.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/clickhouse-server/config.d/observaki.xml
+              subPath: observaki.xml
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/clickhouse
+          startupProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: native
+            periodSeconds: 10
+            failureThreshold: 6
+      {{- with .Values.clickhouse.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clickhouse.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clickhouse.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "observaki.fullname" . }}-clickhouse
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - {{ .Values.clickhouse.persistence.accessMode }}
+        {{- with .Values.clickhouse.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.clickhouse.persistence.size }}
+{{- end }}

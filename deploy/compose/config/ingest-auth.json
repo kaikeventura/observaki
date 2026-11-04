@@ -1,6 +1,7 @@
 {
   "_comment": [
-    "Development ingest auth snapshot for the single-node stack (Story 5.1).",
+    "Development ingest auth snapshot for the single-node/evaluation stack",
+    "(Story 5.1 Compose and Story 5.2 Helm chart).",
     "The bearer token is public on purpose: 'observaki-local-dev-token'.",
     "sha256(observaki-local-dev-token) = 722b353212f4a61dd07acf5d613a15028a99f55517dd04893d344b0493b6c934",
     "Never reuse this snapshot or token outside a local evaluation stack;",

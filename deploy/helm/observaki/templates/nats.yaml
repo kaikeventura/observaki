@@ -1,0 +1,128 @@
+{{- if eq .Values.dependencies.mode "bundled" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "observaki.fullname" . }}-nats
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "nats") | nindent 4 }}
+data:
+  nats.conf: |
+    # JetStream WAL for the Observaki gateway (AD-18).
+    #
+    # The gateway batches up to 4 MiB per WAL envelope, so max_payload must be
+    # above the NATS 1 MiB default. The three 2 GiB signal streams plus the
+    # 8 GiB DLQ created by the writer must fit max_file_store.
+    port: 4222
+    http_port: 8222
+    max_payload: {{ .Values.nats.config.maxPayload }}
+
+    jetstream {
+      store_dir: "/data/js"
+      max_memory_store: {{ .Values.nats.config.maxMemoryStore }}
+      max_file_store: {{ .Values.nats.config.maxFileStore }}
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "observaki.fullname" . }}-nats
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "nats") | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - name: client
+      port: 4222
+      targetPort: client
+    - name: monitor
+      port: 8222
+      targetPort: monitor
+  selector:
+    {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "nats") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "observaki.fullname" . }}-nats
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "nats") | nindent 4 }}
+spec:
+  serviceName: {{ include "observaki.fullname" . }}-nats
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "nats") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "observaki.componentLabels" (dict "root" . "component" "nats") | nindent 8 }}
+      annotations:
+        checksum/config: {{ printf "%v|%v" .Values.nats.config .Values.nats.image.tag | sha256sum }}
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: nats
+          image: "{{ .Values.nats.image.repository }}:{{ .Values.nats.image.tag }}"
+          imagePullPolicy: {{ .Values.nats.image.pullPolicy }}
+          args: ["-c", "/etc/nats/nats.conf"]
+          ports:
+            - name: client
+              containerPort: 4222
+            - name: monitor
+              containerPort: 8222
+          resources:
+            {{- toYaml .Values.nats.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nats/nats.conf
+              subPath: nats.conf
+              readOnly: true
+            - name: data
+              mountPath: /data
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: monitor
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: monitor
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: monitor
+            periodSeconds: 10
+            failureThreshold: 6
+      {{- with .Values.nats.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nats.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nats.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "observaki.fullname" . }}-nats
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - {{ .Values.nats.persistence.accessMode }}
+        {{- with .Values.nats.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.nats.persistence.size }}
+{{- end }}

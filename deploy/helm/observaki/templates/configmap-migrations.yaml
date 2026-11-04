@@ -1,0 +1,63 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "observaki.fullname" . }}-migrations
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "migrate") | nindent 4 }}
+data:
+  clickhouse-migrate.sh: |
+    #!/bin/sh
+    # Apply the versioned Observaki ClickHouse migrations.
+    #
+    # The migrations are additive and idempotent (CREATE ... IF NOT EXISTS,
+    # ADD COLUMN IF NOT EXISTS), so this runs on every install/upgrade: a fresh
+    # volume gets the schema and an existing volume is left untouched.
+    set -eu
+
+    host=${CLICKHOUSE_HOST:?CLICKHOUSE_HOST is required}
+    port=${CLICKHOUSE_PORT:-9000}
+    database=${CLICKHOUSE_DATABASE:-observaki}
+    timeout=${MIGRATE_TIMEOUT_SECONDS:-300}
+    migrations=${MIGRATIONS_DIR:-/migrations}
+
+    client_args="--host ${host} --port ${port}"
+    if [ -n "${CLICKHOUSE_USER:-}" ]; then
+      client_args="${client_args} --user ${CLICKHOUSE_USER}"
+    fi
+    if [ -n "${CLICKHOUSE_PASSWORD:-}" ]; then
+      client_args="${client_args} --password ${CLICKHOUSE_PASSWORD}"
+    fi
+
+    started=$(date +%s)
+    until clickhouse-client ${client_args} --query 'SELECT 1' >/dev/null 2>&1; do
+      now=$(date +%s)
+      if [ $((now - started)) -ge "${timeout}" ]; then
+        echo "timed out after ${timeout}s waiting for ClickHouse at ${host}:${port}" >&2
+        exit 1
+      fi
+      echo "waiting for ClickHouse at ${host}:${port}" >&2
+      sleep 2
+    done
+
+    clickhouse-client ${client_args} --query "CREATE DATABASE IF NOT EXISTS \`${database}\`"
+
+    found=0
+    for file in "${migrations}"/*.sql; do
+      [ -e "${file}" ] || continue
+      found=$((found + 1))
+      echo "applying $(basename "${file}")" >&2
+      clickhouse-client ${client_args} --database "${database}" --multiquery <"${file}"
+    done
+
+    if [ "${found}" -eq 0 ]; then
+      echo "no migrations found in ${migrations}" >&2
+      exit 1
+    fi
+
+    echo "applied ${found} migrations to ${database}" >&2
+  {{- range $path, $_ := .Files.Glob "files/migrations/*.sql" }}
+  {{ base $path }}: |-
+    {{- $.Files.Get $path | nindent 4 }}
+  {{- end }}
+{{- end }}

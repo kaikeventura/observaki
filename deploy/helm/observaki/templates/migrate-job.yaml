@@ -1,0 +1,62 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "observaki.fullname" . }}-migrate-{{ include (print $.Template.BasePath "/configmap-migrations.yaml") . | sha256sum | trunc 10 }}
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "migrate") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  # Keep a finished job around briefly so its logs stay readable.
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "migrate") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+        - name: migrate
+          image: "{{ .Values.migrations.image.repository }}:{{ .Values.migrations.image.tag }}"
+          imagePullPolicy: {{ .Values.migrations.image.pullPolicy }}
+          command: ["/bin/sh", "/scripts/clickhouse-migrate.sh"]
+          env:
+            - name: CLICKHOUSE_HOST
+              value: {{ include "observaki.clickhouseNativeHost" . | quote }}
+            - name: CLICKHOUSE_PORT
+              value: {{ include "observaki.clickhouseNativePort" . | quote }}
+            - name: CLICKHOUSE_DATABASE
+              value: {{ include "observaki.clickhouseDatabase" . | quote }}
+            - name: MIGRATE_TIMEOUT_SECONDS
+              value: {{ .Values.migrations.timeoutSeconds | quote }}
+            {{- with include "observaki.clickhouseCredentialSecret" . }}
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: user
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: password
+            {{- end }}
+          resources:
+            {{- toYaml .Values.migrations.resources | nindent 12 }}
+          volumeMounts:
+            - name: migrations
+              mountPath: /scripts
+              readOnly: true
+            - name: migrations
+              mountPath: /migrations
+              readOnly: true
+      volumes:
+        - name: migrations
+          configMap:
+            name: {{ include "observaki.fullname" . }}-migrations
+{{- end }}

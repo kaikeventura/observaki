@@ -1,0 +1,25 @@
+apiVersion: v2
+name: observaki
+description: Observaki alpha Helm chart - OTel-native observability on a 3-node Kubernetes cluster.
+type: application
+# Chart version follows semver: alpha bumps change the chart behaviour; the
+# app version tracks the Observaki release image tag.
+version: 0.1.0-alpha.1
+appVersion: "v0.0.1-alpha"
+kubeVersion: ">=1.35.0-0"
+home: https://github.com/kaikeventura/observaki
+sources:
+  - https://github.com/kaikeventura/observaki
+maintainers:
+  - name: Observaki maintainers
+    email: maintainers@observaki.dev
+keywords:
+  - observability
+  - opentelemetry
+  - otlp
+  - traces
+  - logs
+  - metrics
+annotations:
+  observaki.dev/story: "5.2"
+  observaki.dev/stability: alpha

@@ -1,0 +1,318 @@
+# Observaki Helm chart values - alpha (Story 5.2).
+#
+# Defaults target a 3-node Kubernetes cluster (Kubernetes >= 1.35, Helm >= 4.3)
+# and install the four dependencies in-cluster as single-replica StatefulSets,
+# so a single `helm install` brings up the whole stack. That is an
+# evaluation/CI profile, not a hardened deployment: switch
+# `dependencies.mode` to `external` and point the URLs/secrets at the
+# distributed ClickHouse, VictoriaMetrics, PostgreSQL and NATS you operate.
+#
+# Sizing (per replica, defaults):
+#
+#   component          replicas  requests        limits         storage
+#   api                2         50m / 64Mi      500m / 256Mi   -
+#   gateway            2         100m / 128Mi    1 / 512Mi      -
+#   writer             1         100m / 256Mi    1 / 1Gi        10Gi spool
+#   clickhouse         1         500m / 1Gi      2 / 2Gi        20Gi
+#   victoriametrics    1         100m / 256Mi    2 / 1Gi        10Gi
+#   postgres           1         50m / 128Mi     1 / 512Mi      2Gi
+#   nats               1         50m / 128Mi     1 / 512Mi      20Gi
+#   clickhouse-migrate job       50m / 64Mi      500m / 256Mi   -
+#
+# The values file is the source of truth for CPU, memory and storage; the chart
+# README repeats the table with the rationale.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Runtime environment passed to every Observaki workload
+# (development | test | staging | production).
+# staging/production fail closed: the gateway requires a signed ingest auth
+# snapshot (AD-19) and an audit log, and the bundled dependencies refuse the
+# public development credentials.
+environment: development
+
+logLevel: info
+
+# Single image for `serve` (API/UI), `gateway` and `writer`; the subcommands
+# select the role (AD-6: no per-topology fork, the same images and config
+# contract run on Compose and Kubernetes).
+image:
+  repository: ghcr.io/kaikeventura/observaki
+  # Defaults to .Chart.AppVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  # Defaults to the fullname when empty.
+  name: ""
+  annotations: {}
+  # The services do not talk to the Kubernetes API.
+  automountServiceAccountToken: false
+
+# API + embedded SvelteKit UI (the control plane's read surface, AD-4).
+api:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+    port: 80
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  # Extra environment variables for the API container.
+  extraEnv: []
+
+# OTLP gateway: authenticates, enforces quota, redacts and writes the WAL
+# (AD-11, AD-19, AD-21). RED is computed before sampling and shipped to
+# VictoriaMetrics - never to ClickHouse.
+gateway:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  service:
+    type: ClusterIP
+    grpcPort: 4317
+    httpPort: 4318
+  limits:
+    # OTLP request limit after decompression (10 MiB) and event count.
+    maxRequestBytes: "10485760"
+    maxEvents: "10000"
+  auth:
+    # Bundled development snapshot (tenant-dev/project-dev, public token
+    # `observaki-local-dev-token`). Only valid with environment=development.
+    # For staging/production set devSnapshot=false and provide existingSecret
+    # with key `ingest-auth.json` plus publicKey (AD-19).
+    devSnapshot: true
+    existingSecret: ""
+    snapshotKey: ingest-auth.json
+    publicKey: ""
+    # Written to an emptyDir by default; ship it with your log pipeline.
+    auditFile: /var/log/observaki/audit.jsonl
+  wal:
+    subjectPrefix: observaki.ingest.v1
+    streamPrefix: OBSERVAKI
+    shards: 32
+    streamReplicas: 1
+    streamMaxAge: 24h
+    # 2 GiB per signal stream for the evaluation profile (T1 uses 16 GiB).
+    streamMaxBytes: "2147483648"
+    batchMaxEvents: "100000"
+    batchMaxBytes: "4194304"
+    batchLinger: 5ms
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# WAL consumer that writes ClickHouse (logs/traces) and VictoriaMetrics
+# (metrics). It acks only after the insert is confirmed (AD-18) and keeps a
+# durable local spool.
+writer:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  spool:
+    size: 10Gi
+    storageClass: ""
+  batchMaxEvents: "50000"
+  batchLinger: 1s
+  dedupeWindow: "500000"
+  ackWait: 30m
+  retentionDays: 15
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Applies the versioned, idempotent ClickHouse migrations on every
+# install/upgrade (helm.sh/hook: post-install,post-upgrade).
+migrations:
+  enabled: true
+  backoffLimit: 3
+  # clickhouse-client image used to apply the SQL migrations and to gate the
+  # writer on the schema being present.
+  image:
+    repository: clickhouse/clickhouse-server
+    tag: "26.8"
+    pullPolicy: IfNotPresent
+  timeoutSeconds: 300
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# bundled: install single-replica dependencies in this release (default).
+# external: install only the Observaki workloads and use `external.*`.
+dependencies:
+  mode: bundled
+
+# Used when dependencies.mode=external. URLs must be reachable from the
+# namespace and must not include credentials; use the secret references.
+external:
+  clickhouse:
+    # HTTP endpoint used by the writer (`OBSERVAKI_CLICKHOUSE_URL`).
+    url: ""
+    # Native endpoint (`host:9440` style, host:9000 by default) used by the
+    # clickhouse-client migration job. Disable `migrations.enabled` when the
+    # external operator runs the schema migrations itself.
+    nativeAddress: ""
+    database: observaki
+    # Secret with keys `user` and `password`; leave empty for a passwordless
+    # default user (not recommended).
+    credentialsSecret: ""
+  victoriametrics:
+    url: ""
+  postgres:
+    # Secret with key `url` holding the full postgres:// DSN.
+    urlSecret: ""
+  nats:
+    url: ""
+
+# --- bundled dependencies (dependencies.mode=bundled) -----------------------
+
+clickhouse:
+  image:
+    repository: clickhouse/clickhouse-server
+    tag: "26.8"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  persistence:
+    size: 20Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+  auth:
+    username: observaki
+    # Public development credential, mirrored from the Compose stack. Refused
+    # when environment is staging/production.
+    password: observaki-local-dev
+    # Secret with keys `user` and `password`; overrides the values above.
+    existingSecret: ""
+  config:
+    maxServerMemoryBytes: "1610612736"
+    maxThreads: 8
+    maxInsertThreads: 4
+    maxConcurrentQueries: 8
+    maxBytesToMergeAtMaxSpaceInPool: "16000000000"
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+victoriametrics:
+  image:
+    repository: victoriametrics/victoria-metrics
+    tag: "v1.148.0"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+  # Retention in months (VictoriaMetrics -retentionPeriod semantics).
+  retentionPeriod: 1
+  persistence:
+    size: 10Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+postgres:
+  image:
+    repository: postgres
+    tag: "18.6-alpine"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  auth:
+    database: observaki
+    username: observaki
+    # Public development credential; refused in staging/production.
+    password: observaki-local-dev
+    # Secret with keys `database-url`; overrides the generated DSN.
+    existingSecret: ""
+  persistence:
+    size: 2Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+nats:
+  image:
+    repository: nats
+    tag: "2.15.2-alpine"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  # Envelope max size (4 MiB batch + protobuf overhead) must fit maxPayload.
+  config:
+    maxPayload: "16777216"
+    maxFileStore: 16GB
+    maxMemoryStore: 256MB
+  persistence:
+    size: 20Gi
+    storageClass: ""
+    accessMode: ReadWriteOnce
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Optional Ingress for the API/UI. The gateway (OTLP) is normally reached by
+# the collectors inside the cluster, not through an Ingress.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: observaki.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

@@ -1,0 +1,15 @@
+# Three-node kind cluster used by the Story 5.2 smoke test.
+#
+#   kind create cluster --config deploy/helm/kind.yaml
+#
+# The chart only needs a default StorageClass (kind ships local-path) and at
+# least Kubernetes 1.35 (the chart's kubeVersion). The control-plane node is
+# tainted, so workloads land on the two workers; that matches a 3-node cluster
+# with one control plane and two schedulable data nodes.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: observaki-helm
+nodes:
+  - role: control-plane
+  - role: worker
+  - role: worker

@@ -1,0 +1,172 @@
+{{- $authSecret := default (printf "%s-ingest-auth" (include "observaki.fullname" .)) .Values.gateway.auth.existingSecret }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "observaki.fullname" . }}-gateway
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "gateway") | nindent 4 }}
+spec:
+  type: {{ .Values.gateway.service.type }}
+  ports:
+    - name: otlp-grpc
+      port: {{ .Values.gateway.service.grpcPort }}
+      targetPort: otlp-grpc
+      protocol: TCP
+    - name: otlp-http
+      port: {{ .Values.gateway.service.httpPort }}
+      targetPort: otlp-http
+      protocol: TCP
+  selector:
+    {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "gateway") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "observaki.fullname" . }}-gateway
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "gateway") | nindent 4 }}
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "gateway") | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "observaki.componentLabels" (dict "root" . "component" "gateway") | nindent 8 }}
+      annotations:
+        checksum/config: {{ printf "%s|%s|%s|%s" $authSecret .Values.gateway.auth.snapshotKey (include "observaki.natsURL" .) .Values.gateway.wal.streamMaxBytes | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "observaki.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: {{ include "observaki.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/observaki", "gateway"]
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+          env:
+            - name: OBSERVAKI_ENV
+              value: {{ .Values.environment | quote }}
+            - name: OBSERVAKI_LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: OBSERVAKI_OTLP_GRPC_ADDR
+              value: ":4317"
+            - name: OBSERVAKI_OTLP_HTTP_ADDR
+              value: ":4318"
+            - name: OBSERVAKI_INGEST_MAX_REQUEST_BYTES
+              value: {{ .Values.gateway.limits.maxRequestBytes | quote }}
+            - name: OBSERVAKI_INGEST_MAX_EVENTS
+              value: {{ .Values.gateway.limits.maxEvents | quote }}
+            - name: OBSERVAKI_INGEST_AUTH_FILE
+              value: {{ printf "/etc/observaki/%s" .Values.gateway.auth.snapshotKey | quote }}
+            {{- with .Values.gateway.auth.publicKey }}
+            - name: OBSERVAKI_INGEST_AUTH_PUBLIC_KEY
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.gateway.auth.auditFile }}
+            - name: OBSERVAKI_INGEST_AUDIT_FILE
+              value: {{ . | quote }}
+            {{- end }}
+            - name: OBSERVAKI_NATS_URL
+              value: {{ include "observaki.natsURL" . | quote }}
+            - name: OBSERVAKI_NATS_SUBJECT_PREFIX
+              value: {{ .Values.gateway.wal.subjectPrefix | quote }}
+            - name: OBSERVAKI_NATS_STREAM_PREFIX
+              value: {{ .Values.gateway.wal.streamPrefix | quote }}
+            - name: OBSERVAKI_NATS_SHARDS
+              value: {{ .Values.gateway.wal.shards | quote }}
+            - name: OBSERVAKI_NATS_STREAM_REPLICAS
+              value: {{ .Values.gateway.wal.streamReplicas | quote }}
+            - name: OBSERVAKI_NATS_STREAM_MAX_AGE
+              value: {{ .Values.gateway.wal.streamMaxAge | quote }}
+            - name: OBSERVAKI_NATS_STREAM_MAX_BYTES
+              value: {{ .Values.gateway.wal.streamMaxBytes | quote }}
+            - name: OBSERVAKI_NATS_BATCH_MAX_EVENTS
+              value: {{ .Values.gateway.wal.batchMaxEvents | quote }}
+            - name: OBSERVAKI_NATS_BATCH_MAX_BYTES
+              value: {{ .Values.gateway.wal.batchMaxBytes | quote }}
+            - name: OBSERVAKI_NATS_BATCH_LINGER
+              value: {{ .Values.gateway.wal.batchLinger | quote }}
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: ingest-auth
+              mountPath: /etc/observaki
+              readOnly: true
+            - name: audit
+              mountPath: /var/log/observaki
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: otlp-http
+            periodSeconds: 3
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: otlp-http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: otlp-http
+            periodSeconds: 10
+            failureThreshold: 6
+      {{- with .Values.gateway.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gateway.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gateway.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: ingest-auth
+          secret:
+            secretName: {{ $authSecret }}
+        - name: audit
+          emptyDir: {}
+{{- if .Values.gateway.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "observaki.fullname" . }}-gateway
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "gateway") | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.gateway.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "gateway") | nindent 6 }}
+{{- end }}

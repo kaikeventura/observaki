@@ -1,0 +1,174 @@
+{{- $clickhouseSecret := include "observaki.clickhouseCredentialSecret" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "observaki.fullname" . }}-writer
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "writer") | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8082
+      targetPort: http
+  selector:
+    {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "writer") | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "observaki.fullname" . }}-writer
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "writer") | nindent 4 }}
+spec:
+  serviceName: {{ include "observaki.fullname" . }}-writer
+  replicas: {{ .Values.writer.replicaCount }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "writer") | nindent 6 }}
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        {{- include "observaki.componentLabels" (dict "root" . "component" "writer") | nindent 8 }}
+      annotations:
+        checksum/config: {{ printf "%s|%s|%s|%s|%s" (include "observaki.natsURL" .) (include "observaki.clickhouseURL" .) (include "observaki.victoriametricsURL" .) $clickhouseSecret .Values.writer.retentionDays | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "observaki.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # The gateway owns the NATS streams; the writer fails closed until they
+        # exist, so wait for the gateway readiness endpoint instead of
+        # crash-looping through the first install.
+        - name: wait-for-gateway
+          image: "{{ .Values.migrations.image.repository }}:{{ .Values.migrations.image.tag }}"
+          imagePullPolicy: {{ .Values.migrations.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              until wget -q -O- "http://{{ include "observaki.fullname" . }}-gateway:{{ .Values.gateway.service.httpPort }}/readyz" >/dev/null 2>&1; do
+                echo "waiting for the OTLP gateway"
+                sleep 2
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: writer
+          image: {{ include "observaki.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/observaki", "writer"]
+          ports:
+            - name: http
+              containerPort: 8082
+          env:
+            - name: OBSERVAKI_ENV
+              value: {{ .Values.environment | quote }}
+            - name: OBSERVAKI_LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: OBSERVAKI_WRITER_ADDR
+              value: ":8082"
+            - name: OBSERVAKI_WRITER_SPOOL_DIR
+              value: /var/lib/observaki/spool
+            - name: OBSERVAKI_WRITER_BATCH_MAX_EVENTS
+              value: {{ .Values.writer.batchMaxEvents | quote }}
+            - name: OBSERVAKI_WRITER_BATCH_LINGER
+              value: {{ .Values.writer.batchLinger | quote }}
+            - name: OBSERVAKI_WRITER_DEDUPE_WINDOW
+              value: {{ .Values.writer.dedupeWindow | quote }}
+            - name: OBSERVAKI_WRITER_ACK_WAIT
+              value: {{ .Values.writer.ackWait | quote }}
+            - name: OBSERVAKI_WRITER_RETENTION_DAYS
+              value: {{ .Values.writer.retentionDays | quote }}
+            - name: OBSERVAKI_NATS_URL
+              value: {{ include "observaki.natsURL" . | quote }}
+            - name: OBSERVAKI_CLICKHOUSE_URL
+              value: {{ include "observaki.clickhouseURL" . | quote }}
+            - name: OBSERVAKI_CLICKHOUSE_DATABASE
+              value: {{ include "observaki.clickhouseDatabase" . | quote }}
+            {{- with $clickhouseSecret }}
+            - name: OBSERVAKI_CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: user
+            - name: OBSERVAKI_CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ . }}
+                  key: password
+            {{- end }}
+            - name: OBSERVAKI_VICTORIAMETRICS_URL
+              value: {{ include "observaki.victoriametricsURL" . | quote }}
+          resources:
+            {{- toYaml .Values.writer.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: spool
+              mountPath: /var/lib/observaki/spool
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 3
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+      {{- with .Values.writer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.writer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.writer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: spool
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- with .Values.writer.spool.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.writer.spool.size }}

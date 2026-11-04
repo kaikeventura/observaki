@@ -97,6 +97,22 @@ else
 	warn "Docker Compose v2 not found (not required until Story 5.1)"
 fi
 
+# Helm is needed from Story 5.2 onwards (chart lint and the kind smoke).
+if have helm; then
+	helm_version="$(helm version --template '{{ .Version }}' 2>/dev/null | sed 's/^v//')"
+	if version_ge "$helm_version" "4.3.0"; then
+		ok "Helm ${helm_version} (>= 4.3)"
+	else
+		warn "Helm ${helm_version} is older than 4.3 (required by the alpha chart)"
+	fi
+else
+	warn "Helm not found (required for make chart-check / chart-smoke)"
+fi
+
+# kubectl and kind are only needed for the Helm end-to-end smoke.
+have kubectl || warn "kubectl not found (required for make chart-smoke)"
+have kind || warn "kind not found (required for make chart-smoke)"
+
 # Basic utilities used by the scripts.
 have make || fail "make not found."
 have curl || fail "curl not found."

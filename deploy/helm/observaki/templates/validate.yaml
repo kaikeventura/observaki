@@ -1,0 +1,2 @@
+{{- /* Renders nothing; fails the render on unsafe/invalid value combinations. */ -}}
+{{- include "observaki.validate" . -}}

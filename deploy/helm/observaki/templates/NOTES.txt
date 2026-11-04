@@ -1,0 +1,33 @@
+{{- if .Values.ingress.enabled }}
+The Observaki API/UI is exposed through the Ingress:
+{{- range .Values.ingress.hosts }}
+  http://{{ .host }}/
+{{- end }}
+{{- else }}
+The Observaki API/UI is a ClusterIP service. Reach it with:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "observaki.fullname" . }}-api 8080:{{ .Values.api.service.port }}
+  open http://127.0.0.1:8080
+{{- end }}
+
+Send telemetry through the OTLP gateway:
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "observaki.fullname" . }}-gateway 4318:{{ .Values.gateway.service.httpPort }}
+  OBSERVAKI_OTLP_HTTP_URL=http://127.0.0.1:4318 ./deploy/compose/sample.sh
+
+{{ if .Values.gateway.auth.devSnapshot -}}
+WARNING: this release uses the public development ingest token
+(`observaki-local-dev-token`) and `environment={{ .Values.environment }}`.
+It is an evaluation profile. For staging/production set environment to
+staging/production, provide a signed auth snapshot (gateway.auth.existingSecret
+with key {{ .Values.gateway.auth.snapshotKey }}), the Ed25519 public key
+(gateway.auth.publicKey), an audit log, and dependency secrets.
+{{- end }}
+
+{{ if eq .Values.dependencies.mode "bundled" -}}
+Bundled single-replica dependencies were installed (ClickHouse, VictoriaMetrics,
+PostgreSQL, NATS). This is not a highly available production topology; use
+dependencies.mode=external for managed/distributed services.
+{{- end }}
+
+Check readiness:
+  kubectl --namespace {{ .Release.Namespace }} get pods
+  helm test {{ .Release.Name }} --namespace {{ .Release.Namespace }}
