@@ -5,6 +5,7 @@ local de 20k/s (lag p95 0,80 s) e de 5k/s sob caos (lag p95 7,97 s, 8
 retries). O alvo de 1M/s por 1 h no cluster T1 **não** foi executado; **não é
 o Gate G1**.
 **Data:** 2026-11-04 (UTC).
+**Commit:** `0699eed`.
 **Epic:** P0-E4 — Gateway OTLP e ingestão.
 **ADs:** AD-4 (ack após durabilidade), AD-5, AD-9, AD-18, AD-20, AD-21, AD-22,
 AD-29, AD-31, AD-33; ADR-0002/0003/0004.
