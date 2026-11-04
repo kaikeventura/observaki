@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E5
 epic_name: Esqueleto de deploy, operação e API
-story: "5.1"
-story_name: Docker Compose single-node
+story: "5.2"
+story_name: Helm chart alpha para cluster de 3 nós
 task: "AC1–AC3"
-task_name: Subida, dados de exemplo e ciclo de vida
-status: done        # not_started | in_progress | blocked | done
+task_name: Instalação, upgrade/rollback e documentação
+status: in_progress  # not_started | in_progress | blocked | done
 updated: 2026-11-04
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "62e19d8"
-next_action: "Story 5.2 — Helm chart alpha para cluster de 3 nós; AC2 da 5.1 fica parcial até o Explore (6.1–6.4) e a validação em macOS"
+last_commit: "0125087"
+next_action: "Rodar ./deploy/helm/smoke.sh (ou make chart-smoke) do zero e anexar deploy/helm/results/<UTC>/report.md; o chart já instalou em kind de 3 nós com amostra e helm test, falta validar o rollback (AC2) e fechar o relatório; depois rodar make fmt/lint/test/build/smoke e escrever docs/dev/story-5.2-handoff.md"
 blocked_by: []
-last_session: "Story 5.1: stack single-node com `docker compose up` (API/UI, gateway, writer, ClickHouse, VictoriaMetrics, PostgreSQL e NATS) com healthchecks, volumes e migrações idempotentes; a API Go passou a servir o build do SvelteKit e o binário ganhou `observaki healthcheck`; smoke 28 s até healthy a partir de host vazio, amostra de métricas/logs/traces verificada e down/up preservando dados; make fmt/lint/test/build/smoke verdes; macOS e UI Explore pendentes; evidência em docs/dev/story-5.1-handoff.md."
+last_session: "Story 5.2 em andamento: chart alpha em deploy/helm/observaki (API/UI, gateway, writer, migração como hook, dependências bundled ou external, guards de produção), kind de 3 nós e scripts chart-check/chart-smoke; chart-check verde; instalação em kind v1.37 concluída com 7 workloads Ready, 5 PVCs Bound, Job de migração Completed, amostra com 2 logs/2 traces no ClickHouse e helm test passando; o upgrade para observaki:local-v2 rolou os três workloads, mas a sessão foi interrompida antes do rollback; cluster kind removido; evidência parcial em docs/dev/story-5.2-worklog.md."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E5 — Esqueleto de deploy, operação e API** |
-| Story | **5.1 — Docker Compose single-node** |
-| Task | **AC1–AC3 — Subida, dados de exemplo e ciclo de vida** |
-| Status | `done` |
+| Story | **5.2 — Helm chart alpha para cluster de 3 nós** |
+| Task | **AC1–AC3 — Instalação, upgrade/rollback e documentação** |
+| Status | `in_progress` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `62e19d8` |
-| Próxima ação | Story 5.2 — Helm chart alpha para cluster de 3 nós |
+| Último commit | `0125087` |
+| Próxima ação | Rodar `make chart-smoke` do zero e anexar o `report.md`; falta o rollback (AC2) e o relatório final |
 | Bloqueios | Nenhum para a 5.2. Continuam pendentes do T1 (P-07): 1M/s por 1 h, R3 do NATS e sizing do WAL/spool. AC2 da 5.1 fica parcial até o Explore (6.1–6.4); macOS não validado |
-| Última sessão | Story 5.1: `docker compose up` sobe API/UI, gateway, writer, ClickHouse, VM, PostgreSQL e NATS com healthchecks; 28 s até healthy a partir de host vazio, amostra verificada e dados preservados no down/up |
+| Última sessão | Chart alpha criado e validado parcialmente em kind de 3 nós: install, amostra e helm test pass; upgrade rolou `observaki:local-v2`; rollback interrompido |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -97,7 +97,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E4 | 4.4 | Writers CH/VM | `done` | Três consumidores duráveis JetStream; ack só após insert/DLQ do ClickHouse ou HTTP 2xx do VM; dedupe por `event_id` + geração/epoch; token estável por eventos; retry exponencial; DLQ `OBSERVAKI_DLQ`; INSERT de 17 colunas; `/metrics` e `/stats`; run local 20k/s por 20 s (400k eventos, lag p95 **0,80 s**, contagens exatas, 0 falhas) e caos 3 s/2 s (8 retries, zero perda, lag p95 7,97 s); `make fmt/lint/test/build/smoke` e `bench-clickhouse-ingest-check` verdes; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.4-handoff.md` e `bench/pipeline/results/2026-11-03-local-20k/` |
 | P0-E4 | 4.5 | Caos + go/no-go | `done` | `bench/chaos` com ClickHouse fora 15 min (**6M confirmados, zero perda**, 625 duplicatas 0,0158%, recuperação 241 s), NATS + gateway (zero perda, 120 s) e capacidade do WAL (**1.552 respostas 429** e retomada); achado de design corrigido (retenção WorkQueue + 429); recomendação Go/Collector/Rust condicional; `make fmt/lint/test/build/smoke`, `bench-pipeline-check` e `bench-gateway-wal-check` verdes; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.5-handoff.md` |
 | P0-E5 | 5.1 | Docker Compose | `done` | `compose.yaml` + `deploy/compose` (imagem multi-stage, 7 serviços com healthchecks, volumes, migrações idempotentes, sample OTLP e smoke); `observaki healthcheck` para containers distroless e API servindo `OBSERVAKI_WEB_DIR` com fallback SPA; run local a partir de host vazio: **28 s** até healthy, **2 logs + 2 spans + métrica** gravados e `down`/`up` preservando dados (4 s/18 s); `make fmt/lint/test/build/smoke` verdes; AC2 parcial (Explore 6.1–6.4, macOS pendente); não é G1; evidência em `docs/dev/story-5.1-handoff.md` e `deploy/compose/results/20261104T032219Z/report.md` |
-| P0-E5 | 5.2 | Helm chart | `todo` | Depende de 5.1 |
+| P0-E5 | 5.2 | Helm chart | `doing` | Chart alpha em `deploy/helm/observaki` (API/UI, gateway, writer, Job de migração, deps bundled/external, guards de produção, PDB/Ingress/helm test) e `chart-check`/`chart-smoke`; kind de 3 nós: 7 workloads Ready, 5 PVCs Bound, migração Completed, amostra 2 logs/2 traces e helm test pass; upgrade para `observaki:local-v2` rolou os pods; **falta o rollback (AC2) e o relatório**; evidência parcial em `docs/dev/story-5.2-worklog.md` |
 | P0-E5 | 5.3 | Quickstart + sample app | `todo` | Depende de 5.1 |
 | P0-E5 | 5.4 | Backup/restore + auto-observabilidade | `todo` | Depende de 5.2/5.3 |
 | P0-E5 | 5.5 | API mínima + OpenAPI | `todo` | Depende de 4.1/4.2 |
@@ -119,7 +119,7 @@ Atalho no OpenCode: `/continue`.
 - [ ] Compressão ≥ 5x em logs e traces (logs local 6,98x; traces local 7,52x; 3.5: 7,51x/7,74x no mix; T1 pendente)
 - [x] Métricas: 1M séries a 1M/s por 1h e 20 consultas p95 <1s em 24h (local: 999.738/s, p95 799,5ms; T1 pendente)
 - [ ] Retenção/row policies/quotas validadas (3.5: TTL 7/15/30 e row policies locais pass, epoch AD-20 pass; 4.2: quota de ingestão local pass com 429/`Retry-After`, isolamento p95 <10% e quotas de consulta pendentes no T1; 4.3: `DiscardNew`/MaxAge/MaxBytes do WAL e 429 `wal_backpressure` locais pass; **4.4: linhas com `project_generation`/`authz_epoch` e dedupe escopado por epoch**; **4.5: WAL em WorkQueue libera espaço após o ack, 429 no stream cheio e retomada após o dreno**) 
-- [ ] Compose single-node < 15 min; Helm em 3 nós; upgrade/rollback (**5.1: Compose a partir de host vazio em 28 s, com dados de exemplo e persistência validadas em Linux; Helm/upgrade/rollback são as Stories 5.2–5.4; macOS pendente**)
+- [ ] Compose single-node < 15 min; Helm em 3 nós; upgrade/rollback (**5.1: Compose a partir de host vazio em 28 s, com dados de exemplo e persistência validadas em Linux; 5.2: chart alpha instalado em kind de 3 nós com amostra e helm test, upgrade rolou os pods e o rollback segue pendente; macOS pendente**)
 - [ ] 100k pontos < 100ms; bundle inicial < 180 KB gzip
 - [ ] 3 design partners com dados reais
 - [x] ADRs aprovadas (storage, gateway, fila, frontend, tenancy, benchmark)
@@ -168,6 +168,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-04 | Story 4.4 | P0 / 4.4 / AC1–AC3 | Writers (`observaki writer`) com três consumidores duráveis JetStream, ack só após o insert confirmado no ClickHouse (ou DLQ) ou o HTTP 2xx do VictoriaMetrics, dedupe por `event_id` + geração/epoch, `insert_deduplication_token` derivado dos eventos, retry exponencial, DLQ `OBSERVAKI_DLQ`, INSERT de 17 colunas explícitas (inclui `project_generation`/`authz_epoch`) e adaptador remote write; run local 20k/s por 20 s (400k eventos, lag p95 **0,80 s**, 135.300 logs/132.000 traces exatos, 139.400 amostras no VM, 0 falhas) e caos de 3 s no CH/2 s no VM (8 retries, zero perda, lag p95 7,97 s); `make fmt/lint/test/build/smoke` e `bench-clickhouse-ingest-check` verdes; **não é G1**; T1/4.5 pendentes; evidência em `docs/dev/story-4.4-handoff.md` e `bench/pipeline/results/2026-11-03-local-20k/` | `0699eed` | Story 4.5 |
 | 2026-11-04 | Story 4.5 | P0 / 4.5 / AC1–AC3 | `bench/chaos/run.sh` com cenários `storage`/`nats`/`gateway`/`capacity`/`all`, timeline a 1 Hz e verificação de perda por sinal; ClickHouse fora 15 min (6M confirmados, **zero perda**, 625 duplicatas 0,0158%, recuperação 241 s), NATS + gateway (zero perda, 28/14 amostras `/readyz` não-200, recuperação 120 s) e capacidade do WAL (1.552 respostas **429**, zero perda, retomada +573.600 eventos); achado de design corrigido: retenção **WorkQueue** nos streams de sinal (LimitsPolicy + DiscardNew nunca liberava o WAL cheio) e stream cheio mapeado para 429; default de `MaxBytes` 16 GiB; `make fmt/lint/test/build/smoke`, `bench-pipeline-check` e `bench-gateway-wal-check` verdes; recomendação Go no MVP/Collector na borda/Rust de fallback; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.5-handoff.md`, `docs/dev/story-4.5-hot-path-recommendation.md` e `bench/chaos/results/` | `0c5244c` | Story 5.1 |
 | 2026-11-04 | Story 5.1 | P0 / 5.1 / AC1–AC3 | Stack single-node com `docker compose up` (raiz): imagem multi-stage (SvelteKit + Go, distroless nonroot), API/UI, gateway, writer, ClickHouse 26.8, VictoriaMetrics 1.148, PostgreSQL 18.6 e NATS 2.15 com healthchecks e volumes nomeados; `observaki healthcheck` (imagem sem shell/curl) e API servindo `OBSERVAKI_WEB_DIR` com fallback SPA e 404 JSON em `/api/*`; migrações ClickHouse idempotentes em serviço one-shot a cada `up`; snapshot de auth dev público e portas só em `127.0.0.1`; `deploy/compose/sample.sh` (OTLP/HTTP) e `smoke.sh` (AC1/AC2/AC3) com relatório; run a partir de host vazio: **28 s** até healthy, 2 logs + 2 spans + métrica verificados e `down`/`up` (4 s/18 s) preservando os dados; `make fmt/lint/test/build/smoke` e `compose config` verdes; AC2 parcial (Explore 6.1–6.4) e macOS pendente; **não é G1**; evidência em `docs/dev/story-5.1-handoff.md` e `deploy/compose/results/20261104T032219Z/report.md` | `62e19d8` | Story 5.2 |
+| 2026-11-04 | Story 5.2 (em andamento) | P0 / 5.2 / AC1–AC3 | Chart alpha em `deploy/helm/observaki` (API/UI, gateway, writer StatefulSet com spool, Job de migração em hook pós-install/pós-upgrade, dependências bundled single-replica ou `external`, guards de produção AD-19, PDB/Ingress/helm test, valores com CPU/memória/storage); `deploy/helm/check.sh` (drift das cópias de migração/auth, lint, render bundled/external, guards) e `smoke.sh` (kind de 3 nós, AC1/AC2/AC3) + alvos `chart-check`/`chart-smoke` e step de Helm no CI; `make lint` verde; instalação em kind v1.37: 7 workloads Ready, 5 PVCs Bound, Job de migração Completed, amostra com **2 logs/2 traces** no ClickHouse e `helm test` pass; upgrade para `observaki:local-v2` rolou API/gateway/writer, mas a sessão foi interrompida antes do rollback (revisão 2 `failed: context canceled`) e o cluster kind foi removido; **falta AC2/relatório e `make fmt/test/build/smoke`**; worklog em `docs/dev/story-5.2-worklog.md` | `0125087` | Rodar `make chart-smoke` e fechar a 5.2 |
 
 ## Regras de atualização
 
