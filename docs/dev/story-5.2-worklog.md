@@ -82,8 +82,9 @@ Cluster kind `observaki-helm` (3 nós, Kubernetes v1.37.0, StorageClass
 - Upgrade para `observaki:local-v2`: os pods de API, gateway e writer foram
   recriados com a nova imagem; a sessão foi abortada antes do `helm rollback`.
 
-Os logs dessa execução ficaram em `deploy/helm/results/` no host e **não**
-foram commitados (relatório incompleto).
+Os logs dessa execução foram descartados junto com o cluster kind (não havia
+relatório completo); a próxima execução do `make chart-smoke` gera um novo
+diretório em `deploy/helm/results/`.
 
 ## Para retomar
 
