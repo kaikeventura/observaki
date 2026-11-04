@@ -187,8 +187,23 @@ func readStream(
 	if err != nil {
 		return streamReport{}, time.Time{}, time.Time{}, fmt.Errorf("stream %s: %w", name, err)
 	}
-	consumer, err := stream.OrderedConsumer(ctx, jetstream.OrderedConsumerConfig{
+	info, err := stream.Info(ctx)
+	if err != nil {
+		return streamReport{}, time.Time{}, time.Time{}, fmt.Errorf("stream %s info: %w", name, err)
+	}
+	if len(info.Config.Subjects) == 0 {
+		return streamReport{}, time.Time{}, time.Time{}, fmt.Errorf("stream %s has no subjects", name)
+	}
+	// The WAL streams use WorkQueue retention, which only accepts explicit-ack
+	// consumers. walcheck deliberately does not ack, so the messages stay in
+	// the WAL for the writer; AckWait is long enough to avoid a redelivery
+	// while the inspector is reading.
+	consumer, err := stream.CreateConsumer(ctx, jetstream.ConsumerConfig{
+		AckPolicy:     jetstream.AckExplicitPolicy,
 		DeliverPolicy: jetstream.DeliverAllPolicy,
+		FilterSubject: info.Config.Subjects[0],
+		MaxAckPending: 1_000_000,
+		AckWait:       time.Hour,
 	})
 	if err != nil {
 		return streamReport{}, time.Time{}, time.Time{}, fmt.Errorf("consumer %s: %w", name, err)
@@ -199,40 +214,47 @@ func readStream(
 		newest       time.Time
 	)
 	for {
-		message, err := consumer.Next(jetstream.FetchMaxWait(500 * time.Millisecond))
+		batch, err := consumer.Fetch(256, jetstream.FetchMaxWait(500*time.Millisecond))
 		if err != nil {
 			if errors.Is(err, nats.ErrTimeout) || errors.Is(err, jetstream.ErrNoMessages) {
 				break
 			}
 			return streamResult, oldest, newest, fmt.Errorf("read %s: %w", name, err)
 		}
-		envelope, err := natsadapter.DecodeMessage(&nats.Msg{
-			Subject: message.Subject(),
-			Header:  message.Headers(),
-			Data:    message.Data(),
-		})
-		if err != nil {
-			return streamResult, oldest, newest, fmt.Errorf("decode %s: %w", name, err)
-		}
-		streamResult.Messages++
-		streamResult.MessageBytes += uint64(len(message.Data()))
-		result.Subjects[message.Subject()]++
-		result.Shards[fmt.Sprintf("%d", envelope.GetShard())]++
-		result.Signals[envelope.GetSignal()]++
-		result.SchemaVersions[fmt.Sprintf("%d", envelope.GetSchemaVersion())]++
-		created := time.Unix(0, envelope.GetCreatedAtUnixNano())
-		if oldest.IsZero() || created.Before(oldest) {
-			oldest = created
-		}
-		if created.After(newest) {
-			newest = created
-		}
-		for _, request := range envelope.GetRequests() {
-			streamResult.Events += uint64(len(request.GetEventIds()))
-			streamResult.PayloadBytes += uint64(len(request.GetOtlpProtobuf()))
-			for _, eventID := range request.GetEventIds() {
-				unique[eventID] = struct{}{}
+		count := 0
+		for message := range batch.Messages() {
+			count++
+			envelope, err := natsadapter.DecodeMessage(&nats.Msg{
+				Subject: message.Subject(),
+				Header:  message.Headers(),
+				Data:    message.Data(),
+			})
+			if err != nil {
+				return streamResult, oldest, newest, fmt.Errorf("decode %s: %w", name, err)
 			}
+			streamResult.Messages++
+			streamResult.MessageBytes += uint64(len(message.Data()))
+			result.Subjects[message.Subject()]++
+			result.Shards[fmt.Sprintf("%d", envelope.GetShard())]++
+			result.Signals[envelope.GetSignal()]++
+			result.SchemaVersions[fmt.Sprintf("%d", envelope.GetSchemaVersion())]++
+			created := time.Unix(0, envelope.GetCreatedAtUnixNano())
+			if oldest.IsZero() || created.Before(oldest) {
+				oldest = created
+			}
+			if created.After(newest) {
+				newest = created
+			}
+			for _, request := range envelope.GetRequests() {
+				streamResult.Events += uint64(len(request.GetEventIds()))
+				streamResult.PayloadBytes += uint64(len(request.GetOtlpProtobuf()))
+				for _, eventID := range request.GetEventIds() {
+					unique[eventID] = struct{}{}
+				}
+			}
+		}
+		if count == 0 {
+			break
 		}
 	}
 	streamResult.Compression = ratio(streamResult.PayloadBytes, streamResult.MessageBytes)

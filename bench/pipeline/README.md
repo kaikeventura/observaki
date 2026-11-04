@@ -75,3 +75,7 @@ diretório de spool.
   com fronteira diferente pode duplicar dentro da janela de dedupe em memória.
 - Métricas usam o timestamp em milissegundos do remote write; amostras da
   mesma série no mesmo ms podem coalescer.
+- Desde a Story 4.5 os streams de WAL usam retenção **WorkQueue** (o ack do
+  consumidor durável remove a mensagem). O run de 4.4 publicado acima é
+  anterior a essa mudança; a contabilidade, o dedupe e o ack após o flush
+  continuam iguais.

@@ -1,0 +1,119 @@
+# HELP observaki_gateway_requests_total OTLP export requests received by the gateway.
+# TYPE observaki_gateway_requests_total counter
+observaki_gateway_requests_total{signal="traces",protocol="grpc"} 0
+observaki_gateway_requests_total{signal="traces",protocol="http"} 964
+observaki_gateway_requests_total{signal="logs",protocol="grpc"} 0
+observaki_gateway_requests_total{signal="logs",protocol="http"} 964
+observaki_gateway_requests_total{signal="metrics",protocol="grpc"} 0
+observaki_gateway_requests_total{signal="metrics",protocol="http"} 993
+# HELP observaki_gateway_events_total Spans, log records and data points received by the gateway.
+# TYPE observaki_gateway_events_total counter
+observaki_gateway_events_total{signal="traces",protocol="grpc"} 0
+observaki_gateway_events_total{signal="traces",protocol="http"} 192200
+observaki_gateway_events_total{signal="logs",protocol="grpc"} 0
+observaki_gateway_events_total{signal="logs",protocol="http"} 192200
+observaki_gateway_events_total{signal="metrics",protocol="grpc"} 0
+observaki_gateway_events_total{signal="metrics",protocol="http"} 198200
+# HELP observaki_gateway_rejected_events_total Events rejected by the pipeline or the sink.
+# TYPE observaki_gateway_rejected_events_total counter
+observaki_gateway_rejected_events_total{signal="traces",protocol="grpc"} 0
+observaki_gateway_rejected_events_total{signal="traces",protocol="http"} 0
+observaki_gateway_rejected_events_total{signal="logs",protocol="grpc"} 0
+observaki_gateway_rejected_events_total{signal="logs",protocol="http"} 0
+observaki_gateway_rejected_events_total{signal="metrics",protocol="grpc"} 0
+observaki_gateway_rejected_events_total{signal="metrics",protocol="http"} 0
+# HELP observaki_gateway_errors_total OTLP export requests that returned an error.
+# TYPE observaki_gateway_errors_total counter
+observaki_gateway_errors_total{signal="traces",protocol="grpc"} 0
+observaki_gateway_errors_total{signal="traces",protocol="http"} 0
+observaki_gateway_errors_total{signal="logs",protocol="grpc"} 0
+observaki_gateway_errors_total{signal="logs",protocol="http"} 0
+observaki_gateway_errors_total{signal="metrics",protocol="grpc"} 0
+observaki_gateway_errors_total{signal="metrics",protocol="http"} 0
+# HELP observaki_gateway_in_flight_requests OTLP export requests currently being processed.
+# TYPE observaki_gateway_in_flight_requests gauge
+observaki_gateway_in_flight_requests 0
+# HELP observaki_gateway_up Whether the OTLP gateway is running.
+# TYPE observaki_gateway_up gauge
+observaki_gateway_up 1
+# HELP observaki_gateway_auth_failures_total OTLP requests rejected by authentication or authorization.
+# TYPE observaki_gateway_auth_failures_total counter
+observaki_gateway_auth_failures_total{reason="missing_token"} 0
+observaki_gateway_auth_failures_total{reason="invalid_token"} 0
+observaki_gateway_auth_failures_total{reason="expired_token"} 0
+observaki_gateway_auth_failures_total{reason="insufficient_scope"} 0
+observaki_gateway_auth_failures_total{reason="cross_project_write"} 0
+observaki_gateway_auth_failures_total{reason="config_stale"} 0
+observaki_gateway_auth_failures_total{reason="other"} 0
+# HELP observaki_gateway_quota_rejected_events_total Events rejected because the tenant exhausted its ingest quota.
+# TYPE observaki_gateway_quota_rejected_events_total counter
+observaki_gateway_quota_rejected_events_total 0
+# HELP observaki_gateway_quota_rejected_requests_total Requests rejected with 429 because the tenant exhausted its ingest quota.
+# TYPE observaki_gateway_quota_rejected_requests_total counter
+observaki_gateway_quota_rejected_requests_total 0
+# HELP observaki_gateway_wal_backpressure_total Requests rejected with 429 because the WAL was at capacity.
+# TYPE observaki_gateway_wal_backpressure_total counter
+observaki_gateway_wal_backpressure_total 0
+# HELP observaki_gateway_auth_enabled Whether token authentication and quotas are enabled.
+# TYPE observaki_gateway_auth_enabled gauge
+observaki_gateway_auth_enabled 1
+# HELP observaki_gateway_config_age_seconds Seconds since the last successful config snapshot load.
+# TYPE observaki_gateway_config_age_seconds gauge
+observaki_gateway_config_age_seconds 3.770
+# HELP observaki_gateway_config_expired Whether the config snapshot is past expires_at (fail-closed auth/quota).
+# TYPE observaki_gateway_config_expired gauge
+observaki_gateway_config_expired 0
+# HELP observaki_gateway_config_generation Generation of the loaded config snapshot.
+# TYPE observaki_gateway_config_generation gauge
+observaki_gateway_config_generation 1
+# HELP observaki_gateway_config_tenants Tenants in the loaded config snapshot.
+# TYPE observaki_gateway_config_tenants gauge
+observaki_gateway_config_tenants 2
+# HELP observaki_gateway_wal_connected Whether the WAL connection is healthy.
+# TYPE observaki_gateway_wal_connected gauge
+observaki_gateway_wal_connected 1
+# HELP observaki_gateway_wal_published_batches_total Envelopes acknowledged by the WAL.
+# TYPE observaki_gateway_wal_published_batches_total counter
+observaki_gateway_wal_published_batches_total 2921
+# HELP observaki_gateway_wal_published_events_total Events acknowledged by the WAL.
+# TYPE observaki_gateway_wal_published_events_total counter
+observaki_gateway_wal_published_events_total 582600
+# HELP observaki_gateway_wal_publish_errors_total Envelope publishes that failed after retries.
+# TYPE observaki_gateway_wal_publish_errors_total counter
+observaki_gateway_wal_publish_errors_total 0
+# HELP observaki_gateway_wal_publish_retries_total Envelope publish retries.
+# TYPE observaki_gateway_wal_publish_retries_total counter
+observaki_gateway_wal_publish_retries_total 0
+# HELP observaki_gateway_wal_backpressure_rejections_total Requests rejected because the WAL queue was full.
+# TYPE observaki_gateway_wal_backpressure_rejections_total counter
+observaki_gateway_wal_backpressure_rejections_total 0
+# HELP observaki_gateway_wal_pending_bytes Bytes reserved in the WAL queue.
+# TYPE observaki_gateway_wal_pending_bytes gauge
+observaki_gateway_wal_pending_bytes 0
+# HELP observaki_gateway_wal_pending_events Events reserved in the WAL queue.
+# TYPE observaki_gateway_wal_pending_events gauge
+observaki_gateway_wal_pending_events 0
+# HELP observaki_gateway_wal_in_flight_batches Envelopes currently being built or published.
+# TYPE observaki_gateway_wal_in_flight_batches gauge
+observaki_gateway_wal_in_flight_batches 0
+# HELP observaki_gateway_wal_publish_duration_seconds Recent WAL publish latency per quantile.
+# TYPE observaki_gateway_wal_publish_duration_seconds gauge
+observaki_gateway_wal_publish_duration_seconds{quantile="0.5"} 0.000421
+observaki_gateway_wal_publish_duration_seconds{quantile="0.95"} 0.000655
+observaki_gateway_wal_publish_duration_seconds{quantile="0.99"} 0.000963
+# HELP observaki_gateway_request_duration_p50_seconds Recent-window median request duration per tenant.
+# TYPE observaki_gateway_request_duration_p50_seconds gauge
+observaki_gateway_request_duration_p50_seconds{tenant_id="tenant-a"} 0.010871
+observaki_gateway_request_duration_p50_seconds{tenant_id="tenant-b"} 0.011103
+# HELP observaki_gateway_request_duration_p95_seconds Recent-window p95 request duration per tenant.
+# TYPE observaki_gateway_request_duration_p95_seconds gauge
+observaki_gateway_request_duration_p95_seconds{tenant_id="tenant-a"} 0.014268
+observaki_gateway_request_duration_p95_seconds{tenant_id="tenant-b"} 0.014195
+# HELP observaki_gateway_request_duration_p99_seconds Recent-window p99 request duration per tenant.
+# TYPE observaki_gateway_request_duration_p99_seconds gauge
+observaki_gateway_request_duration_p99_seconds{tenant_id="tenant-a"} 0.015647
+observaki_gateway_request_duration_p99_seconds{tenant_id="tenant-b"} 0.015582
+# HELP observaki_gateway_request_duration_samples Number of recent requests behind the per-tenant latency gauges.
+# TYPE observaki_gateway_request_duration_samples gauge
+observaki_gateway_request_duration_samples{tenant_id="tenant-a"} 1476
+observaki_gateway_request_duration_samples{tenant_id="tenant-b"} 1445

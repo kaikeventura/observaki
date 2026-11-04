@@ -47,8 +47,12 @@ número local é evidência do G1.
 ## Limitações
 
 - NATS, gateway e load generators compartilham o host; CPU e memória competem.
-- O store do NATS é temporário e o stream tem `MaxBytes` de 32 GiB por sinal;
+- O store do NATS é temporário e o stream tem `MaxBytes` de 8 GiB por sinal no harness local (default de
+  produção 16 GiB; o T1 configura o sizing);
   um outage de 15 min a 1M/s precisa do sizing do T1.
-- O `walcheck` usa um consumidor ordenado efêmero sem ack; ele não altera a
-  retenção do stream.
+- O `walcheck` usa um consumidor efêmero sem ack; ele não altera a retenção
+  do stream. Desde a Story 4.5 o consumidor é `AckExplicit` (retenção
+  WorkQueue) e não confirma nada, então as mensagens continuam no WAL; ele
+  não pode rodar ao mesmo tempo que o writer (a WorkQueue aceita um único
+  consumidor por stream).
 - O writer ClickHouse/VM e o teste de caos são as Stories 4.4/4.5.

@@ -1,0 +1,13 @@
+{"ts":"2026-11-04T02:40:07Z","elapsed_seconds":60,"event":"clickhouse_stopped","phase":"storage-outage"}
+{"ts":"2026-11-04T02:43:11Z","elapsed_seconds":244,"event":"clickhouse_started","phase":"storage-recovery"}
+{"ts":"2026-11-04T02:43:12Z","elapsed_seconds":245,"event":"clickhouse_recovered","phase":"storage-recovery"}
+{"ts":"2026-11-04T02:43:27Z","elapsed_seconds":260,"event":"nats_stopped","phase":"nats-outage"}
+{"ts":"2026-11-04T02:43:57Z","elapsed_seconds":290,"event":"nats_started","phase":"nats-recovery"}
+{"ts":"2026-11-04T02:43:57Z","elapsed_seconds":290,"event":"nats_recovered","phase":"nats-recovery"}
+{"ts":"2026-11-04T02:44:12Z","elapsed_seconds":305,"event":"gateway_killed","phase":"gateway-outage"}
+{"ts":"2026-11-04T02:44:27Z","elapsed_seconds":320,"event":"gateway_started","phase":"gateway-recovery"}
+{"ts":"2026-11-04T02:44:28Z","elapsed_seconds":321,"event":"gateway_recovered","phase":"gateway-recovery"}
+{"ts":"2026-11-04T02:44:28Z","elapsed_seconds":321,"event":"chaos_complete","phase":"post"}
+{"ts":"2026-11-04T02:46:23Z","elapsed_seconds":436,"event":"load_complete","phase":"post"}
+{"ts":"2026-11-04T02:46:24Z","elapsed_seconds":437,"event":"draining","phase":"post"}
+{"ts":"2026-11-04T02:46:28Z","elapsed_seconds":441,"event":"drained","phase":"post"}

@@ -39,7 +39,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -160,5 +160,13 @@ bench-pipeline: ## run the end-to-end gateway -> WAL -> writers pipeline
 
 bench-pipeline-check: ## run the short end-to-end pipeline smoke
 	./bench/pipeline/run.sh --smoke
+
+bench-chaos: ## run the chaos suite (15m ClickHouse outage, NATS/gateway failure, WAL capacity)
+	./bench/chaos/run.sh --scenario storage --outage 15m --post 240s
+	./bench/chaos/run.sh --scenario all --outage 3m --post 120s
+	./bench/chaos/run.sh --scenario capacity
+
+bench-chaos-check: ## run the short chaos smoke (all failures, seconds-long windows)
+	./bench/chaos/run.sh --smoke
 
 ci: bootstrap lint test build ## run the full local CI suite

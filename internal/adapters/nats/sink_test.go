@@ -3,8 +3,10 @@ package nats
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -128,30 +130,52 @@ func readAllMessages(t *testing.T, url, streamName string) []*ingestpb.Envelope 
 	if err != nil {
 		t.Fatalf("Stream(%q) error = %v", streamName, err)
 	}
-	consumer, err := stream.OrderedConsumer(ctx, jetstream.OrderedConsumerConfig{
+	info, err := stream.Info(ctx)
+	if err != nil {
+		t.Fatalf("Info(%q) error = %v", streamName, err)
+	}
+	if len(info.Config.Subjects) == 0 {
+		t.Fatalf("stream %q has no subjects", streamName)
+	}
+	// WorkQueue streams only accept explicit-ack consumers, so the test reads
+	// with an ephemeral pull consumer and acks every message.
+	consumer, err := stream.CreateConsumer(ctx, jetstream.ConsumerConfig{
+		AckPolicy:     jetstream.AckExplicitPolicy,
 		DeliverPolicy: jetstream.DeliverAllPolicy,
+		FilterSubject: info.Config.Subjects[0],
 	})
 	if err != nil {
-		t.Fatalf("OrderedConsumer() error = %v", err)
+		t.Fatalf("CreateConsumer() error = %v", err)
 	}
+	// The ephemeral consumer disappears when this connection closes.
 	var envelopes []*ingestpb.Envelope
 	for {
-		message, err := consumer.Next(jetstream.FetchMaxWait(200 * time.Millisecond))
+		batch, err := consumer.Fetch(100, jetstream.FetchMaxWait(200*time.Millisecond))
 		if err != nil {
 			if errors.Is(err, nats.ErrTimeout) || errors.Is(err, jetstream.ErrNoMessages) {
 				break
 			}
-			t.Fatalf("consumer.Next() error = %v", err)
+			t.Fatalf("consumer.Fetch() error = %v", err)
 		}
-		envelope, err := DecodeMessage(&nats.Msg{
-			Subject: message.Subject(),
-			Header:  message.Headers(),
-			Data:    message.Data(),
-		})
-		if err != nil {
-			t.Fatalf("DecodeMessage() error = %v", err)
+		count := 0
+		for message := range batch.Messages() {
+			count++
+			envelope, err := DecodeMessage(&nats.Msg{
+				Subject: message.Subject(),
+				Header:  message.Headers(),
+				Data:    message.Data(),
+			})
+			if err != nil {
+				t.Fatalf("DecodeMessage() error = %v", err)
+			}
+			envelopes = append(envelopes, envelope)
+			if err := message.Ack(); err != nil {
+				t.Fatalf("message.Ack() error = %v", err)
+			}
 		}
-		envelopes = append(envelopes, envelope)
+		if count == 0 {
+			break
+		}
 	}
 	return envelopes
 }
@@ -298,6 +322,64 @@ func TestSinkBackpressure(t *testing.T) {
 	}
 	if sink.Stats().Backpressure == 0 {
 		t.Fatal("backpressure counter = 0")
+	}
+}
+
+func TestSinkCreatesAckBasedWorkQueueWAL(t *testing.T) {
+	server := startJetStream(t, t.TempDir())
+	sink := testSink(t, server.ClientURL(), nil)
+	_ = sink
+
+	nc, err := nats.Connect(server.ClientURL())
+	if err != nil {
+		t.Fatalf("nats.Connect() error = %v", err)
+	}
+	defer nc.Close()
+	js, err := jetstream.New(nc)
+	if err != nil {
+		t.Fatalf("jetstream.New() error = %v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	stream, err := js.Stream(ctx, StreamName("OBSERVAKI", ingest.SignalLogs))
+	if err != nil {
+		t.Fatalf("Stream() error = %v", err)
+	}
+	info, err := stream.Info(ctx)
+	if err != nil {
+		t.Fatalf("Info() error = %v", err)
+	}
+	// Ack-based retention is what lets a full WAL free space after the
+	// writers catch up (Story 4.5 capacity scenario).
+	if info.Config.Retention != jetstream.WorkQueuePolicy {
+		t.Fatalf("retention = %v, want WorkQueuePolicy", info.Config.Retention)
+	}
+}
+
+func TestSinkStreamFullIsBackpressure(t *testing.T) {
+	server := startJetStream(t, t.TempDir())
+	sink := testSink(t, server.ClientURL(), func(cfg *Config) {
+		// A tiny WAL: the first envelope cannot fit, and DiscardNew rejects
+		// it instead of throwing away an older message.
+		cfg.StreamMaxBytes = 1 << 10
+	})
+	batch := logsBatch("tenant-full", "project-full", 500)
+	for index, record := range batch.Logs.ResourceLogs[0].ScopeLogs[0].LogRecords {
+		// Distinct payloads defeat zstd so the envelope is larger than the
+		// stream budget.
+		record.Body = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{
+			StringValue: strings.Repeat(fmt.Sprintf("%08x", index), 16),
+		}}
+	}
+	_, err := sink.Consume(context.Background(), batch)
+	if !errors.Is(err, ingest.ErrBackpressure) {
+		t.Fatalf("Consume() error = %v, want ErrBackpressure (stream full)", err)
+	}
+	if sink.Stats().Backpressure == 0 {
+		t.Fatal("backpressure counter = 0")
+	}
+	if sink.Stats().PublishErrors == 0 {
+		t.Fatal("publish errors = 0")
 	}
 }
 

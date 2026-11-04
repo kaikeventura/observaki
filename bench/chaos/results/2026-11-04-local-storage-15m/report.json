@@ -1,0 +1,232 @@
+{
+  "story": "4.5",
+  "status": "pass",
+  "t1_status": "pending",
+  "t1_note": "AC1 requires steady ingestion at 1M/s with ClickHouse down for 15 minutes on the T1 fleet; P-07 and the T1 baseline remain pending. This local run is a proxy, not G1 evidence.",
+  "scenario": "storage",
+  "load": {
+    "rate": 5000,
+    "total_seconds": 1200,
+    "pre_seconds": 60,
+    "outage_seconds": 900,
+    "nats_outage_seconds": 30,
+    "gateway_outage_seconds": 15,
+    "settle_seconds": 15,
+    "post_seconds": 240
+  },
+  "faults": {
+    "clickhouse_outages": 1,
+    "nats_outages": 0,
+    "gateway_outages": 0,
+    "gateway_restarts": 0
+  },
+  "client": {
+    "confirmed_events": 6000000,
+    "failed_requests": 0,
+    "rejected_events": 0,
+    "confirmed_logs": 1980000,
+    "confirmed_traces": 1980000,
+    "confirmed_metrics": 2040000
+  },
+  "gateway": {
+    "wal_published_events": 6005000,
+    "wal_backpressure_requests": 0,
+    "wal_publish_errors": 0,
+    "exit": 0,
+    "min_readyz": "200",
+    "last_readyz": "200",
+    "nats_outage_non_200_samples": 0,
+    "gateway_outage_non_200_samples": 0
+  },
+  "wal": {
+    "peak_stream_messages": 15043,
+    "peak_stream_bytes": 1220441849,
+    "growth_messages": 15043,
+    "storage_outage_retry_samples": 0,
+    "post_phase_published_growth": 1176800
+  },
+  "writer": {
+    "accepted_events": 6005200,
+    "written_events": 6002500,
+    "deduped_events": 2700,
+    "failed_events": 0,
+    "skipped_events": 0,
+    "retries": 122,
+    "exit": 0
+  },
+  "signals": {
+    "logs": {
+      "accepted": 1981850,
+      "written": 1980825
+    },
+    "traces": {
+      "accepted": 1981650,
+      "written": 1980825
+    },
+    "metrics": {
+      "accepted": 2041700,
+      "written": 2040850
+    }
+  },
+  "clickhouse": {
+    "logs": 1980825,
+    "traces": 1980625
+  },
+  "duplicates": {
+    "rows": 625,
+    "rate_percent": "0.0158",
+    "bound_percent": 1.0
+  },
+  "victoriametrics": {
+    "samples": 2021632,
+    "series": 64
+  },
+  "lag_seconds": {
+    "p50": 336.694508,
+    "p95": 734.162892,
+    "p99": 769.631766,
+    "post_phase_p95": 736.494030
+  },
+  "recovery_seconds": 241,
+  "replay": {
+    "status": "pass",
+    "deduped_events": 2500
+  },
+  "reason": "",
+  "checks": [
+    {
+      "name": "gateway_confirmed_events_reached_wal",
+      "status": "pass",
+      "detail": "wal=6005000 confirmed=6000000"
+    },
+    {
+      "name": "wal_events_reached_writer",
+      "status": "pass",
+      "detail": "accepted=6005200 confirmed=6000000"
+    },
+    {
+      "name": "writer_accounting_closes",
+      "status": "pass",
+      "detail": "accepted=6005200 written=6002500 deduped=2700 failed=0 skipped=0"
+    },
+    {
+      "name": "zero_writer_failures",
+      "status": "pass",
+      "detail": "failed=0"
+    },
+    {
+      "name": "zero_confirmed_events_lost",
+      "status": "pass",
+      "detail": "written=6002500 confirmed=6000000"
+    },
+    {
+      "name": "confirmed_logs_stored",
+      "status": "pass",
+      "detail": "unique_logs=1980825 confirmed_logs=1980000"
+    },
+    {
+      "name": "confirmed_traces_stored",
+      "status": "pass",
+      "detail": "unique_traces=1980000 confirmed_traces=1980000"
+    },
+    {
+      "name": "confirmed_metrics_stored",
+      "status": "pass",
+      "detail": "vm_samples=2021632 confirmed_metrics=2040000 tolerance=2019600"
+    },
+    {
+      "name": "clickhouse_logs_match_writer",
+      "status": "pass",
+      "detail": "clickhouse=1980825 writer=1980825"
+    },
+    {
+      "name": "clickhouse_traces_not_above_writer",
+      "status": "pass",
+      "detail": "clickhouse=1980625 writer=1980825 block_deduped=200"
+    },
+    {
+      "name": "duplicate_rows_within_bound",
+      "status": "pass",
+      "detail": "duplicate_rows=625 stored_rows=3961450 rate=0.0158% (bound 1%)"
+    },
+    {
+      "name": "victoriametrics_samples_match_writer",
+      "status": "pass",
+      "detail": "samples=2021632 writer=2040850 tolerance=2020442"
+    },
+    {
+      "name": "steady_state_lag_p95_under_10s",
+      "status": "skip",
+      "detail": "a clickhouse outage keeps backlog lag in the 4096-sample window; observed post p95=736.494030s (see 4.4 stable run for the <10s gate)"
+    },
+    {
+      "name": "gateway_exited_cleanly",
+      "status": "pass",
+      "detail": "exit=0"
+    },
+    {
+      "name": "writer_exited_cleanly",
+      "status": "pass",
+      "detail": "exit=0"
+    },
+    {
+      "name": "storage_outage_used_wal_or_backpressure",
+      "status": "pass",
+      "detail": "wal_growth_messages=15043 backpressure=0"
+    },
+    {
+      "name": "writer_retried_during_storage_outage",
+      "status": "pass",
+      "detail": "retries=122 samples_with_retry=0"
+    },
+    {
+      "name": "identical_replay_deduped",
+      "status": "pass",
+      "detail": "deduped=2500"
+    }
+  ],
+  "events": [
+    {
+      "ts": "2026-11-04T02:19:10Z",
+      "elapsed_seconds": 60,
+      "event": "clickhouse_stopped",
+      "phase": "storage-outage"
+    },
+    {
+      "ts": "2026-11-04T02:34:14Z",
+      "elapsed_seconds": 964,
+      "event": "clickhouse_started",
+      "phase": "storage-recovery"
+    },
+    {
+      "ts": "2026-11-04T02:34:15Z",
+      "elapsed_seconds": 965,
+      "event": "clickhouse_recovered",
+      "phase": "storage-recovery"
+    },
+    {
+      "ts": "2026-11-04T02:34:15Z",
+      "elapsed_seconds": 965,
+      "event": "chaos_complete",
+      "phase": "post"
+    },
+    {
+      "ts": "2026-11-04T02:38:10Z",
+      "elapsed_seconds": 1200,
+      "event": "load_complete",
+      "phase": "post"
+    },
+    {
+      "ts": "2026-11-04T02:38:11Z",
+      "elapsed_seconds": 1201,
+      "event": "draining",
+      "phase": "post"
+    },
+    {
+      "ts": "2026-11-04T02:38:16Z",
+      "elapsed_seconds": 1206,
+      "event": "drained",
+      "phase": "post"
+    }
+  ]
+}

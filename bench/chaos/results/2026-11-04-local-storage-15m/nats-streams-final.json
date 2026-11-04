@@ -1,0 +1,113 @@
+{
+  "memory": 0,
+  "storage": 0,
+  "reserved_memory": 0,
+  "reserved_storage": 34359738368,
+  "accounts": 1,
+  "ha_assets": 0,
+  "api": {
+    "level": 5,
+    "total": 738,
+    "errors": 4
+  },
+  "server_id": "NC3AQ6KKXLJ2G7RRU44ESAGQO4X6OK6NXLFMBTMSWJRKA5BM3AHSV25G",
+  "now": "2026-11-04T02:38:19.857086053Z",
+  "config": {
+    "max_memory": 12069365760,
+    "max_storage": 108740760576,
+    "store_dir": "/data/js/jetstream",
+    "sync_interval": 120000000000,
+    "strict": true
+  },
+  "limits": {
+    "default_max_consumers": 1000
+  },
+  "streams": 4,
+  "consumers": 3,
+  "messages": 0,
+  "bytes": 0,
+  "account_details": [
+    {
+      "name": "$G",
+      "id": "$G",
+      "memory": 0,
+      "storage": 0,
+      "reserved_memory": 18446744073709551615,
+      "reserved_storage": 18446744073709551615,
+      "accounts": 0,
+      "ha_assets": 0,
+      "api": {
+        "level": 0,
+        "total": 738,
+        "errors": 4
+      },
+      "stream_detail": [
+        {
+          "name": "OBSERVAKI_TRACES",
+          "created": "2026-11-04T02:18:10.394690396Z",
+          "cluster": {
+            "leader": "NC3AQ6KKXLJ2G7RRU44ESAGQO4X6OK6NXLFMBTMSWJRKA5BM3AHSV25G"
+          },
+          "state": {
+            "messages": 0,
+            "bytes": 0,
+            "first_seq": 9911,
+            "first_ts": "0001-01-01T00:00:00Z",
+            "last_seq": 9910,
+            "last_ts": "2026-11-04T02:38:19.021594683Z",
+            "consumer_count": 1
+          }
+        },
+        {
+          "name": "OBSERVAKI_LOGS",
+          "created": "2026-11-04T02:18:10.398087621Z",
+          "cluster": {
+            "leader": "NC3AQ6KKXLJ2G7RRU44ESAGQO4X6OK6NXLFMBTMSWJRKA5BM3AHSV25G"
+          },
+          "state": {
+            "messages": 0,
+            "bytes": 0,
+            "first_seq": 9911,
+            "first_ts": "0001-01-01T00:00:00Z",
+            "last_seq": 9910,
+            "last_ts": "2026-11-04T02:38:19.011401419Z",
+            "consumer_count": 1
+          }
+        },
+        {
+          "name": "OBSERVAKI_METRICS",
+          "created": "2026-11-04T02:18:10.399325398Z",
+          "cluster": {
+            "leader": "NC3AQ6KKXLJ2G7RRU44ESAGQO4X6OK6NXLFMBTMSWJRKA5BM3AHSV25G"
+          },
+          "state": {
+            "messages": 0,
+            "bytes": 0,
+            "first_seq": 10211,
+            "first_ts": "0001-01-01T00:00:00Z",
+            "last_seq": 10210,
+            "last_ts": "2026-11-04T02:38:19.011345785Z",
+            "consumer_count": 1
+          }
+        },
+        {
+          "name": "OBSERVAKI_DLQ",
+          "created": "2026-11-04T02:18:10.663689347Z",
+          "cluster": {
+            "leader": "NC3AQ6KKXLJ2G7RRU44ESAGQO4X6OK6NXLFMBTMSWJRKA5BM3AHSV25G"
+          },
+          "state": {
+            "messages": 0,
+            "bytes": 0,
+            "first_seq": 0,
+            "first_ts": "0001-01-01T00:00:00Z",
+            "last_seq": 0,
+            "last_ts": "0001-01-01T00:00:00Z",
+            "consumer_count": 0
+          }
+        }
+      ]
+    }
+  ],
+  "total": 1
+}

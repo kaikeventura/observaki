@@ -119,6 +119,18 @@ local + Kafka opcional, sem mudar o contrato de envelope.
 1. S0.3 provar 1M/s com zero perda em 15 minutos de falha do ClickHouse;
 2. definir retenção do stream, replicação e DLQ na Story 4.3.
 
+**Evidência da Story 4.5 (2026-11-04):** os streams de WAL usam retenção
+**WorkQueue** (ack do consumidor durável remove a mensagem) com `DiscardNew`
+para backpressure; o DLQ continua em `LimitsPolicy`. O caos mostrou por que:
+com `LimitsPolicy`, uma mensagem já confirmada continuava ocupando `MaxBytes`
+e o stream cheio rejeitava toda publicação nova até o `MaxAge` (24 h), mesmo
+depois de o storage voltar. Com WorkQueue, o writer drena e dá ack, o espaço
+é liberado e a ingestão retoma; o envelope v1 e o ack após durabilidade não
+mudam. O run de capacidade em `bench/chaos/results/2026-11-04-local-capacity/`
+prova 429 `wal_backpressure` e a retomada. Q-02 avança: `MaxAge`/`MaxBytes`
+passam a limitar apenas o backlog não confirmado; o sizing de 15 min a 1M/s
+continua pendente do T1 (P-07).
+
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
@@ -130,7 +142,7 @@ local + Kafka opcional, sem mudar o contrato de envelope.
 | ID | Questão | Spike/story da Fase 0 | Dono | Prazo | Fallback |
 |---|---|---|---|---|---|
 | Q-01 | O JetStream sustenta 1M/s com zero perda em 15 min de ClickHouse fora? | S0.3 / Story 4.3, 4.5 | Benchmark | Semana 3 | WAL local em disco + retry; Kafka opcional em produção. **4.3:** 100k/s local e 1M/s mínimo; T1/4.5 pendentes |
-| Q-02 | Qual a retenção mínima do stream para cobrir outage + reparo? | S0.3 / Story 4.3 | Plataforma | Semana 3 | Aumentar disco/replicação; alerta de idade da fila. **4.3:** 24h/32 GiB por stream default; sizing do T1 pendente |
+| Q-02 | Qual a retenção mínima do stream para cobrir outage + reparo? | S0.3 / Story 4.3, 4.5 | Plataforma | Semana 3 | Aumentar disco/replicação; alerta de idade da fila. **4.3:** 24h/16 GiB por stream default (ajustado na 4.5); sizing do T1 pendente. **4.5:** retenção WorkQueue com ack; `MaxBytes` cobre só backlog não confirmado e libera após o dreno |
 | Q-03 | Single-node usa NATS local ou buffer em disco? | S0.3 / Story 5.1 | Arquitetura | Semana 4 | Buffer local com RPO declarado; NATS no Compose se o custo couber |
 | Q-04 | Qual o fator de replicação do stream no cluster? | S0.3 / Story 2.4 | Benchmark | Fim da Fase 0 | R3 conservador com headroom; revisar após o primeiro parceiro. **4.3:** réplica 1 local; T1 configura 3 |
 | Q-05 | O contrato N-1 cobre replay após upgrade? | Story 4.3 / AD-22 | Plataforma | Semana 4 | Dual-read no writer e janela de compatibilidade estendida |
@@ -149,3 +161,4 @@ local + Kafka opcional, sem mudar o contrato de envelope.
 | Data | Mudança | Autor |
 |---|---|---|
 | 2026-10-31 | Criação (Story 1.4) | OpenCode |
+| 2026-11-04 | Nota de evidência da Story 4.5 (retenção WorkQueue com ack, DLQ em LimitsPolicy; Q-02 parcial, T1 pendente) | OpenCode |

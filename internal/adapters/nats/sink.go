@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -70,7 +71,7 @@ func (c Config) withDefaults() Config {
 		c.StreamMaxAge = 24 * time.Hour
 	}
 	if c.StreamMaxBytes <= 0 {
-		c.StreamMaxBytes = 32 << 30
+		c.StreamMaxBytes = 16 << 30
 	}
 	if c.BatchMaxEvents <= 0 {
 		c.BatchMaxEvents = 100_000
@@ -321,10 +322,15 @@ func (s *Sink) ensureStreams(ctx context.Context) error {
 			Name:        streamName(s.cfg.StreamPrefix, signal),
 			Description: "Observaki ingest WAL (" + signal.String() + ")",
 			Subjects:    []string{subject},
-			Retention:   jetstream.LimitsPolicy,
-			Discard:     jetstream.DiscardNew,
-			MaxAge:      s.cfg.StreamMaxAge,
-			MaxBytes:    s.cfg.StreamMaxBytes,
+			// WorkQueue retention removes a message when the single durable
+			// writer consumer acks it, so a full WAL frees space as soon as
+			// the storage recovers. LimitsPolicy would keep acked messages
+			// until MaxAge/MaxBytes, and DiscardNew would then reject every
+			// new envelope long after the outage ended (Story 4.5).
+			Retention: jetstream.WorkQueuePolicy,
+			Discard:   jetstream.DiscardNew,
+			MaxAge:    s.cfg.StreamMaxAge,
+			MaxBytes:  s.cfg.StreamMaxBytes,
 			// The duplicate window only covers publisher retries of the same
 			// envelope. Event-level dedupe is by event_id downstream.
 			Duplicates: 2 * time.Minute,
@@ -341,6 +347,14 @@ func (s *Sink) ensureStreams(ctx context.Context) error {
 				return fmt.Errorf(
 					"nats: stream %s exists without the expected subject %q (found %v)",
 					config.Name, subject, info.Config.Subjects,
+				)
+			}
+			if info.Config.Retention != jetstream.WorkQueuePolicy {
+				s.logger.Warn(
+					"nats stream has legacy retention; recreate it to free space after a full WAL",
+					"stream", config.Name,
+					"retention", info.Config.Retention,
+					"want", jetstream.WorkQueuePolicy,
 				)
 			}
 			s.logger.Info(
@@ -377,6 +391,27 @@ func storageType(value string) jetstream.StorageType {
 		return jetstream.MemoryStorage
 	}
 	return jetstream.FileStorage
+}
+
+// isStreamCapacityError reports whether the JetStream server rejected the
+// publish because the stream hit its MaxBytes or MaxMsgs limit. With
+// DiscardNew those are expected backpressure signals, not transient outages.
+func isStreamCapacityError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := err.Error()
+	for _, marker := range []string{
+		"maximum bytes exceeded",
+		"maximum messages exceeded",
+		"insufficient storage",
+		"stream full",
+	} {
+		if strings.Contains(message, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 // Consume implements ingest.Sink. It returns only after JetStream confirms the
@@ -631,6 +666,14 @@ func (s *Sink) publishSubset(g *group, items []*pending) {
 		}
 	}
 	s.publishErrors.Add(1)
+	if isStreamCapacityError(err) {
+		// A full WAL is backpressure, not an outage: the stream rejected the
+		// new envelope because MaxBytes or MaxMsgs was reached. The gateway
+		// maps this to 429 + Retry-After so producers slow down instead of
+		// retrying a server error forever (AD-4).
+		s.backpressure.Add(1)
+		err = fmt.Errorf("%w: %v", ingest.ErrBackpressure, err)
+	}
 	s.logger.Warn(
 		"nats WAL publish failed",
 		"subject", g.subject,

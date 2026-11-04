@@ -1,0 +1,83 @@
+{
+  "config": {
+    "endpoint": "http://127.0.0.1:18891",
+    "protocol": "http",
+    "compression": "gzip",
+    "rate": 2500,
+    "event_time_rate": 2500,
+    "duration_seconds": 435,
+    "start_time": "2026-11-04T02:39:07Z",
+    "seed": 1,
+    "batch_size": 200,
+    "workers": 2,
+    "mix": {
+      "metrics": 34,
+      "logs": 33,
+      "traces": 33
+    },
+    "payload": {
+      "metric_padding": 832,
+      "log_body": 820,
+      "trace_padding": 2400
+    }
+  },
+  "planned_events": 1087500,
+  "finished_at": "2026-11-04T02:46:23.486547318Z",
+  "duration_seconds": 435.87656045,
+  "metrics": {
+    "started_at": "2026-11-04T02:39:07.609986868Z",
+    "elapsed_seconds": 435.876561316,
+    "target_rate": 2500,
+    "achieved_rate": 2494.9724222761974,
+    "generated": 1087500,
+    "sent": 974500,
+    "failed": 113000,
+    "rejected": 0,
+    "bytes": 1491943159,
+    "compressed_bytes": 262869615,
+    "backpressure_events": 32000,
+    "backpressure_wait_seconds": 7.127018492,
+    "pacing_lag_events": 2137,
+    "latency": {
+      "count": 5439,
+      "min_ms": 1.131887,
+      "mean_ms": 25.340851976650118,
+      "p50_ms": 14.65425,
+      "p95_ms": 163.577312,
+      "p99_ms": 169.1121,
+      "max_ms": 414.764208
+    },
+    "signals": [
+      {
+        "signal": "metrics",
+        "generated": 369750,
+        "sent": 331550,
+        "failed": 38200,
+        "rejected": 0,
+        "requests": 1849,
+        "bytes": 320931879,
+        "compressed_bytes": 36917001
+      },
+      {
+        "signal": "logs",
+        "generated": 358875,
+        "sent": 321475,
+        "failed": 37400,
+        "rejected": 0,
+        "requests": 1795,
+        "bytes": 320780719,
+        "compressed_bytes": 64762906
+      },
+      {
+        "signal": "traces",
+        "generated": 358875,
+        "sent": 321475,
+        "failed": 37400,
+        "rejected": 0,
+        "requests": 1795,
+        "bytes": 850230561,
+        "compressed_bytes": 161189708
+      }
+    ]
+  }
+}

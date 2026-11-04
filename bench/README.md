@@ -11,6 +11,9 @@ O harness reproduzível da Fase 0. Componentes:
 | Ambiente reproduzível e baseline | 2.4 | Perfil T1, Terraform, custo/cleanup e protocolo de baseline; execução T1 pendente |
 | `bench/clickhouse` | 3.1 | Schema ClickHouse de logs, carga sintética, compressão, `q03` e TTL 7/15 dias em container local |
 | `bench/victoriametrics` | 3.4 | 1M séries a 1M amostras/s, 20 consultas MetricsQL em 24 h e admissão de cardinalidade por tenant |
+| `bench/gateway` | 4.2, 4.3 | Auth/quota do gateway e batching/compressão/sharding do WAL NATS |
+| `bench/pipeline` | 4.4 | Gateway → WAL → writers → ClickHouse/VictoriaMetrics com dedupe e retry |
+| `bench/chaos` | 4.5 | ClickHouse fora 15 min, falha de NATS/gateway e backpressure do WAL |
 
 ### Story 3.1 — ClickHouse logs
 
@@ -77,9 +80,9 @@ esperado; o `benchctl` valida o contrato antes de qualquer execução.
 | `cardinality-100k` | cardinality | 100k séries, 1 amostra/s, 2 tenants | 1h | 1 VictoriaMetrics 8 vCPU/32 GB | Drift do vizinho < 10% | planejada (3.4) |
 | `cardinality-1m` | cardinality | 1M séries, 1M amostras/s, 2 tenants | 1h | 1 VictoriaMetrics 16 vCPU/64 GB | Drift do vizinho < 10% | planejada (3.4) |
 | `cardinality-10m` | cardinality | 10M séries, 10M amostras/s, 2 tenants | 1h | 3 VictoriaMetrics 32 vCPU/128 GB | Drift do vizinho < 10% | planejada (3.4) |
-| `chaos-clickhouse` | chaos | 1M/s; ClickHouse fora por 15m | 1h | cluster T1 | Zero perda confirmada; recuperação automática | planejada (4.5) |
-| `chaos-nats` | chaos | 1M/s; NATS fora por 5m | 30m | cluster T1 | Zero perda confirmada; backpressure no produtor | planejada (4.5) |
-| `chaos-gateway` | chaos | 1M/s; 1 de 4 gateways morto por 5m | 30m | cluster T1 | Zero perda; tráfego absorvido pelos demais | planejada (4.5) |
+| `chaos-clickhouse` | chaos | 1M/s; ClickHouse fora por 15m | 1h | cluster T1 | Zero perda confirmada; recuperação automática | local pass (5k/s); T1 pendente |
+| `chaos-nats` | chaos | 1M/s; NATS fora por 5m | 30m | cluster T1 | Zero perda confirmada; backpressure no produtor | local pass; T1 pendente |
+| `chaos-gateway` | chaos | 1M/s; 1 de 4 gateways morto por 5m | 30m | cluster T1 | Zero perda; tráfego absorvido pelos demais | local pass (1 gateway); T1 pendente |
 
 O hardware acima é o **mínimo documentado** para o cenário; o perfil T1 e o
 cluster de referência são fechados na Story 2.4 (Q-01 do ADR-0006). O texto
@@ -95,11 +98,11 @@ e é validada pelo `benchctl check`):
 | cardinality | `series_active`, `series_limit_errors`, `neighbor_p95_drift_percent`, lag p95, `error_rate`, CPU, RAM |
 | chaos | `events_per_second`, lag p50/p95/p99, `error_rate`, `dropped_events`, `confirmed_lost_events`, `recovery_seconds`, `dlq_events`, CPU, RAM |
 
-> **Status de execução:** throughput executa hoje. Query, cardinalidade e caos
-> têm contrato, validação de pré-requisitos e plano registrados; a execução
-> entra nas Stories 3.4, 3.5 e 4.5, quando existirem os backends. `run` nesses
-> cenários grava `status: blocked` e sai com código 3; `--plan` grava o plano e
-> sai com 0.
+> **Status de execução:** throughput executa hoje. Query (3.5), cardinalidade
+> (3.4) e caos (4.5) já têm runs locais publicados em `BENCHMARKS.md`; o
+> baseline T1 segue bloqueado por P-07. `run` nos cenários sem o backend
+> correspondente grava `status: blocked` e sai com código 3; `--plan` grava o
+> plano e sai com 0.
 
 ## Ambiente de referência T1
 

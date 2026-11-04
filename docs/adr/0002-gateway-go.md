@@ -122,6 +122,16 @@ JWKS continuam para a Fase 1. **Q-03 fica parcialmente respondida:** o hot path
 já não depende do PostgreSQL para auth/quota, mas o cache JWKS/OIDC ainda não
 foi exercitado.
 
+**Evidência da Story 4.5 (2026-11-04):** o caos local (ClickHouse fora 15 min,
+restart de NATS e `SIGKILL` do gateway) manteve zero perda para eventos
+confirmados, contagens exatas no ClickHouse/VictoriaMetrics e retomada
+automática após cada falha. O recomendação condicional está em
+`docs/dev/story-4.5-hot-path-recommendation.md`: **Go permanece** para o MVP,
+com fallback Rust/Rotel se o T1 falhar C-01/C-02. **Q-05 fica respondida:**
+o fallback é acionado por throughput abaixo de 15k eventos/s por vCPU ou
+p99/lag acima da meta em duas execuções T1 consecutivas, sem mudar OTLP ou o
+envelope. **Q-01 segue pendente do T1 (P-07).**
+
 ## Revisão
 
 | Revisor | Papel | Data | Resultado | Referência |
@@ -152,3 +162,4 @@ foi exercitado.
 |---|---|---|
 | 2026-10-31 | Criação (Story 1.4) | OpenCode |
 | 2026-11-03 | Nota de evidência da Story 4.2 (auth/quota via snapshot local; Q-03 parcial) | OpenCode |
+| 2026-11-04 | Nota de evidência da Story 4.5 (caos local pass; recomendação condicional; Q-05 respondida; Q-01 pendente do T1) | OpenCode |

@@ -55,7 +55,7 @@ observaki.ingest.v1.<tenant_b64url>.<project_b64url>.e<authz_epoch>.<signal>.<sh
   de retry podem cair em outro shard e são absorvidas pelo `event_id`.
 - Streams por sinal (`OBSERVAKI_TRACES`, `OBSERVAKI_LOGS`,
   `OBSERVAKI_METRICS`) com `LimitsPolicy`, `DiscardNew`, `MaxAge` (24h default)
-  e `MaxBytes` (32 GiB por stream default; T1 deve configurar o sizing).
+  e `MaxBytes` (16 GiB por stream default desde a 4.5; T1 configura o sizing).
   `DiscardNew` garante que stream cheio vira backpressure, não perda silenciosa
   de dados já confirmados.
 - O stream é criado se não existir; se existir, o subject esperado é validado e
@@ -153,7 +153,7 @@ gateway e load generators na mesma máquina; o run pontual de 5 s ficou em
    `DiscardSink` fica apenas como fixture de teste. O single-node do Compose
    (Story 5.1) pode usar NATS local; a decisão de buffer local vs NATS continua
    na Q-03 do ADR-0003.
-2. **Retenção.** `MaxAge` 24h e `MaxBytes` 32 GiB por stream são defaults
+2. **Retenção.** `MaxAge` 24h e `MaxBytes` 16 GiB por stream são defaults (ajustado na 4.5)
    conservadores para desenvolvimento. O sizing de 15 min de outage a 1M/s
    (~120 GB) precisa ser configurado no T1; `DiscardNew` garante backpressure
    quando o teto é atingido.

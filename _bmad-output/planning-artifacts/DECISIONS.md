@@ -96,9 +96,10 @@ respondida (sem PostgreSQL no hot path), com o cache JWKS ainda pendente.
 com envelope protobuf v1 (`observaki.ingest.v1`), zstd e batching por subject.
 O subject carrega tenant/projeto em base64url, `authz_epoch`, sinal e shard
 (`observaki.ingest.v1.<tenant>.<project>.e<epoch>.<signal>.<shard>`), com 32
-shards por default; streams por sinal usam `LimitsPolicy`/`DiscardNew`, `MaxAge`
-de 24 h e `MaxBytes` de 32 GiB por stream (o T1 deve configurar o sizing de
-15 min de outage). O ack OTLP só acontece depois do `PublishMsg` confirmado; o
+shards por default; streams por sinal usam `WorkQueuePolicy`/`DiscardNew` (desde
+a Story 4.5), `MaxAge` de 24 h e `MaxBytes` de 16 GiB por stream (default
+ajustado na 4.5 para caber em disco de 100 GiB; o T1 configura o sizing). O ack
+OTLP só acontece depois do `PublishMsg` confirmado; o
 retry usa o mesmo `Nats-Msg-Id`, e a dedupe de retry do SDK fica no `event_id`
 determinístico (hash canônico pós-redaction) para o writer da 4.4. Fila cheia
 retorna 429 `wal_backpressure`; NATS fora retorna 503 e `/readyz` 503.
@@ -126,6 +127,22 @@ com 400k eventos, lag p95 0,80 s, contagens exatas em ClickHouse/VictoriaMetrics
 e zero falhas; caos de 3 s no ClickHouse e 2 s no VictoriaMetrics com 8 retries
 e zero perda. **Não é G1:** 1M/s por 1 h, outage de 15 min e caos de
 NATS/gateway são 4.5 + T1 (P-07).
+
+**Story 4.5 (2026-11-04):** o caos local rodou ClickHouse fora por 15 min,
+restart de NATS e `SIGKILL` do gateway sob carga contínua. O ack só depois do
+WAL e a contabilidade do writer se mantiveram: zero perda para eventos
+confirmados, contagens exatas e `uniqExact(event_id)` sem duplicata no delta,
+com 429 `wal_backpressure` quando o WAL encheu. **Achado de design:** streams
+de WAL com `LimitsPolicy` mantêm mensagens já confirmadas até `MaxAge`/`MaxBytes`;
+com `DiscardNew`, um stream cheio rejeitava toda publicação nova mesmo depois
+de o ClickHouse voltar. A correção é retenção **WorkQueue** nos streams de
+sinal (o ack do consumidor durável remove a mensagem) e `DiscardNew` apenas
+para backpressure; o DLQ continua em `LimitsPolicy`. O run de capacidade prova
+429 e a retomada após o dreno. **Recomendação AC3:** Go permanece no hot path
+do MVP; OTel Collector só na borda; fallback Rust/Rotel se o T1 falhar
+15k eventos/s por vCPU ou p95/lag (detalhes em
+`docs/dev/story-4.5-hot-path-recommendation.md`). **Não é G1:** 1M/s por 1 h,
+R3 do NATS e o sizing do WAL no T1 continuam pendentes (P-07).
 
 ## ADRs da Fase 0
 

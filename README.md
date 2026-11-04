@@ -164,7 +164,7 @@ estão documentados em [`.env.example`](.env.example):
 | `OBSERVAKI_NATS_SHARDS` | `32` | shards por tenant/projeto/epoch/signal |
 | `OBSERVAKI_NATS_STREAM_REPLICAS` | `1` | réplicas do stream (3 no cluster) |
 | `OBSERVAKI_NATS_STREAM_MAX_AGE` | `24h` | janela de retenção do WAL |
-| `OBSERVAKI_NATS_STREAM_MAX_BYTES` | `34359738368` | teto de bytes por stream |
+| `OBSERVAKI_NATS_STREAM_MAX_BYTES` | `17179869184` | teto de bytes por stream (16 GiB) |
 | `OBSERVAKI_NATS_STREAM_STORAGE` | `file` | `file` ou `memory` |
 | `OBSERVAKI_NATS_BATCH_MAX_EVENTS` | `100000` | eventos por envelope antes do flush |
 | `OBSERVAKI_NATS_BATCH_MAX_BYTES` | `4194304` | bytes por envelope antes do flush |

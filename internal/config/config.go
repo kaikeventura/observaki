@@ -100,8 +100,11 @@ const (
 	DefaultNATSShards         = 32
 	DefaultNATSStreamReplicas = 1
 	// DefaultNATSStreamMaxAge covers a declared outage window plus repair.
-	DefaultNATSStreamMaxAge    = 24 * time.Hour
-	DefaultNATSStreamMaxBytes  = int64(32) << 30
+	DefaultNATSStreamMaxAge = 24 * time.Hour
+	// DefaultNATSStreamMaxBytes covers a declared outage window plus repair
+	// while fitting a 100 GiB JetStream disk: 3 signal streams + the 8 GiB DLQ
+	// must stay under the server reservation (Story 4.5).
+	DefaultNATSStreamMaxBytes  = int64(16) << 30
 	DefaultNATSStreamStorage   = "file"
 	DefaultNATSBatchMaxEvents  = 100_000
 	DefaultNATSBatchMaxBytes   = 4 << 20

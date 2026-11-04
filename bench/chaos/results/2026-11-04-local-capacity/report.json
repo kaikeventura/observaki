@@ -1,0 +1,242 @@
+{
+  "story": "4.5",
+  "status": "pass",
+  "t1_status": "pending",
+  "t1_note": "AC1 requires steady ingestion at 1M/s with ClickHouse down for 15 minutes on the T1 fleet; P-07 and the T1 baseline remain pending. This local run is a proxy, not G1 evidence.",
+  "scenario": "capacity",
+  "load": {
+    "rate": 5000,
+    "total_seconds": 270,
+    "pre_seconds": 60,
+    "outage_seconds": 90,
+    "nats_outage_seconds": 30,
+    "gateway_outage_seconds": 15,
+    "settle_seconds": 15,
+    "post_seconds": 120
+  },
+  "faults": {
+    "clickhouse_outages": 1,
+    "nats_outages": 0,
+    "gateway_outages": 0,
+    "gateway_restarts": 0
+  },
+  "client": {
+    "confirmed_events": 1039600,
+    "failed_requests": 310400,
+    "rejected_events": 0,
+    "confirmed_logs": 291700,
+    "confirmed_traces": 288900,
+    "confirmed_metrics": 459000
+  },
+  "gateway": {
+    "wal_published_events": 1044600,
+    "wal_backpressure_requests": 1552,
+    "wal_publish_errors": 1552,
+    "exit": 0,
+    "min_readyz": "200",
+    "last_readyz": "200",
+    "nats_outage_non_200_samples": 0,
+    "gateway_outage_non_200_samples": 0
+  },
+  "wal": {
+    "peak_stream_messages": 32,
+    "peak_stream_bytes": 2076401,
+    "growth_messages": 32,
+    "storage_outage_retry_samples": 0,
+    "post_phase_published_growth": 573600
+  },
+  "writer": {
+    "accepted_events": 1044600,
+    "written_events": 1041275,
+    "deduped_events": 3325,
+    "failed_events": 0,
+    "skipped_events": 0,
+    "retries": 20,
+    "exit": 0
+  },
+  "signals": {
+    "logs": {
+      "accepted": 293350,
+      "written": 292525
+    },
+    "traces": {
+      "accepted": 290550,
+      "written": 288900
+    },
+    "metrics": {
+      "accepted": 460700,
+      "written": 459850
+    }
+  },
+  "clickhouse": {
+    "logs": 292525,
+    "traces": 288900
+  },
+  "duplicates": {
+    "rows": 0,
+    "rate_percent": "0.0000",
+    "bound_percent": 1.0
+  },
+  "victoriametrics": {
+    "samples": 456964,
+    "series": 64
+  },
+  "lag_seconds": {
+    "p50": 0.388383,
+    "p95": 0.571989,
+    "p99": 94.522811,
+    "post_phase_p95": 0.571989
+  },
+  "recovery_seconds": 120,
+  "replay": {
+    "status": "pass",
+    "deduped_events": 2500
+  },
+  "reason": "",
+  "checks": [
+    {
+      "name": "gateway_confirmed_events_reached_wal",
+      "status": "pass",
+      "detail": "wal=1044600 confirmed=1039600"
+    },
+    {
+      "name": "wal_events_reached_writer",
+      "status": "pass",
+      "detail": "accepted=1044600 confirmed=1039600"
+    },
+    {
+      "name": "writer_accounting_closes",
+      "status": "pass",
+      "detail": "accepted=1044600 written=1041275 deduped=3325 failed=0 skipped=0"
+    },
+    {
+      "name": "zero_writer_failures",
+      "status": "pass",
+      "detail": "failed=0"
+    },
+    {
+      "name": "zero_confirmed_events_lost",
+      "status": "pass",
+      "detail": "written=1041275 confirmed=1039600"
+    },
+    {
+      "name": "confirmed_logs_stored",
+      "status": "pass",
+      "detail": "unique_logs=292525 confirmed_logs=291700"
+    },
+    {
+      "name": "confirmed_traces_stored",
+      "status": "pass",
+      "detail": "unique_traces=288900 confirmed_traces=288900"
+    },
+    {
+      "name": "confirmed_metrics_stored",
+      "status": "pass",
+      "detail": "vm_samples=456964 confirmed_metrics=459000 tolerance=454410"
+    },
+    {
+      "name": "clickhouse_logs_match_writer",
+      "status": "pass",
+      "detail": "clickhouse=292525 writer=292525"
+    },
+    {
+      "name": "clickhouse_traces_not_above_writer",
+      "status": "pass",
+      "detail": "clickhouse=288900 writer=288900 block_deduped=0"
+    },
+    {
+      "name": "duplicate_rows_within_bound",
+      "status": "pass",
+      "detail": "duplicate_rows=0 stored_rows=581425 rate=0.0000% (bound 1%)"
+    },
+    {
+      "name": "victoriametrics_samples_match_writer",
+      "status": "pass",
+      "detail": "samples=456964 writer=459850 tolerance=455252"
+    },
+    {
+      "name": "steady_state_lag_p95_under_10s",
+      "status": "skip",
+      "detail": "a clickhouse outage keeps backlog lag in the 4096-sample window; observed post p95=0.571989s (see 4.4 stable run for the <10s gate)"
+    },
+    {
+      "name": "gateway_exited_cleanly",
+      "status": "pass",
+      "detail": "exit=0"
+    },
+    {
+      "name": "writer_exited_cleanly",
+      "status": "pass",
+      "detail": "exit=0"
+    },
+    {
+      "name": "storage_outage_used_wal_or_backpressure",
+      "status": "pass",
+      "detail": "wal_growth_messages=32 backpressure=1552"
+    },
+    {
+      "name": "wal_capacity_returned_429",
+      "status": "pass",
+      "detail": "backpressure_requests=1552 wal_errors=1552"
+    },
+    {
+      "name": "capacity_rejected_some_client_requests",
+      "status": "pass",
+      "detail": "client_failed=310400 client_rejected=0"
+    },
+    {
+      "name": "ingestion_resumed_after_wal_drained",
+      "status": "pass",
+      "detail": "post_phase_wal_published_growth=573600"
+    },
+    {
+      "name": "identical_replay_deduped",
+      "status": "pass",
+      "detail": "deduped=2500"
+    }
+  ],
+  "events": [
+    {
+      "ts": "2026-11-04T02:53:44Z",
+      "elapsed_seconds": 60,
+      "event": "clickhouse_stopped",
+      "phase": "storage-outage"
+    },
+    {
+      "ts": "2026-11-04T02:55:18Z",
+      "elapsed_seconds": 154,
+      "event": "clickhouse_started",
+      "phase": "storage-recovery"
+    },
+    {
+      "ts": "2026-11-04T02:55:19Z",
+      "elapsed_seconds": 155,
+      "event": "clickhouse_recovered",
+      "phase": "storage-recovery"
+    },
+    {
+      "ts": "2026-11-04T02:55:19Z",
+      "elapsed_seconds": 155,
+      "event": "chaos_complete",
+      "phase": "post"
+    },
+    {
+      "ts": "2026-11-04T02:57:14Z",
+      "elapsed_seconds": 270,
+      "event": "load_complete",
+      "phase": "post"
+    },
+    {
+      "ts": "2026-11-04T02:57:15Z",
+      "elapsed_seconds": 271,
+      "event": "draining",
+      "phase": "post"
+    },
+    {
+      "ts": "2026-11-04T02:57:19Z",
+      "elapsed_seconds": 275,
+      "event": "drained",
+      "phase": "post"
+    }
+  ]
+}

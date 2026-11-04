@@ -24,7 +24,8 @@ benchmark de fornecedor não entra sem reprodução própria.
 | Gateway: auth, quota e isolamento (local, 1M/s ofertado) | ⚠️ funcional pass (26.703 requests 429, 401/403/audit); p95 local +15,13% (inconclusivo por host compartilhado); T1 pendente |
 | Gateway: batching, zstd, sharding e WAL NATS (local, 100k/s) | ✅ publicado; 1M eventos, 5,46x, p99 28,9 ms, 32 shards, 0 duplicatas; **não é G1** |
 | Writers ClickHouse/VM sobre o WAL (local, 20k/s + caos) | ✅ publicado; 400k eventos, lag p95 0,80 s, contagens exatas, 0 falhas; caos com 8 retries e zero perda; **não é G1** |
-| Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento (P-07) e Story 4.5 |
+| Caos da ingestão (local: ClickHouse 15 min, NATS/gateway, capacidade do WAL) | ✅ publicado; 6M confirmados com zero perda, 625 duplicatas (0,0158%), 429 + retomada após dreno; **não é G1** |
+| Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento (P-07); Story 4.5 concluída, baseline ainda não executado |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
 | Gate G1 | ⛔ aberto |
@@ -572,6 +573,106 @@ exponencial não perdeu dados. O AC1 exige 1M/s por 1 h na frota T1; P-07 e o
 baseline T1 continuam bloqueados. O outage de 15 min é a Story 4.5.
 
 **Evidência:** [`docs/dev/story-4.4-handoff.md`](docs/dev/story-4.4-handoff.md).
+
+## Story 4.5 — caos e go/no-go da ingestão (local)
+
+**O que é:** o pipeline completo (`gateway → NATS JetStream WAL → writers →
+ClickHouse/VictoriaMetrics`) sob carga OTLP contínua com falhas injetadas:
+ClickHouse fora por 15 min, restart de NATS, `SIGKILL` do gateway e WAL cheio.
+O harness verifica perda zero por sinal (`uniqExact(event_id) >= confirmados`),
+contabilidade do writer, contagens do ClickHouse, amostras do VictoriaMetrics,
+taxa de duplicatas, retries, backpressure 429 e recuperação. **Não é o run de
+1M/s por 1 h do T1** e não é evidência do G1.
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Story | 4.5 — teste de caos e go/no-go da stack de ingestão |
+| Harness | `bench/chaos/run.sh` |
+| Resultado — storage 15 min | `bench/chaos/results/2026-11-04-local-storage-15m/` |
+| Resultado — storage + NATS + gateway | `bench/chaos/results/2026-11-04-local-all/` |
+| Resultado — capacidade do WAL | `bench/chaos/results/2026-11-04-local-capacity/` |
+| Componentes | NATS 2.15.2 JetStream, ClickHouse 26.8, VictoriaMetrics 1.148, gateway/writer Go |
+| Carga | 5k eventos/s, dois tenants, 34% métricas / 33% logs / 33% traces, gzip |
+| Host | Intel Core Ultra 7 155H, 22 threads, 15 GiB RAM |
+| Data | 2026-11-04 |
+
+### Resultados — ClickHouse fora 15 min
+
+| Métrica | Valor |
+|---|---:|
+| Eventos confirmados | 6.000.000 (0 falhas) |
+| Publicados no WAL | 6.005.000 |
+| Pico do WAL | 15.043 mensagens / 1,14 GiB |
+| Retries do writer | 122 |
+| Writer aceito / escrito / dedup / falho | 6.005.200 / 6.002.500 / 2.700 / 0 |
+| Logs no ClickHouse | 1.980.825 (únicos iguais) |
+| Traces no ClickHouse | 1.980.625 (únicos **1.980.000** = confirmados) |
+| Duplicatas | 625 (0,0158%; limite 1%) |
+| Amostras no VictoriaMetrics | 2.021.632 (64 séries) |
+| Recuperação (fim da falha → dreno) | **241 s** |
+| Exit codes gateway/writer | 0 / 0 |
+
+O gateway permaneceu `/readyz` 200 durante toda a queda (o WAL absorve o
+backlog); o writer manteve as mensagens não confirmadas e retentou com backoff.
+Após a recuperação, o `uniqExact(event_id)` dos traces igualou os traces
+confirmados: **zero perda**. As 625 duplicatas e as 200 linhas deduplicadas
+pelo ClickHouse são o comportamento at-least-once documentado (replay/retry),
+não perda.
+
+### Resultados — NATS e gateway
+
+| Métrica | Valor |
+|---|---:|
+| Eventos confirmados | 1.948.600 |
+| Requests que falharam nas quedas | 226.400 (não confirmados) |
+| Publicados no WAL | 1.953.400 |
+| Writer escrito / dedup / falho | 1.950.275 / 3.325 / 0 |
+| Logs / traces no ClickHouse | 643.775 / 642.950 (únicos 642.950) |
+| Duplicatas | 0 |
+| `/readyz` não-200 no NATS / gateway | 28 / 14 amostras |
+| Recuperação (última falha → dreno) | 120 s |
+| Retries | 32 |
+
+O gateway voltou a 200 após as duas falhas, o writer reconectou e os
+consumidores duráveis sobreviveram ao restart do NATS; o dreno fechou as
+contagens sem perda.
+
+### Resultados — capacidade do WAL
+
+| Métrica | Valor |
+|---|---:|
+| Eventos confirmados | 1.039.600 |
+| Requests rejeitados com 429 | 310.400 |
+| Publicados no WAL | 1.044.600 |
+| Backpressure 429 (`wal_backpressure`) | **1.552** |
+| Pico do WAL | 32 mensagens / 2,0 MB (stream de 1 MiB por sinal) |
+| Writer escrito / dedup / falho | 1.041.275 / 3.325 / 0 |
+| Logs / traces no ClickHouse | 292.525 / 288.900 (únicos 288.900) |
+| Amostras no VictoriaMetrics | 456.964 |
+| Duplicatas | 0 |
+| Retomada após o dreno | **+573.600 eventos publicados no pós** |
+| Lag p95 pós-recuperação | 0,57 s |
+
+Com `MaxBytes` de 1 MiB por stream e ClickHouse fora, o `DiscardNew` rejeitou
+envelopes e o gateway respondeu **429 + `Retry-After`** em vez de 500. Depois
+que o ClickHouse voltou e os writers deram ack, os streams WorkQueue liberaram
+espaço e a ingestão retomou (573.600 eventos publicados na fase de pós). O
+limite de duplicatas ficou em zero.
+
+### Veredito
+
+**Pass funcional local; T1 pendente.** O caos provou zero perda para eventos
+confirmados nos três cenários, recuperação automática de NATS/gateway e
+backpressure 429 quando o WAL encheu. O achado de design (retenção WorkQueue)
+foi corrigido e coberto por teste. O AC1 de 1M/s por 1 h, o R3 do NATS, o
+outage de 15 min a 1M/s e o sizing do WAL/spool continuam pendentes do T1
+(P-07). A recomendação AC3 (Go no MVP, Collector na borda, fallback Rust/Rotel)
+está em [`docs/dev/story-4.5-hot-path-recommendation.md`](docs/dev/story-4.5-hot-path-recommendation.md).
+
+**Evidência:** [`docs/dev/story-4.5-handoff.md`](docs/dev/story-4.5-handoff.md).
+
 
 ## Cluster de referência T1 (pendente)
 

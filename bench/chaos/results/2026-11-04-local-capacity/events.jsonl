@@ -1,0 +1,7 @@
+{"ts":"2026-11-04T02:53:44Z","elapsed_seconds":60,"event":"clickhouse_stopped","phase":"storage-outage"}
+{"ts":"2026-11-04T02:55:18Z","elapsed_seconds":154,"event":"clickhouse_started","phase":"storage-recovery"}
+{"ts":"2026-11-04T02:55:19Z","elapsed_seconds":155,"event":"clickhouse_recovered","phase":"storage-recovery"}
+{"ts":"2026-11-04T02:55:19Z","elapsed_seconds":155,"event":"chaos_complete","phase":"post"}
+{"ts":"2026-11-04T02:57:14Z","elapsed_seconds":270,"event":"load_complete","phase":"post"}
+{"ts":"2026-11-04T02:57:15Z","elapsed_seconds":271,"event":"draining","phase":"post"}
+{"ts":"2026-11-04T02:57:19Z","elapsed_seconds":275,"event":"drained","phase":"post"}
