@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/observaki/observaki/bench/internal/promrw"
+	"github.com/observaki/observaki/internal/promrw"
 )
 
 // Kind is the sample generator for a metric family.

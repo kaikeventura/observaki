@@ -16,10 +16,12 @@ type dedupeWindow struct {
 }
 
 type dedupeKey struct {
-	tenantID  string
-	projectID string
-	signal    string
-	eventID   string
+	tenantID          string
+	projectID         string
+	signal            string
+	eventID           string
+	projectGeneration uint64
+	authzEpoch        uint64
 }
 
 func newDedupeWindow(capacity int) *dedupeWindow {

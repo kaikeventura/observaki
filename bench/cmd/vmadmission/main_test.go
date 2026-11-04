@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/observaki/observaki/bench/internal/promrw"
+	"github.com/observaki/observaki/internal/promrw"
 )
 
 func testProxy(t *testing.T, limits limitFlags) (*proxy, *httptest.Server, *atomic.Int64) {

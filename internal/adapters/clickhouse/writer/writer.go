@@ -3,11 +3,13 @@ package writer
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,6 +26,7 @@ var ErrWrongSignal = errors.New("clickhouse writer received the wrong signal")
 type Config struct {
 	Table         string
 	Signal        string
+	Columns       []string
 	SpoolDir      string
 	QueueDepth    int
 	DedupeWindow  int
@@ -33,6 +36,27 @@ type Config struct {
 	EncodeWorkers int
 	Logger        *slog.Logger
 	OnAck         func(Ack)
+	// OnDone reports every terminal batch outcome, including batches that
+	// were moved to the DLQ. The WAL consumer uses it to ack a NATS message
+	// only after ClickHouse confirmed the batch (or it reached the DLQ).
+	OnDone func(Outcome)
+	// DedupeTokenFromEvents derives insert_deduplication_token from the
+	// tenant, project and event_id values instead of the local sequence.
+	// A redelivered envelope therefore produces the same token and
+	// ClickHouse can drop the duplicate block after a writer restart.
+	DedupeTokenFromEvents bool
+}
+
+// Outcome is the terminal result of one spooled batch.
+type Outcome struct {
+	Seq         uint64        `json:"seq"`
+	Rows        int           `json:"rows"`
+	WrittenRows uint64        `json:"written_rows"`
+	Lag         time.Duration `json:"lag"`
+	OldestLag   time.Duration `json:"oldest_lag"`
+	Attempts    int           `json:"attempts"`
+	DLQ         bool          `json:"dlq"`
+	Error       string        `json:"error,omitempty"`
 }
 
 // Ack describes a batch that ClickHouse confirmed.
@@ -98,6 +122,9 @@ func OpenLogs(ctx context.Context, cfg Config, inserter Inserter) (*Writer, erro
 	if cfg.Table == "" {
 		cfg.Table = "otel_logs"
 	}
+	if len(cfg.Columns) == 0 {
+		cfg.Columns = LogColumns()
+	}
 	return open(ctx, cfg, inserter)
 }
 
@@ -106,6 +133,9 @@ func OpenTraces(ctx context.Context, cfg Config, inserter Inserter) (*Writer, er
 	cfg.Signal = SignalTraces
 	if cfg.Table == "" {
 		cfg.Table = "otel_traces"
+	}
+	if len(cfg.Columns) == 0 {
+		cfg.Columns = TraceColumns()
 	}
 	return open(ctx, cfg, inserter)
 }
@@ -272,10 +302,12 @@ func submitRecords[T record](w *Writer, ctx context.Context, records []T) (Submi
 	for index := range records {
 		identity := records[index].identity()
 		key := dedupeKey{
-			tenantID:  identity.tenantID,
-			projectID: identity.projectID,
-			signal:    w.cfg.Signal,
-			eventID:   identity.eventID,
+			tenantID:          identity.tenantID,
+			projectID:         identity.projectID,
+			signal:            w.cfg.Signal,
+			eventID:           identity.eventID,
+			projectGeneration: identity.projectGeneration,
+			authzEpoch:        identity.authzEpoch,
 		}
 		if !w.dedupe.add(key) {
 			duplicates++
@@ -304,12 +336,16 @@ func submitRecords[T record](w *Writer, ctx context.Context, records []T) (Submi
 	buffer := encodeAccepted(records, accepted, eventTimes, ingestedAt, w.cfg.EncodeWorkers)
 	sum := sha256.Sum256(buffer)
 	seq := w.seq.Add(1)
+	token := batchToken(w.cfg.Signal, seq, sum)
+	if w.cfg.DedupeTokenFromEvents {
+		token = eventToken(w.cfg.Signal, records, accepted)
+	}
 	meta := &batchMeta{
 		Seq:                  seq,
 		Table:                w.cfg.Table,
 		Signal:               w.cfg.Signal,
 		Rows:                 len(accepted),
-		DedupeToken:          batchToken(w.cfg.Signal, seq, sum),
+		DedupeToken:          token,
 		MinTimestampUnixNano: minTimestamp.UnixNano(),
 		MaxTimestampUnixNano: maxTimestamp.UnixNano(),
 		DataSHA256:           hex.EncodeToString(sum[:]),
@@ -387,6 +423,7 @@ func (w *Writer) insert(ctx context.Context, batch *queuedBatch) error {
 	for {
 		result, err := w.inserter.Insert(ctx, InsertRequest{
 			Table:       w.cfg.Table,
+			Columns:     w.cfg.Columns,
 			Data:        batch.data,
 			Rows:        batch.meta.Rows,
 			DedupeToken: batch.meta.DedupeToken,
@@ -417,6 +454,16 @@ func (w *Writer) insert(ctx context.Context, batch *queuedBatch) error {
 					Recovered:      batch.replayed,
 				})
 			}
+			if w.cfg.OnDone != nil {
+				w.cfg.OnDone(Outcome{
+					Seq:         batch.meta.Seq,
+					Rows:        batch.meta.Rows,
+					WrittenRows: result.WrittenRows,
+					Lag:         lag,
+					OldestLag:   oldestLag,
+					Attempts:    attempts + 1,
+				})
+			}
 			return nil
 		}
 
@@ -440,6 +487,15 @@ func (w *Writer) insert(ctx context.Context, batch *queuedBatch) error {
 				"path", destination,
 				"error", err,
 			)
+			if w.cfg.OnDone != nil {
+				w.cfg.OnDone(Outcome{
+					Seq:      batch.meta.Seq,
+					Rows:     batch.meta.Rows,
+					Attempts: attempts + 1,
+					DLQ:      true,
+					Error:    err.Error(),
+				})
+			}
 			return nil
 		}
 
@@ -558,6 +614,34 @@ func clampTimestamp(eventTime, ingestedAt time.Time, maxSkew time.Duration) (tim
 
 func batchToken(signal string, seq uint64, dataHash [sha256.Size]byte) string {
 	return fmt.Sprintf("%s-%d-%s", signal, seq, hex.EncodeToString(dataHash[:16]))
+}
+
+// eventToken derives a stable token from the accepted events. The WAL can
+// redeliver the same envelope after a writer restart; using the event
+// identities instead of the local sequence lets ClickHouse's block
+// deduplication drop the duplicate insert. The order is part of the token, so
+// a different batch boundary produces a different token (a safe false
+// negative, never a false positive across different events).
+func eventToken[T record](signal string, records []T, accepted []int) string {
+	hasher := sha256.New()
+	writeTokenPart(hasher, signal)
+	for _, index := range accepted {
+		identity := records[index].identity()
+		writeTokenPart(hasher, identity.tenantID)
+		writeTokenPart(hasher, identity.projectID)
+		writeTokenPart(hasher, strconv.FormatUint(identity.projectGeneration, 10))
+		writeTokenPart(hasher, strconv.FormatUint(identity.authzEpoch, 10))
+		writeTokenPart(hasher, identity.eventID)
+	}
+	sum := hasher.Sum(nil)
+	return fmt.Sprintf("%s-events-%s", signal, hex.EncodeToString(sum[:16]))
+}
+
+func writeTokenPart(hasher interface{ Write([]byte) (int, error) }, value string) {
+	var length [4]byte
+	binary.BigEndian.PutUint32(length[:], uint32(len(value)))
+	_, _ = hasher.Write(length[:])
+	_, _ = hasher.Write([]byte(value))
 }
 
 func retryDelay(base time.Duration, attempt int) time.Duration {

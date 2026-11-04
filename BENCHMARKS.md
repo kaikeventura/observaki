@@ -1,11 +1,11 @@
 # Observaki — Benchmarks
 
-> **Status (2026-11-02):** pré-baseline local do harness, spikes locais de
+> **Status (2026-11-04):** pré-baseline local do harness, spikes locais de
 > armazenamento de logs (1B linhas) e traces (1B spans), o caminho de ingestão
-> ClickHouse (400k/s, 60 s) e o spike de VictoriaMetrics (1M séries, 1M/s,
-> 1 h) publicados; baseline T1 **não executado**. Nenhum número deste arquivo é
-> evidência do Gate G1 até a execução no cluster T1 com gateway, armazenamento
-> e o commit registrados.
+> ClickHouse (400k/s, 60 s), o spike de VictoriaMetrics (1M séries, 1M/s, 1 h)
+> e o pipeline com WAL/gateway/writers (20k/s + caos) publicados; baseline T1
+> **não executado**. Nenhum número deste arquivo é evidência do Gate G1 até a
+> execução no cluster T1 com gateway, armazenamento e o commit registrados.
 
 Este arquivo segue o ADR-0006: todo número publicado declara commit, hardware,
 configuração, seed, duração e veredito; falhas e limitações ficam visíveis; e
@@ -22,7 +22,9 @@ benchmark de fornecedor não entra sem reprodução própria.
 | VictoriaMetrics + cardinalidade (1M séries, 1M/s, 1 h, local) | ✅ publicado; 999.738/s, p95 de carga 13 ms, 20 consultas p95 799,5 ms, drift do vizinho 4,82%; **não é G1** |
 | Consulta, retenção e row policies (1B eventos, local) | ✅ publicado; 16 consultas p95 ≤ 432 ms, 4 MetricsQL p95 799,5 ms, 7/15/30 TTL, isolamento e 86B rollup p95 ≤ 87 ms; **não é G1** |
 | Gateway: auth, quota e isolamento (local, 1M/s ofertado) | ⚠️ funcional pass (26.703 requests 429, 401/403/audit); p95 local +15,13% (inconclusivo por host compartilhado); T1 pendente |
-| Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento e Stories 3.2–3.5/4.1–4.5 |
+| Gateway: batching, zstd, sharding e WAL NATS (local, 100k/s) | ✅ publicado; 1M eventos, 5,46x, p99 28,9 ms, 32 shards, 0 duplicatas; **não é G1** |
+| Writers ClickHouse/VM sobre o WAL (local, 20k/s + caos) | ✅ publicado; 400k eventos, lag p95 0,80 s, contagens exatas, 0 falhas; caos com 8 retries e zero perda; **não é G1** |
+| Baseline T1 (1M/s, 1 h, 6 ClickHouse + 3 VictoriaMetrics + 6 gateways) | ⛔ bloqueado: provedor/orçamento (P-07) e Story 4.5 |
 | Perfil T1 e capacidade | ✅ definidos e validados (`bench/env/t1.json`) |
 | Provisionamento idempotente + destroy + custo | ✅ implementado e validado sem `apply`; execução bloqueada por gasto |
 | Gate G1 | ⛔ aberto |
@@ -495,6 +497,81 @@ com load generators em hosts separados; P-07 e o baseline T1 continuam
 bloqueados. O teste de NATS/ClickHouse fora por 15 min é a Story 4.5.
 
 **Evidência:** [`docs/dev/story-4.3-handoff.md`](docs/dev/story-4.3-handoff.md).
+
+## Story 4.4 — writers sobre o WAL NATS (local)
+
+**O que é:** o gateway publica no WAL; três consumidores duráveis leem os
+streams, deduplicam por `event_id`, convertem o OTLP e escrevem logs/traces no
+ClickHouse e métricas no VictoriaMetrics. O ack do WAL acontece só depois do
+flush. O run principal usa 20k eventos/s por 20 s em dois tenants; um smoke
+com caos para o ClickHouse por 3 s e o VictoriaMetrics por 2 s e verifica o
+retry. **Não é o run de 1M/s por 1 h do T1** e não é evidência do G1.
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Story | 4.4 — Writers para ClickHouse e VictoriaMetrics |
+| Harness | `bench/pipeline/run.sh` |
+| Resultado principal | `bench/pipeline/results/2026-11-03-local-20k/` |
+| Resultado de caos | `bench/pipeline/results/2026-11-03-local-5k-chaos/` |
+| Componentes | NATS 2.15.2 JetStream, ClickHouse 26.8, VictoriaMetrics 1.148 |
+| Migrações | `0001`–`0004` (logs, traces, dedupe e tenancy) |
+| Batch | 200 eventos/request; writer 20k eventos ou 200 ms |
+| Compressão | gzip no cliente OTLP e no INSERT do ClickHouse |
+| Host | Intel Core Ultra 7 155H, 22 threads, 15 GiB RAM |
+| Data | 2026-11-03 |
+
+### Resultados — 20k/s estável
+
+| Métrica | Valor |
+|---|---:|
+| Eventos ofertados (runs medidas) | 400.000 |
+| Eventos no WAL | 400.000 |
+| Eventos aceitos pelo writer (todas as fases) | 420.000 |
+| Escritos | 406.700 |
+| Deduplicados | 13.300 |
+| Falhas / rejeições | 0 / 0 |
+| Retries | 0 |
+| Logs no ClickHouse | 135.300 (135.300 únicos) |
+| Traces no ClickHouse | 132.000 (132.000 únicos) |
+| Amostras no VictoriaMetrics | 139.400 (64 séries) |
+| Lag p50 / p95 / p99 | **0,515 s / 0,802 s / 0,887 s** |
+| Exit codes gateway/writer | 0 / 0 |
+
+O total aceito inclui a fase de dedupe: 10.000 eventos de um replay idêntico
+foram deduplicados e 3.300 traces colidiram pelo `trace_id`/`span_id`
+determinístico do load generator. A soma `written + deduped + failed` fecha
+com o aceito.
+
+### Resultados — 5k/s com caos
+
+| Métrica | Valor |
+|---|---:|
+| Eventos ofertados (runs medidas) | 25.000 |
+| Aceitos (todas as fases) | 30.000 |
+| Escritos | 26.675 |
+| Deduplicados | 3.325 |
+| Retries | **8** |
+| Logs / traces no ClickHouse | 9.075 / 8.250 |
+| Amostras no VictoriaMetrics | 9.350 (9.350 escritas; igual ao writer neste run) |
+| Lag p95 | **7,97 s** durante o caos |
+| Falhas | 0 |
+
+O ClickHouse ficou fora por 3 s e o VictoriaMetrics por 2 s. O writer manteve
+as mensagens não confirmadas no WAL, retentou com backoff e fechou as
+contagens depois da recuperação; nenhum evento confirmado foi perdido.
+
+### Veredito
+
+**Pass funcional local; AC1 de throughput pendente do T1.** A contagem
+armazenada bate com a aceita nos logs e traces, o remote write bate com o
+`written` de métricas dentro do coalescimento de milissegundos, o lag p95
+ficou abaixo de 1 s no run estável e abaixo de 10 s no caos, e o retry
+exponencial não perdeu dados. O AC1 exige 1M/s por 1 h na frota T1; P-07 e o
+baseline T1 continuam bloqueados. O outage de 15 min é a Story 4.5.
+
+**Evidência:** [`docs/dev/story-4.4-handoff.md`](docs/dev/story-4.4-handoff.md).
 
 ## Cluster de referência T1 (pendente)
 

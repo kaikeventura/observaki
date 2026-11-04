@@ -1,0 +1,75 @@
+{
+  "story": "4.4",
+  "status": "pass",
+  "t1_status": "pending",
+  "t1_note": "AC1 requires 1M/s for one hour on the T1 fleet; P-07 and the T1 baseline remain pending. This local run is a proxy, not G1 evidence.",
+  "duration": "5s",
+  "rate": 5000,
+  "batch_size": 100,
+  "runs": 1,
+  "mix": "34,33,33",
+  "compression": "gzip",
+  "chaos": {
+    "enabled": true,
+    "clickhouse_seconds": 3,
+    "victoriametrics_seconds": 2
+  },
+  "dedupe": {
+    "status": "pass",
+    "events": 2500
+  },
+  "load_generator_events": 25000,
+  "wal_events": 25000,
+  "writer_accepted_events": 30000,
+  "writer_accepted_measured": 25000,
+  "writer_written_events": 26675,
+  "writer_deduped_events": 3325,
+  "writer_failed_events": 0,
+  "writer_skipped_events": 0,
+  "writer_retries": 8,
+  "clickhouse": {
+    "logs": 9075,
+    "traces": 8250
+  },
+  "victoriametrics": {
+    "samples": 9350,
+    "series": 64
+  },
+  "signals": {
+    "logs": {
+      "accepted": 9900,
+      "written": 9075
+    },
+    "traces": {
+      "accepted": 9900,
+      "written": 8250
+    },
+    "metrics": {
+      "accepted": 10200,
+      "written": 9350
+    }
+  },
+  "lag_seconds": {
+    "p50": 6.140027,
+    "p95": 7.966322,
+    "p99": 8.088456
+  },
+  "exit_codes": {
+    "gateway": 0,
+    "writer": 0
+  },
+  "reason": "",
+  "runs_detail": [
+    {
+      "run": 1,
+      "sent_tenant_a": 12500,
+      "sent_tenant_b": 12500,
+      "failed": 0,
+      "rejected": 0,
+      "client_p99_ms_tenant_a": 18.73,
+      "client_p99_ms_tenant_b": 17.22,
+      "wal_events_delta": 25000,
+      "writer_accepted_delta": 25000
+    }
+  ]
+}

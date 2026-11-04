@@ -404,3 +404,96 @@ func TestLogLevelSlogLevel(t *testing.T) {
 		t.Errorf("info level = %v", LogLevelInfo.SlogLevel())
 	}
 }
+
+func TestLoadWriterDefaults(t *testing.T) {
+	cfg, err := Load(lookup(nil))
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.WriterAddr != DefaultWriterAddr || cfg.WriterSpoolDir != DefaultWriterSpoolDir {
+		t.Errorf("writer endpoint = %q/%q", cfg.WriterAddr, cfg.WriterSpoolDir)
+	}
+	if cfg.WriterBatchMaxEvents != DefaultWriterBatchMaxEvents || cfg.WriterBatchLinger != DefaultWriterBatchLinger {
+		t.Errorf("writer batch = %d/%s", cfg.WriterBatchMaxEvents, cfg.WriterBatchLinger)
+	}
+	if cfg.WriterDedupeWindow != DefaultWriterDedupeWindow || cfg.WriterAckWait != DefaultWriterAckWait {
+		t.Errorf("writer dedupe/ack = %d/%s", cfg.WriterDedupeWindow, cfg.WriterAckWait)
+	}
+	if cfg.WriterRetentionDays != DefaultWriterRetentionDays || cfg.WriterMaxRetryBackoff != DefaultWriterMaxRetryBackoff {
+		t.Errorf("writer retention/backoff = %d/%s", cfg.WriterRetentionDays, cfg.WriterMaxRetryBackoff)
+	}
+	if cfg.ClickHouseURL != DefaultClickHouseURL || cfg.ClickHouseDatabase != DefaultClickHouseDatabase {
+		t.Errorf("clickhouse = %q/%q", cfg.ClickHouseURL, cfg.ClickHouseDatabase)
+	}
+	if cfg.ClickHouseCompression != DefaultClickHouseCompression || cfg.ClickHouseMaxRetries != DefaultClickHouseMaxRetries {
+		t.Errorf("clickhouse compression/retries = %q/%d", cfg.ClickHouseCompression, cfg.ClickHouseMaxRetries)
+	}
+	if cfg.VictoriaMetricsURL != DefaultVictoriaMetricsURL || cfg.VictoriaMetricsMaxSeries != DefaultVictoriaMetricsMaxSeries {
+		t.Errorf("victoriametrics = %q/%d", cfg.VictoriaMetricsURL, cfg.VictoriaMetricsMaxSeries)
+	}
+}
+
+func TestLoadWriterOverrides(t *testing.T) {
+	cfg, err := Load(lookup(map[string]string{
+		EnvWriterAddr:               "127.0.0.1:18082",
+		EnvWriterSpoolDir:           "/var/lib/observaki/spool",
+		EnvWriterBatchMaxEvents:     "10000",
+		EnvWriterBatchLinger:        "250ms",
+		EnvWriterDedupeWindow:       "2000",
+		EnvWriterAckWait:            "10m",
+		EnvWriterRetentionDays:      "30",
+		EnvWriterMaxRetryBackoff:    "1m",
+		EnvClickHouseURL:            "http://clickhouse.internal:8123",
+		EnvClickHouseDatabase:       "telemetry",
+		EnvClickHouseUser:           "observaki",
+		EnvClickHousePassword:       "secret",
+		EnvClickHouseTimeout:        "45s",
+		EnvClickHouseCompression:    "gzip",
+		EnvClickHouseMaxRetries:     "10",
+		EnvClickHouseRetryBackoff:   "2s",
+		EnvVictoriaMetricsURL:       "https://vm.internal:8428",
+		EnvVictoriaMetricsTimeout:   "20s",
+		EnvVictoriaMetricsRetries:   "5",
+		EnvVictoriaMetricsBackoff:   "3s",
+		EnvVictoriaMetricsMaxSeries: "1000",
+	}))
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.WriterAddr != "127.0.0.1:18082" || cfg.WriterSpoolDir != "/var/lib/observaki/spool" {
+		t.Errorf("writer endpoint = %q/%q", cfg.WriterAddr, cfg.WriterSpoolDir)
+	}
+	if cfg.WriterBatchMaxEvents != 10000 || cfg.WriterBatchLinger != 250*time.Millisecond {
+		t.Errorf("writer batch = %d/%s", cfg.WriterBatchMaxEvents, cfg.WriterBatchLinger)
+	}
+	if cfg.ClickHouseURL != "http://clickhouse.internal:8123" || cfg.ClickHouseDatabase != "telemetry" {
+		t.Errorf("clickhouse = %q/%q", cfg.ClickHouseURL, cfg.ClickHouseDatabase)
+	}
+	if cfg.ClickHouseUser != "observaki" || cfg.ClickHousePassword != "secret" || cfg.ClickHouseCompression != "gzip" {
+		t.Errorf("clickhouse auth/compression = %q/%q/%q", cfg.ClickHouseUser, cfg.ClickHousePassword, cfg.ClickHouseCompression)
+	}
+	if cfg.VictoriaMetricsURL != "https://vm.internal:8428" || cfg.VictoriaMetricsMaxSeries != 1000 {
+		t.Errorf("victoriametrics = %q/%d", cfg.VictoriaMetricsURL, cfg.VictoriaMetricsMaxSeries)
+	}
+}
+
+func TestLoadRejectsInvalidWriterConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+	}{
+		{"bad writer addr", map[string]string{EnvWriterAddr: "localhost"}},
+		{"bad clickhouse url", map[string]string{EnvClickHouseURL: "clickhouse:8123"}},
+		{"bad clickhouse database", map[string]string{EnvClickHouseDatabase: "observaki;drop"}},
+		{"bad clickhouse compression", map[string]string{EnvClickHouseCompression: "zstd"}},
+		{"bad vm url", map[string]string{EnvVictoriaMetricsURL: "ftp://vm"}},
+		{"bad dedupe window", map[string]string{EnvWriterDedupeWindow: "-1"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := Load(lookup(tt.env)); err == nil {
+				t.Fatalf("Load(%v) error = nil", tt.env)
+			}
+		})
+	}
+}

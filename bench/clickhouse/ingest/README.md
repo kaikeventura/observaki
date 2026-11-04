@@ -15,7 +15,7 @@ ingestão do produto (batches RowBinary, spool durável, checkpoint, dedupe por
 | Etapa | O que faz |
 |---|---|
 | Container | `clickhouse/clickhouse-server:26.8` com `bench/clickhouse/config/bench.xml` e o usuário local de `config/users.xml` |
-| Schema | Aplica `0001_otel_logs.sql`, `0002_otel_traces.sql` e `0003_ingest_dedupe.sql` |
+| Schema | Aplica `0001_otel_logs.sql` a `0004_tenancy.sql` (inclui `project_generation`/`authz_epoch`) |
 | Integração | `go test -run TestIntegration ./internal/adapters/clickhouse/writer` contra o ClickHouse real (RowBinary, dedupe ao vivo, replay com token) |
 | Dedupe | Submete o mesmo batch de 50k eventos duas vezes; espera 50k linhas e 50k duplicatas contabilizadas |
 | Recuperação | Mata o writer depois do insert no ClickHouse e antes do checkpoint; reinicia e reenvia o batch do spool; espera o mesmo count e o checkpoint avançado |

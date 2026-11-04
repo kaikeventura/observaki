@@ -28,6 +28,13 @@ func streamSubject(prefix string, signal ingest.Signal) string {
 	return prefix + ".*.*.*." + signal.String() + ".*"
 }
 
+// StreamSubject returns the wildcard subject a signal stream stores. It is
+// exported so the WAL consumer can create a filtered durable consumer with
+// exactly the same layout as the gateway publisher.
+func StreamSubject(prefix string, signal ingest.Signal) string {
+	return streamSubject(prefix, signal)
+}
+
 func streamName(prefix string, signal ingest.Signal) string {
 	return prefix + "_" + strings.ToUpper(signal.String())
 }

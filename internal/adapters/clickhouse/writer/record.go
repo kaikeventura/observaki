@@ -4,9 +4,10 @@
 //
 // The writer is deliberately signal-specific at the edges (SubmitLogs and
 // SubmitTraces) and signal-agnostic in the middle: one spool, one retry loop
-// and one checkpoint mechanism. The spool is a local durable buffer for the
-// single-node profile (AD-4); the cluster profile replaces it with NATS
-// JetStream in Story 4.3 without changing the ack contract.
+// and one checkpoint mechanism. In the cluster profile the NATS JetStream WAL
+// (Story 4.3) is the first durability boundary; the writer consumes it and
+// keeps this local spool as the second boundary until ClickHouse confirms the
+// insert (AD-4, Story 4.4).
 package writer
 
 import (
@@ -43,6 +44,8 @@ var (
 		"span_id",
 		"event_id",
 		"retention_days",
+		"project_generation",
+		"authz_epoch",
 	}
 	traceColumns = []string{
 		"tenant_id",
@@ -64,6 +67,8 @@ var (
 		"links",
 		"event_id",
 		"retention_days",
+		"project_generation",
+		"authz_epoch",
 	}
 )
 
@@ -90,6 +95,8 @@ type LogRecord struct {
 	SpanID             string
 	EventID            string
 	RetentionDays      uint16
+	ProjectGeneration  uint64
+	AuthzEpoch         uint64
 }
 
 // SpanRecord is one OTLP span ready for storage.
@@ -112,6 +119,8 @@ type SpanRecord struct {
 	Links              []SpanLink
 	EventID            string
 	RetentionDays      uint16
+	ProjectGeneration  uint64
+	AuthzEpoch         uint64
 }
 
 // SpanEvent is an OTLP span event.
@@ -129,9 +138,11 @@ type SpanLink struct {
 }
 
 type identity struct {
-	tenantID  string
-	projectID string
-	eventID   string
+	tenantID          string
+	projectID         string
+	eventID           string
+	projectGeneration uint64
+	authzEpoch        uint64
 }
 
 type record interface {
@@ -142,7 +153,13 @@ type record interface {
 }
 
 func (r LogRecord) identity() identity {
-	return identity{tenantID: r.TenantID, projectID: r.ProjectID, eventID: r.EventID}
+	return identity{
+		tenantID:          r.TenantID,
+		projectID:         r.ProjectID,
+		eventID:           r.EventID,
+		projectGeneration: tenancyValue(r.ProjectGeneration),
+		authzEpoch:        tenancyValue(r.AuthzEpoch),
+	}
 }
 
 func (r LogRecord) eventTime() time.Time { return r.Timestamp }
@@ -187,11 +204,19 @@ func (r LogRecord) appendRowBinary(dst []byte, eventTime, ingestedAt time.Time) 
 	dst = appendString(dst, r.TraceID)
 	dst = appendString(dst, r.SpanID)
 	dst = appendString(dst, r.EventID)
-	return binary.LittleEndian.AppendUint16(dst, retention)
+	dst = binary.LittleEndian.AppendUint16(dst, retention)
+	dst = binary.LittleEndian.AppendUint64(dst, tenancyValue(r.ProjectGeneration))
+	return binary.LittleEndian.AppendUint64(dst, tenancyValue(r.AuthzEpoch))
 }
 
 func (r SpanRecord) identity() identity {
-	return identity{tenantID: r.TenantID, projectID: r.ProjectID, eventID: r.EventID}
+	return identity{
+		tenantID:          r.TenantID,
+		projectID:         r.ProjectID,
+		eventID:           r.EventID,
+		projectGeneration: tenancyValue(r.ProjectGeneration),
+		authzEpoch:        tenancyValue(r.AuthzEpoch),
+	}
 }
 
 func (r SpanRecord) eventTime() time.Time { return r.Timestamp }
@@ -242,7 +267,9 @@ func (r SpanRecord) appendRowBinary(dst []byte, eventTime, ingestedAt time.Time)
 	dst = appendSpanEvents(dst, r.Events)
 	dst = appendSpanLinks(dst, r.Links)
 	dst = appendString(dst, r.EventID)
-	return binary.LittleEndian.AppendUint16(dst, retention)
+	dst = binary.LittleEndian.AppendUint16(dst, retention)
+	dst = binary.LittleEndian.AppendUint64(dst, tenancyValue(r.ProjectGeneration))
+	return binary.LittleEndian.AppendUint64(dst, tenancyValue(r.AuthzEpoch))
 }
 
 func appendString(dst []byte, value string) []byte {
@@ -252,6 +279,16 @@ func appendString(dst []byte, value string) []byte {
 
 func appendTime(dst []byte, value time.Time) []byte {
 	return binary.LittleEndian.AppendUint64(dst, uint64(value.UnixNano()))
+}
+
+// tenancyValue defaults the authorization generation/epoch to 1 so records
+// written before the tenancy migration keep the schema default and remain
+// readable under the initial scope (AD-20).
+func tenancyValue(value uint64) uint64 {
+	if value == 0 {
+		return 1
+	}
+	return value
 }
 
 func appendMap(dst []byte, values map[string]string) []byte {

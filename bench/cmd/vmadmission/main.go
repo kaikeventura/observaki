@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/observaki/observaki/bench/internal/benchversion"
-	"github.com/observaki/observaki/bench/internal/promrw"
 	"github.com/observaki/observaki/bench/internal/vmbench"
+	"github.com/observaki/observaki/internal/promrw"
 )
 
 func main() {

@@ -47,6 +47,28 @@ const (
 	EnvNATSPublishTimeout    = "OBSERVAKI_NATS_PUBLISH_TIMEOUT"
 	EnvNATSMaxPendingBytes   = "OBSERVAKI_NATS_MAX_PENDING_BYTES"
 	EnvNATSPublishWorkers    = "OBSERVAKI_NATS_PUBLISH_WORKERS"
+
+	EnvWriterAddr               = "OBSERVAKI_WRITER_ADDR"
+	EnvWriterSpoolDir           = "OBSERVAKI_WRITER_SPOOL_DIR"
+	EnvWriterBatchMaxEvents     = "OBSERVAKI_WRITER_BATCH_MAX_EVENTS"
+	EnvWriterBatchLinger        = "OBSERVAKI_WRITER_BATCH_LINGER"
+	EnvWriterDedupeWindow       = "OBSERVAKI_WRITER_DEDUPE_WINDOW"
+	EnvWriterAckWait            = "OBSERVAKI_WRITER_ACK_WAIT"
+	EnvWriterRetentionDays      = "OBSERVAKI_WRITER_RETENTION_DAYS"
+	EnvWriterMaxRetryBackoff    = "OBSERVAKI_WRITER_MAX_RETRY_BACKOFF"
+	EnvClickHouseURL            = "OBSERVAKI_CLICKHOUSE_URL"
+	EnvClickHouseDatabase       = "OBSERVAKI_CLICKHOUSE_DATABASE"
+	EnvClickHouseUser           = "OBSERVAKI_CLICKHOUSE_USER"
+	EnvClickHousePassword       = "OBSERVAKI_CLICKHOUSE_PASSWORD"
+	EnvClickHouseTimeout        = "OBSERVAKI_CLICKHOUSE_TIMEOUT"
+	EnvClickHouseCompression    = "OBSERVAKI_CLICKHOUSE_COMPRESSION"
+	EnvClickHouseMaxRetries     = "OBSERVAKI_CLICKHOUSE_MAX_RETRIES"
+	EnvClickHouseRetryBackoff   = "OBSERVAKI_CLICKHOUSE_RETRY_BACKOFF"
+	EnvVictoriaMetricsURL       = "OBSERVAKI_VICTORIAMETRICS_URL"
+	EnvVictoriaMetricsTimeout   = "OBSERVAKI_VICTORIAMETRICS_TIMEOUT"
+	EnvVictoriaMetricsRetries   = "OBSERVAKI_VICTORIAMETRICS_MAX_RETRIES"
+	EnvVictoriaMetricsBackoff   = "OBSERVAKI_VICTORIAMETRICS_RETRY_BACKOFF"
+	EnvVictoriaMetricsMaxSeries = "OBSERVAKI_VICTORIAMETRICS_MAX_SERIES_PER_REQUEST"
 )
 
 // Defaults applied when a variable is unset or empty.
@@ -88,6 +110,28 @@ const (
 	DefaultNATSPublishTimeout  = 5 * time.Second
 	DefaultNATSMaxPendingBytes = int64(256) << 20
 	DefaultNATSPublishWorkers  = 8
+
+	DefaultWriterAddr            = ":8082"
+	DefaultWriterSpoolDir        = "var/writer-spool"
+	DefaultWriterBatchMaxEvents  = 50_000
+	DefaultWriterBatchLinger     = time.Second
+	DefaultWriterDedupeWindow    = 500_000
+	DefaultWriterAckWait         = 30 * time.Minute
+	DefaultWriterRetentionDays   = 15
+	DefaultWriterMaxRetryBackoff = 30 * time.Second
+
+	DefaultClickHouseURL          = "http://127.0.0.1:8123"
+	DefaultClickHouseDatabase     = "observaki"
+	DefaultClickHouseTimeout      = 2 * time.Minute
+	DefaultClickHouseCompression  = "none"
+	DefaultClickHouseMaxRetries   = 0
+	DefaultClickHouseRetryBackoff = 500 * time.Millisecond
+
+	DefaultVictoriaMetricsURL       = "http://127.0.0.1:8428"
+	DefaultVictoriaMetricsTimeout   = 30 * time.Second
+	DefaultVictoriaMetricsRetries   = 0
+	DefaultVictoriaMetricsBackoff   = 500 * time.Millisecond
+	DefaultVictoriaMetricsMaxSeries = 5_000
 )
 
 // LogLevel is a validated logging level.
@@ -161,6 +205,30 @@ type Config struct {
 	NATSPublishTimeout  time.Duration
 	NATSMaxPendingBytes int64
 	NATSPublishWorkers  int
+
+	WriterAddr            string
+	WriterSpoolDir        string
+	WriterBatchMaxEvents  int
+	WriterBatchLinger     time.Duration
+	WriterDedupeWindow    int
+	WriterAckWait         time.Duration
+	WriterRetentionDays   int
+	WriterMaxRetryBackoff time.Duration
+
+	ClickHouseURL          string
+	ClickHouseDatabase     string
+	ClickHouseUser         string
+	ClickHousePassword     string
+	ClickHouseTimeout      time.Duration
+	ClickHouseCompression  string
+	ClickHouseMaxRetries   int
+	ClickHouseRetryBackoff time.Duration
+
+	VictoriaMetricsURL          string
+	VictoriaMetricsTimeout      time.Duration
+	VictoriaMetricsMaxRetries   int
+	VictoriaMetricsRetryBackoff time.Duration
+	VictoriaMetricsMaxSeries    int
 }
 
 // Lookup returns the value of an environment variable (os.Getenv compatible).
@@ -198,6 +266,15 @@ func Load(lookup Lookup) (Config, error) {
 		NATSSubjectPrefix:   valueOr(lookup(EnvNATSSubjectPrefix), DefaultNATSSubjectPrefix),
 		NATSStreamPrefix:    valueOr(lookup(EnvNATSStreamPrefix), DefaultNATSStreamPrefix),
 		NATSStreamStorage:   strings.ToLower(valueOr(lookup(EnvNATSStreamStorage), DefaultNATSStreamStorage)),
+
+		WriterAddr:            valueOr(lookup(EnvWriterAddr), DefaultWriterAddr),
+		WriterSpoolDir:        valueOr(lookup(EnvWriterSpoolDir), DefaultWriterSpoolDir),
+		ClickHouseURL:         valueOr(lookup(EnvClickHouseURL), DefaultClickHouseURL),
+		ClickHouseDatabase:    valueOr(lookup(EnvClickHouseDatabase), DefaultClickHouseDatabase),
+		ClickHouseUser:        strings.TrimSpace(lookup(EnvClickHouseUser)),
+		ClickHousePassword:    lookup(EnvClickHousePassword),
+		ClickHouseCompression: strings.ToLower(valueOr(lookup(EnvClickHouseCompression), DefaultClickHouseCompression)),
+		VictoriaMetricsURL:    valueOr(lookup(EnvVictoriaMetricsURL), DefaultVictoriaMetricsURL),
 	}
 
 	var err error
@@ -258,6 +335,58 @@ func Load(lookup Lookup) (Config, error) {
 		return Config{}, err
 	}
 	cfg.NATSPublishWorkers, err = intValue(lookup, EnvNATSPublishWorkers, DefaultNATSPublishWorkers)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.WriterBatchMaxEvents, err = intValue(lookup, EnvWriterBatchMaxEvents, DefaultWriterBatchMaxEvents)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.WriterBatchLinger, err = durationValue(lookup, EnvWriterBatchLinger, DefaultWriterBatchLinger)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.WriterDedupeWindow, err = intValue(lookup, EnvWriterDedupeWindow, DefaultWriterDedupeWindow)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.WriterAckWait, err = durationValue(lookup, EnvWriterAckWait, DefaultWriterAckWait)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.WriterRetentionDays, err = intValue(lookup, EnvWriterRetentionDays, DefaultWriterRetentionDays)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.WriterMaxRetryBackoff, err = durationValue(lookup, EnvWriterMaxRetryBackoff, DefaultWriterMaxRetryBackoff)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.ClickHouseTimeout, err = durationValue(lookup, EnvClickHouseTimeout, DefaultClickHouseTimeout)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.ClickHouseMaxRetries, err = intValue(lookup, EnvClickHouseMaxRetries, DefaultClickHouseMaxRetries)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.ClickHouseRetryBackoff, err = durationValue(lookup, EnvClickHouseRetryBackoff, DefaultClickHouseRetryBackoff)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.VictoriaMetricsTimeout, err = durationValue(lookup, EnvVictoriaMetricsTimeout, DefaultVictoriaMetricsTimeout)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.VictoriaMetricsMaxRetries, err = intValue(lookup, EnvVictoriaMetricsRetries, DefaultVictoriaMetricsRetries)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.VictoriaMetricsRetryBackoff, err = durationValue(lookup, EnvVictoriaMetricsBackoff, DefaultVictoriaMetricsBackoff)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.VictoriaMetricsMaxSeries, err = intValue(lookup, EnvVictoriaMetricsMaxSeries, DefaultVictoriaMetricsMaxSeries)
 	if err != nil {
 		return Config{}, err
 	}
@@ -372,6 +501,68 @@ func (c Config) Validate() error {
 	}
 	if c.NATSPublishWorkers < 1 || c.NATSPublishWorkers > 64 {
 		return fmt.Errorf("invalid %s %d: must be between 1 and 64", EnvNATSPublishWorkers, c.NATSPublishWorkers)
+	}
+
+	if err := validateAddr(c.WriterAddr); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvWriterAddr, c.WriterAddr, err)
+	}
+	if strings.TrimSpace(c.WriterSpoolDir) == "" {
+		return fmt.Errorf("invalid %s: must not be empty", EnvWriterSpoolDir)
+	}
+	if c.WriterBatchMaxEvents < 1 || c.WriterBatchMaxEvents > 1_000_000 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 1000000", EnvWriterBatchMaxEvents, c.WriterBatchMaxEvents)
+	}
+	if c.WriterBatchLinger < 10*time.Millisecond || c.WriterBatchLinger > 30*time.Second {
+		return fmt.Errorf("invalid %s %s: must be between 10ms and 30s", EnvWriterBatchLinger, c.WriterBatchLinger)
+	}
+	if c.WriterDedupeWindow < 0 || c.WriterDedupeWindow > 10_000_000 {
+		return fmt.Errorf("invalid %s %d: must be between 0 and 10000000", EnvWriterDedupeWindow, c.WriterDedupeWindow)
+	}
+	if c.WriterAckWait < time.Second || c.WriterAckWait > 24*time.Hour {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 24h", EnvWriterAckWait, c.WriterAckWait)
+	}
+	if c.WriterRetentionDays < 1 || c.WriterRetentionDays > 3650 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 3650", EnvWriterRetentionDays, c.WriterRetentionDays)
+	}
+	if c.WriterMaxRetryBackoff < 100*time.Millisecond || c.WriterMaxRetryBackoff > 10*time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 100ms and 10m", EnvWriterMaxRetryBackoff, c.WriterMaxRetryBackoff)
+	}
+
+	if err := validateHTTPURL(c.ClickHouseURL); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvClickHouseURL, c.ClickHouseURL, err)
+	}
+	if err := validateIdentifier(c.ClickHouseDatabase); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvClickHouseDatabase, c.ClickHouseDatabase, err)
+	}
+	if c.ClickHouseTimeout < time.Second || c.ClickHouseTimeout > 30*time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 30m", EnvClickHouseTimeout, c.ClickHouseTimeout)
+	}
+	switch c.ClickHouseCompression {
+	case "none", "gzip":
+	default:
+		return fmt.Errorf("invalid %s %q: must be none or gzip", EnvClickHouseCompression, c.ClickHouseCompression)
+	}
+	if c.ClickHouseMaxRetries < 0 || c.ClickHouseMaxRetries > 1000 {
+		return fmt.Errorf("invalid %s %d: must be between 0 and 1000", EnvClickHouseMaxRetries, c.ClickHouseMaxRetries)
+	}
+	if c.ClickHouseRetryBackoff < 10*time.Millisecond || c.ClickHouseRetryBackoff > time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 10ms and 1m", EnvClickHouseRetryBackoff, c.ClickHouseRetryBackoff)
+	}
+
+	if err := validateHTTPURL(c.VictoriaMetricsURL); err != nil {
+		return fmt.Errorf("invalid %s %q: %w", EnvVictoriaMetricsURL, c.VictoriaMetricsURL, err)
+	}
+	if c.VictoriaMetricsTimeout < time.Second || c.VictoriaMetricsTimeout > 30*time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 30m", EnvVictoriaMetricsTimeout, c.VictoriaMetricsTimeout)
+	}
+	if c.VictoriaMetricsMaxRetries < 0 || c.VictoriaMetricsMaxRetries > 1000 {
+		return fmt.Errorf("invalid %s %d: must be between 0 and 1000", EnvVictoriaMetricsRetries, c.VictoriaMetricsMaxRetries)
+	}
+	if c.VictoriaMetricsRetryBackoff < 10*time.Millisecond || c.VictoriaMetricsRetryBackoff > time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 10ms and 1m", EnvVictoriaMetricsBackoff, c.VictoriaMetricsRetryBackoff)
+	}
+	if c.VictoriaMetricsMaxSeries < 1 || c.VictoriaMetricsMaxSeries > 1_000_000 {
+		return fmt.Errorf("invalid %s %d: must be between 1 and 1000000", EnvVictoriaMetricsMaxSeries, c.VictoriaMetricsMaxSeries)
 	}
 
 	return nil
@@ -509,6 +700,33 @@ func validateDatabaseURL(raw string) error {
 	}
 	if parsed.Host == "" {
 		return errors.New("host is missing")
+	}
+	return nil
+}
+
+func validateHTTPURL(raw string) error {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return err
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("scheme %q is not http or https", parsed.Scheme)
+	}
+	if parsed.Host == "" {
+		return errors.New("host is missing")
+	}
+	return nil
+}
+
+func validateIdentifier(value string) error {
+	if value == "" {
+		return errors.New("must not be empty")
+	}
+	for index, r := range value {
+		if r == '_' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || index > 0 && r >= '0' && r <= '9' {
+			continue
+		}
+		return fmt.Errorf("contains %q; use letters, digits or _", r)
 	}
 	return nil
 }

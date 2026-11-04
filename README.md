@@ -67,8 +67,26 @@ projeto retorna 403 e vai para o audit; excesso de quota retorna 429 com
 `Retry-After`. O gateway publica no WAL NATS JetStream (envelope protobuf v1
 comprimido com zstd, shards por tenant/projeto/epoch/signal) e só confirma
 depois do ack durável; fila cheia retorna 429 e NATS indisponível retorna 503.
-Duplicatas são deduplicadas por `event_id`; o writer ClickHouse/VM é a Story
-4.4. Detalhes em [`docs/dev/story-4.3-handoff.md`](docs/dev/story-4.3-handoff.md).
+Duplicatas são deduplicadas por `event_id`. Detalhes em
+[`docs/dev/story-4.3-handoff.md`](docs/dev/story-4.3-handoff.md).
+
+## Writer ClickHouse/VM (Fase 0)
+
+O comando `writer` consome os três streams do WAL, deduplica por `event_id` e
+grava logs/traces no ClickHouse e métricas no VictoriaMetrics. Ele só confirma
+a mensagem do NATS depois que o storage confirma o flush; durante um outage
+ele retenta com backoff e mantém a mensagem no WAL.
+
+```bash
+make build
+OBSERVAKI_NATS_URL=nats://127.0.0.1:4222 OBSERVAKI_CLICKHOUSE_URL=http://127.0.0.1:8123 OBSERVAKI_CLICKHOUSE_DATABASE=observaki OBSERVAKI_VICTORIAMETRICS_URL=http://127.0.0.1:8428   ./bin/observaki writer
+curl -s http://127.0.0.1:8082/metrics
+curl -s http://127.0.0.1:8082/stats
+```
+
+O harness end-to-end (gateway + WAL + writers + storage + caos) está em
+[`bench/pipeline/README.md`](bench/pipeline/README.md) e a evidência local em
+[`docs/dev/story-4.4-handoff.md`](docs/dev/story-4.4-handoff.md).
 
 O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
 em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em

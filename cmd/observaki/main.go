@@ -10,7 +10,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/observaki/observaki/internal/adapters/clickhouse/writer"
 	natsadapter "github.com/observaki/observaki/internal/adapters/nats"
+	"github.com/observaki/observaki/internal/adapters/victoriametrics"
+	"github.com/observaki/observaki/internal/adapters/walconsumer"
 	"github.com/observaki/observaki/internal/config"
 	"github.com/observaki/observaki/internal/httpserver"
 	"github.com/observaki/observaki/internal/ingest"
@@ -38,6 +41,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return serve()
 	case "gateway":
 		return gateway()
+	case "writer":
+		return writerCommand()
 	case "help", "-h", "--help":
 		return usage(stdout)
 	default:
@@ -163,6 +168,109 @@ func gateway() error {
 	return gw.Run(ctx)
 }
 
+func writerCommand() error {
+	cfg, err := config.LoadFromEnv()
+	if err != nil {
+		return err
+	}
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: cfg.LogLevel.SlogLevel(),
+	}))
+
+	inserter, err := writer.NewHTTPInserter(writer.HTTPConfig{
+		Endpoint:    cfg.ClickHouseURL,
+		Database:    cfg.ClickHouseDatabase,
+		User:        cfg.ClickHouseUser,
+		Password:    cfg.ClickHousePassword,
+		Compression: cfg.ClickHouseCompression,
+		Timeout:     cfg.ClickHouseTimeout,
+	})
+	if err != nil {
+		return fmt.Errorf("otlp writer: configure ClickHouse: %w", err)
+	}
+	vmClient, err := victoriametrics.Open(victoriametrics.Config{
+		URL:                 cfg.VictoriaMetricsURL,
+		Timeout:             cfg.VictoriaMetricsTimeout,
+		MaxRetries:          cfg.VictoriaMetricsMaxRetries,
+		RetryBackoff:        cfg.VictoriaMetricsRetryBackoff,
+		MaxRetryBackoff:     cfg.WriterMaxRetryBackoff,
+		MaxSeriesPerRequest: cfg.VictoriaMetricsMaxSeries,
+		Logger:              logger,
+	})
+	if err != nil {
+		return fmt.Errorf("otlp writer: configure VictoriaMetrics: %w", err)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	store, err := walconsumer.NewStorage(ctx, walconsumer.StorageConfig{
+		Inserter:      inserter,
+		Metrics:       vmClient,
+		SpoolDir:      cfg.WriterSpoolDir,
+		DedupeWindow:  cfg.WriterDedupeWindow,
+		RetentionDays: uint16(cfg.WriterRetentionDays),
+		MaxRetries:    cfg.ClickHouseMaxRetries,
+		RetryBackoff:  cfg.ClickHouseRetryBackoff,
+		Logger:        logger,
+	})
+	if err != nil {
+		vmClient.Close()
+		return fmt.Errorf("otlp writer: open storage: %w", err)
+	}
+
+	consumer, err := walconsumer.Open(ctx, walconsumer.Config{
+		URL:             cfg.NATSURL,
+		CredentialsFile: cfg.NATSCredentialsFile,
+		SubjectPrefix:   cfg.NATSSubjectPrefix,
+		StreamPrefix:    cfg.NATSStreamPrefix,
+		BatchMaxEvents:  cfg.WriterBatchMaxEvents,
+		BatchLinger:     cfg.WriterBatchLinger,
+		AckWait:         cfg.WriterAckWait,
+		ConnectTimeout:  cfg.NATSConnectTimeout,
+		RetryBackoff:    cfg.ClickHouseRetryBackoff,
+		MaxRetryBackoff: cfg.WriterMaxRetryBackoff,
+		Logger:          logger,
+	}, store)
+	if err != nil {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ClickHouseTimeout)
+		_ = store.Close(shutdownCtx)
+		cancel()
+		return fmt.Errorf("otlp writer: open WAL consumer: %w", err)
+	}
+
+	server := walconsumer.NewServer(cfg.WriterAddr, consumer, logger)
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- server.Run(ctx)
+	}()
+
+	logger.Info("otlp writer running",
+		"http_addr", cfg.WriterAddr,
+		"spool_dir", cfg.WriterSpoolDir,
+		"clickhouse", cfg.ClickHouseURL,
+		"victoriametrics", cfg.VictoriaMetricsURL,
+	)
+	var runErr error
+	select {
+	case <-ctx.Done():
+	case err := <-serverErr:
+		runErr = err
+		stop()
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ClickHouseTimeout)
+	defer cancel()
+	if err := consumer.Close(shutdownCtx); err != nil {
+		runErr = errors.Join(runErr, err)
+	}
+	if err := store.Close(shutdownCtx); err != nil {
+		runErr = errors.Join(runErr, err)
+	}
+	return runErr
+}
+
 func usage(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `observaki — OTel-native observability platform
 
@@ -173,11 +281,13 @@ Commands:
   version   print version, commit and build date
   serve     start the HTTP API (env %s, default %s)
   gateway   start the OTLP gateway (env %s/%s, default %s/%s)
+  writer    consume the NATS WAL and write ClickHouse/VictoriaMetrics (env %s, default %s)
   help      show this help
 `,
 		config.EnvHTTPAddr, config.DefaultHTTPAddr,
 		config.EnvOTLPGRPCAddr, config.EnvOTLPHTTPAddr,
 		config.DefaultOTLPGRPCAddr, config.DefaultOTLPHTTPAddr,
+		config.EnvWriterAddr, config.DefaultWriterAddr,
 	)
 	return err
 }

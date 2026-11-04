@@ -18,6 +18,7 @@ import (
 // InsertRequest is one batch written with FORMAT RowBinary.
 type InsertRequest struct {
 	Table       string
+	Columns     []string
 	Data        []byte
 	Rows        int
 	DedupeToken string
@@ -154,10 +155,19 @@ func (h *HTTPInserter) Insert(ctx context.Context, request InsertRequest) (Inser
 	if err := validateTable(request.Table); err != nil {
 		return InsertResult{}, err
 	}
+	columns := ""
+	if len(request.Columns) > 0 {
+		for _, column := range request.Columns {
+			if err := validateTable(column); err != nil {
+				return InsertResult{}, fmt.Errorf("clickhouse column %q: %w", column, err)
+			}
+		}
+		columns = " (" + strings.Join(request.Columns, ", ") + ")"
+	}
 
 	query := url.Values{}
 	query.Set("database", h.database)
-	query.Set("query", "INSERT INTO "+request.Table+" FORMAT RowBinary")
+	query.Set("query", "INSERT INTO "+request.Table+columns+" FORMAT RowBinary")
 	if h.syncInsert {
 		query.Set("async_insert", "0")
 	} else {

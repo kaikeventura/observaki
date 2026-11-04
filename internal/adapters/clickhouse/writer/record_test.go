@@ -79,6 +79,12 @@ func TestLogRowBinaryLayout(t *testing.T) {
 	if got := decoder.uint16(); got != 7 {
 		t.Fatalf("retention_days = %d, want 7", got)
 	}
+	if got := decoder.uint64(); got != 1 {
+		t.Fatalf("project_generation = %d, want default 1", got)
+	}
+	if got := decoder.uint64(); got != 1 {
+		t.Fatalf("authz_epoch = %d, want default 1", got)
+	}
 	decoder.done()
 }
 
@@ -131,6 +137,12 @@ func TestLogRowBinaryDefaults(t *testing.T) {
 	}
 	if got := decoder.uint16(); got != DefaultRetentionDays {
 		t.Fatalf("retention_days = %d, want %d", got, DefaultRetentionDays)
+	}
+	if got := decoder.uint64(); got != 1 {
+		t.Fatalf("project_generation = %d, want default 1", got)
+	}
+	if got := decoder.uint64(); got != 1 {
+		t.Fatalf("authz_epoch = %d, want default 1", got)
 	}
 	decoder.done()
 }
@@ -230,6 +242,12 @@ func TestSpanRowBinaryLayout(t *testing.T) {
 	if got := decoder.uint16(); got != 15 {
 		t.Fatalf("retention_days = %d, want 15", got)
 	}
+	if got := decoder.uint64(); got != 1 {
+		t.Fatalf("project_generation = %d, want default 1", got)
+	}
+	if got := decoder.uint64(); got != 1 {
+		t.Fatalf("authz_epoch = %d, want default 1", got)
+	}
 	decoder.done()
 }
 
@@ -290,8 +308,16 @@ func TestColumnOrderMatchesMigrations(t *testing.T) {
 			continue
 		}
 		got := migrationColumns(migration.SQL)
-		if !slices.Equal(got, expected) {
-			t.Fatalf("%s columns = %v, want %v", migration.Name, got, expected)
+		// 0004 adds project_generation and authz_epoch after the CREATE
+		// columns; the writer always inserts them explicitly.
+		if !slices.Equal(got, expected[:len(got)]) {
+			t.Fatalf("%s columns = %v, want prefix %v", migration.Name, got, expected[:len(got)])
+		}
+	}
+	tenancy := []string{"project_generation", "authz_epoch"}
+	for table, columns := range want {
+		if !slices.Equal(columns[len(columns)-len(tenancy):], tenancy) {
+			t.Fatalf("%s tenancy columns = %v, want %v", table, columns[len(columns)-len(tenancy):], tenancy)
 		}
 	}
 }
@@ -469,6 +495,8 @@ func TestParallelEncodingKeepsEveryRow(t *testing.T) {
 		decoder.string()
 		eventID := decoder.string()
 		decoder.uint16()
+		decoder.uint64()
+		decoder.uint64()
 		if _, ok := seen[eventID]; ok {
 			t.Fatalf("parallel encoding duplicated event_id %q", eventID)
 		}

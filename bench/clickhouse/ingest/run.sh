@@ -179,7 +179,7 @@ query() {
 
 apply_schema() {
 	ch_root --query "CREATE DATABASE IF NOT EXISTS $DATABASE"
-	for migration in "$MIGRATIONS"/0001_otel_logs.sql "$MIGRATIONS"/0002_otel_traces.sql "$MIGRATIONS"/0003_ingest_dedupe.sql; do
+	for migration in "$MIGRATIONS"/0001_otel_logs.sql "$MIGRATIONS"/0002_otel_traces.sql "$MIGRATIONS"/0003_ingest_dedupe.sql "$MIGRATIONS"/0004_tenancy.sql; do
 		log "applying $(basename "$migration")"
 		docker exec -i "$CONTAINER" clickhouse-client --database "$DATABASE" --multiquery <"$migration"
 	done

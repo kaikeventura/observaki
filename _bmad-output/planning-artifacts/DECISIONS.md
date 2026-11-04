@@ -110,6 +110,23 @@ e p99 de processamento 28,9 ms; 1M/s com payload mínimo sustentou ~740k/s e 5M
 eventos íntegros. **Não é G1:** 1M/s por 1 h, retenção de 15 min e o caos de
 NATS/ClickHouse continuam pendentes do T1/4.5 (P-07).
 
+**Story 4.4 (2026-11-04):** o writer (`observaki writer`) consome os três
+streams com consumidores duráveis `AckExplicit`, mescla requests por
+tenant/projeto/geração/epoch/sinal e só confirma a mensagem do NATS depois do
+`OnDone` do writer ClickHouse (insert confirmado ou DLQ) ou do HTTP 2xx do
+VictoriaMetrics. O dedupe em memória usa
+`tenant|project|geração|authz_epoch|event_id`; o
+`insert_deduplication_token` do ClickHouse é derivado dos `event_id`, não da
+sequência local, então um replay idêntico após restart é absorvido pelo bloco.
+O INSERT usa lista explícita de 17 colunas, incluindo
+`project_generation`/`authz_epoch` (AD-20). Erros permanentes vão para
+`OBSERVAKI_DLQ`; transitórios usam backoff exponencial de 500 ms a 30 s e
+mantêm a mensagem não confirmada no WAL. **Evidência local:** 20k/s por 20 s
+com 400k eventos, lag p95 0,80 s, contagens exatas em ClickHouse/VictoriaMetrics
+e zero falhas; caos de 3 s no ClickHouse e 2 s no VictoriaMetrics com 8 retries
+e zero perda. **Não é G1:** 1M/s por 1 h, outage de 15 min e caos de
+NATS/gateway são 4.5 + T1 (P-07).
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.

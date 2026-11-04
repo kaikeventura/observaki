@@ -1,0 +1,103 @@
+# HELP observaki_writer_up Whether the WAL writer workers are running.
+# TYPE observaki_writer_up gauge
+observaki_writer_up 1
+# HELP observaki_writer_wal_connected Whether the NATS connection is up.
+# TYPE observaki_writer_wal_connected gauge
+observaki_writer_wal_connected 1
+# HELP observaki_writer_in_flight_events Events fetched from the WAL and not yet acknowledged.
+# TYPE observaki_writer_in_flight_events gauge
+observaki_writer_in_flight_events 0
+# HELP observaki_writer_messages_fetched_total WAL envelopes fetched per signal.
+# TYPE observaki_writer_messages_fetched_total counter
+observaki_writer_messages_fetched_total{signal="traces"} 102
+observaki_writer_messages_fetched_total{signal="logs"} 102
+observaki_writer_messages_fetched_total{signal="metrics"} 104
+# HELP observaki_writer_dlq_messages_total Messages moved to the dead-letter stream.
+# TYPE observaki_writer_dlq_messages_total counter
+observaki_writer_dlq_messages_total{signal="traces"} 0
+observaki_writer_dlq_messages_total{signal="logs"} 0
+observaki_writer_dlq_messages_total{signal="metrics"} 0
+# HELP observaki_writer_consumer_pending_messages WAL messages waiting for this consumer group.
+# TYPE observaki_writer_consumer_pending_messages gauge
+observaki_writer_consumer_pending_messages{signal="traces"} 0
+observaki_writer_consumer_pending_messages{signal="logs"} 0
+observaki_writer_consumer_pending_messages{signal="metrics"} 0
+# HELP observaki_writer_accepted_events_total Events fetched from the WAL.
+# TYPE observaki_writer_accepted_events_total counter
+observaki_writer_accepted_events_total{tenant_id="tenant-a",signal="traces"} 5775
+observaki_writer_accepted_events_total{tenant_id="tenant-a",signal="logs"} 5775
+observaki_writer_accepted_events_total{tenant_id="tenant-a",signal="metrics"} 5950
+observaki_writer_accepted_events_total{tenant_id="tenant-b",signal="traces"} 4125
+observaki_writer_accepted_events_total{tenant_id="tenant-b",signal="logs"} 4125
+observaki_writer_accepted_events_total{tenant_id="tenant-b",signal="metrics"} 4250
+# HELP observaki_writer_written_events_total Events confirmed by the storage backend.
+# TYPE observaki_writer_written_events_total counter
+observaki_writer_written_events_total{tenant_id="tenant-a",signal="traces"} 4125
+observaki_writer_written_events_total{tenant_id="tenant-a",signal="logs"} 4950
+observaki_writer_written_events_total{tenant_id="tenant-a",signal="metrics"} 5100
+observaki_writer_written_events_total{tenant_id="tenant-b",signal="traces"} 4125
+observaki_writer_written_events_total{tenant_id="tenant-b",signal="logs"} 4125
+observaki_writer_written_events_total{tenant_id="tenant-b",signal="metrics"} 4250
+# HELP observaki_writer_deduped_events_total Events dropped by the event_id window or the stable token.
+# TYPE observaki_writer_deduped_events_total counter
+observaki_writer_deduped_events_total{tenant_id="tenant-a",signal="traces"} 1650
+observaki_writer_deduped_events_total{tenant_id="tenant-a",signal="logs"} 825
+observaki_writer_deduped_events_total{tenant_id="tenant-a",signal="metrics"} 850
+observaki_writer_deduped_events_total{tenant_id="tenant-b",signal="traces"} 0
+observaki_writer_deduped_events_total{tenant_id="tenant-b",signal="logs"} 0
+observaki_writer_deduped_events_total{tenant_id="tenant-b",signal="metrics"} 0
+# HELP observaki_writer_failed_events_total Events moved to the dead-letter queue.
+# TYPE observaki_writer_failed_events_total counter
+observaki_writer_failed_events_total{tenant_id="tenant-a",signal="traces"} 0
+observaki_writer_failed_events_total{tenant_id="tenant-a",signal="logs"} 0
+observaki_writer_failed_events_total{tenant_id="tenant-a",signal="metrics"} 0
+observaki_writer_failed_events_total{tenant_id="tenant-b",signal="traces"} 0
+observaki_writer_failed_events_total{tenant_id="tenant-b",signal="logs"} 0
+observaki_writer_failed_events_total{tenant_id="tenant-b",signal="metrics"} 0
+# HELP observaki_writer_skipped_events_total Data points with a conversion that the MVP path does not support.
+# TYPE observaki_writer_skipped_events_total counter
+observaki_writer_skipped_events_total{tenant_id="tenant-a",signal="traces"} 0
+observaki_writer_skipped_events_total{tenant_id="tenant-a",signal="logs"} 0
+observaki_writer_skipped_events_total{tenant_id="tenant-a",signal="metrics"} 0
+observaki_writer_skipped_events_total{tenant_id="tenant-b",signal="traces"} 0
+observaki_writer_skipped_events_total{tenant_id="tenant-b",signal="logs"} 0
+observaki_writer_skipped_events_total{tenant_id="tenant-b",signal="metrics"} 0
+# HELP observaki_writer_retries_total Downstream write attempts that were retried.
+# TYPE observaki_writer_retries_total counter
+observaki_writer_retries_total{tenant_id="tenant-a",signal="traces"} 0
+observaki_writer_retries_total{tenant_id="tenant-a",signal="logs"} 4
+observaki_writer_retries_total{tenant_id="tenant-a",signal="metrics"} 0
+observaki_writer_retries_total{tenant_id="tenant-b",signal="traces"} 4
+observaki_writer_retries_total{tenant_id="tenant-b",signal="logs"} 0
+observaki_writer_retries_total{tenant_id="tenant-b",signal="metrics"} 0
+# HELP observaki_writer_lag_seconds End-to-end lag per tenant, signal and quantile.
+# TYPE observaki_writer_lag_seconds gauge
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="traces",quantile="0.5"} 0.522813
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="traces",quantile="0.95"} 7.898777
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="traces",quantile="0.99"} 8.022208
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="logs",quantile="0.5"} 5.013156
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="logs",quantile="0.95"} 7.952926
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="logs",quantile="0.99"} 8.072986
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="metrics",quantile="0.5"} 0.114211
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="metrics",quantile="0.95"} 0.204491
+observaki_writer_lag_seconds{tenant_id="tenant-a",signal="metrics",quantile="0.99"} 0.207540
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="traces",quantile="0.5"} 6.140027
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="traces",quantile="0.95"} 7.966322
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="traces",quantile="0.99"} 8.088456
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="logs",quantile="0.5"} 5.882720
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="logs",quantile="0.95"} 7.942699
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="logs",quantile="0.99"} 8.065159
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="metrics",quantile="0.5"} 0.118304
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="metrics",quantile="0.95"} 0.199975
+observaki_writer_lag_seconds{tenant_id="tenant-b",signal="metrics",quantile="0.99"} 0.209700
+# HELP observaki_writer_flush_duration_seconds Time from the first message in a batch to its acknowledgement.
+# TYPE observaki_writer_flush_duration_seconds gauge
+observaki_writer_flush_duration_seconds{signal="traces",quantile="0.5"} 0.037934
+observaki_writer_flush_duration_seconds{signal="traces",quantile="0.95"} 0.187454
+observaki_writer_flush_duration_seconds{signal="traces",quantile="0.99"} 0.237890
+observaki_writer_flush_duration_seconds{signal="logs",quantile="0.5"} 0.090302
+observaki_writer_flush_duration_seconds{signal="logs",quantile="0.95"} 0.233852
+observaki_writer_flush_duration_seconds{signal="logs",quantile="0.99"} 0.233852
+observaki_writer_flush_duration_seconds{signal="metrics",quantile="0.5"} 0.001362
+observaki_writer_flush_duration_seconds{signal="metrics",quantile="0.95"} 0.002287
+observaki_writer_flush_duration_seconds{signal="metrics",quantile="0.99"} 0.006715

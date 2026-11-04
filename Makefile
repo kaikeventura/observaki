@@ -39,7 +39,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -154,5 +154,11 @@ bench-gateway-wal: ## run the gateway batching/sharding/NATS WAL workload
 
 bench-gateway-wal-check: ## run the short gateway WAL smoke
 	./bench/gateway/wal/run.sh --smoke
+
+bench-pipeline: ## run the end-to-end gateway -> WAL -> writers pipeline
+	./bench/pipeline/run.sh
+
+bench-pipeline-check: ## run the short end-to-end pipeline smoke
+	./bench/pipeline/run.sh --smoke
 
 ci: bootstrap lint test build ## run the full local CI suite
