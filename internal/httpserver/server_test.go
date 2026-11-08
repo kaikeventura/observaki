@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/observaki/observaki/internal/api"
 )
 
 func newTestServer(t *testing.T, ver string) *Server {
@@ -26,7 +28,7 @@ func TestHealthz(t *testing.T) {
 		t.Errorf("Content-Type = %q, want %q", got, want)
 	}
 
-	var body healthResponse
+	var body api.Health
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v (raw: %q)", err, rec.Body.String())
 	}
@@ -49,7 +51,7 @@ func TestAPIV1Health(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 
-	var body healthResponse
+	var body api.Health
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v (raw: %q)", err, rec.Body.String())
 	}

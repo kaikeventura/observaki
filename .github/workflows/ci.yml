@@ -70,6 +70,9 @@ jobs:
       - name: Helm chart check
         run: make chart-check
 
+      - name: OpenAPI contract check
+        run: make api-check
+
       - name: Bootstrap and run CI
         run: make ci
 

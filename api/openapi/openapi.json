@@ -1,0 +1,935 @@
+{
+  "components": {
+    "responses": {
+      "Forbidden": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "The token lacks the required scope or targets another project (403)."
+      },
+      "InternalError": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "An unexpected error occurred (500); no internal detail is leaked."
+      },
+      "InvalidRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "The input is invalid (400)."
+      },
+      "MethodNotAllowed": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "The method is not supported for this route (405)."
+      },
+      "NotFound": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "The resource does not exist (404)."
+      },
+      "ServiceUnavailable": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "A required control-plane dependency is unavailable (503)."
+      },
+      "Unauthorized": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "The token is missing, malformed, expired or unknown (401)."
+      }
+    },
+    "schemas": {
+      "AlertingHealth": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "evaluation_age_seconds": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "firing": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "last_error": {
+            "type": "string"
+          },
+          "last_evaluation_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "notifications_pending": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "pending": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "stale_after_seconds": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical",
+              "no_data",
+              "idle",
+              "not_configured",
+              "disabled",
+              "unknown"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "enabled",
+          "firing",
+          "pending",
+          "notifications_pending"
+        ],
+        "type": "object"
+      },
+      "ComponentHealth": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "latency_ms": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical",
+              "no_data",
+              "idle",
+              "not_configured",
+              "disabled",
+              "unknown"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "latency_ms",
+          "observed_at"
+        ],
+        "type": "object"
+      },
+      "Error": {
+        "properties": {
+          "code": {
+            "description": "Stable error code.",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "message": {
+            "description": "Human-readable message.",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "UUIDv7 correlation id.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details",
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "HealthOverview": {
+        "properties": {
+          "alerting": {
+            "$ref": "#/components/schemas/AlertingHealth"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentHealth"
+            },
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ingestion": {
+            "$ref": "#/components/schemas/IngestionHealth"
+          },
+          "query": {
+            "$ref": "#/components/schemas/QueryHealth"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical",
+              "no_data",
+              "idle",
+              "not_configured",
+              "disabled",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageHealth"
+          },
+          "summary": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "status",
+          "summary",
+          "ingestion",
+          "query",
+          "storage",
+          "components",
+          "alerting"
+        ],
+        "type": "object"
+      },
+      "IngestToken": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scopes",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "IngestTokenList": {
+        "properties": {
+          "project_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/IngestToken"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "project_id",
+          "tokens"
+        ],
+        "type": "object"
+      },
+      "IngestionHealth": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "dlq_messages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "gateway_connected": {
+            "type": "boolean"
+          },
+          "gateway_published_events": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "lag_p95_seconds": {
+            "type": "number"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pending_messages": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical",
+              "no_data",
+              "idle",
+              "not_configured",
+              "disabled",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "writer_connected": {
+            "type": "boolean"
+          },
+          "written_events": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "Project": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "generation": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "org_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "org_id",
+          "name",
+          "slug",
+          "generation",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "ProjectList": {
+        "properties": {
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "projects"
+        ],
+        "type": "object"
+      },
+      "QueryHealth": {
+        "properties": {
+          "client_errors": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "error_rate": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "errors": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "requests": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical",
+              "no_data",
+              "idle",
+              "not_configured",
+              "disabled",
+              "unknown"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "requests",
+          "errors",
+          "client_errors",
+          "error_rate",
+          "since"
+        ],
+        "type": "object"
+      },
+      "SampleQuery": {
+        "properties": {
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "org_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "query_service": {
+            "description": "Where real queries will be served.",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sample": {
+            "description": "Always true: the payload is not tenant telemetry.",
+            "type": "boolean"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SampleSeries"
+            },
+            "type": "array"
+          },
+          "signal": {
+            "enum": [
+              "logs",
+              "metrics",
+              "traces"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "sample",
+          "query_service",
+          "generated_at",
+          "request_id",
+          "signal",
+          "query",
+          "org_id",
+          "project_id",
+          "series"
+        ],
+        "type": "object"
+      },
+      "SampleSeries": {
+        "properties": {
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "points": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "labels",
+          "points"
+        ],
+        "type": "object"
+      },
+      "StorageHealth": {
+        "properties": {
+          "clickhouse_bytes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "clickhouse_parts": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "healthy",
+              "degraded",
+              "critical",
+              "no_data",
+              "idle",
+              "not_configured",
+              "disabled",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "victoriametrics_bytes": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "victoriametrics_series": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "API token",
+        "description": "Project-scoped API token. Only its SHA-256 digest is stored; the token resolves tenant/project and scopes server-side (AD-19, AD-20).",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "The /api/v1 contract for health, project metadata, ingestion tokens and the sample query. Telemetry reads go through the Query Service; the API never connects to ClickHouse or VictoriaMetrics (AD-3, AD-6). Errors use the AD-15 envelope {code, message, details, request_id} and never leak a stack trace.",
+    "license": {
+      "identifier": "Apache-2.0",
+      "name": "Apache-2.0"
+    },
+    "summary": "Versioned HTTP API for Observaki.",
+    "title": "Observaki API",
+    "version": "1.0.0",
+    "x-changelog": "api/openapi/CHANGELOG.md",
+    "x-versioning-policy": "docs/api/versioning.md"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "description": "Reports liveness plus the running build version.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "The API is healthy."
+          }
+        },
+        "summary": "API health",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/health/overview": {
+      "get": {
+        "description": "Ingestion lag, query error rate, storage usage and component health. Read-only, no tenant telemetry, no direct ClickHouse/VictoriaMetrics access (AD-3, AD-24).",
+        "operationId": "getHealthOverview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOverview"
+                }
+              }
+            },
+            "description": "The current health snapshot."
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "summary": "Self-observability overview",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "description": "Returns the project bound to the presented token. The MVP is project-scoped: tenancy comes from the token, never from a header (AD-3).",
+        "operationId": "listProjects",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectList"
+                }
+              }
+            },
+            "description": "Projects visible to the token."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List accessible projects",
+        "tags": [
+          "metadata"
+        ],
+        "x-required-scope": "query"
+      }
+    },
+    "/api/v1/projects/{projectID}/ingest-tokens": {
+      "get": {
+        "description": "Lists name, scopes and expiry of the project's tokens. Token digests are never returned (AD-19).",
+        "operationId": "listIngestTokens",
+        "parameters": [
+          {
+            "description": "Project UUID bound to the presented token.",
+            "in": "path",
+            "name": "projectID",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestTokenList"
+                }
+              }
+            },
+            "description": "Token metadata for the project."
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List ingestion token metadata",
+        "tags": [
+          "metadata"
+        ],
+        "x-required-scope": "admin"
+      }
+    },
+    "/api/v1/query": {
+      "post": {
+        "description": "Reserved for the Query Service (Phase 1). Until then it returns a structured 501 and points at /api/v1/query/sample.",
+        "operationId": "query",
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "501": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The Query Service is not available in this build."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Telemetry query (reserved)",
+        "tags": [
+          "query"
+        ],
+        "x-required-scope": "query"
+      }
+    },
+    "/api/v1/query/sample": {
+      "get": {
+        "description": "Returns a deterministic sample marked sample=true. The Query Service that serves real telemetry arrives in Phase 1; the API never queries ClickHouse or VictoriaMetrics (AD-6).",
+        "operationId": "getSampleQuery",
+        "parameters": [
+          {
+            "description": "Signal whose sample shape is returned.",
+            "in": "query",
+            "name": "signal",
+            "required": false,
+            "schema": {
+              "default": "metrics",
+              "enum": [
+                "metrics",
+                "logs",
+                "traces"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleQuery"
+                }
+              }
+            },
+            "description": "A deterministic sample result."
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Sample query contract",
+        "tags": [
+          "query"
+        ],
+        "x-required-scope": "query"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Reports process liveness. It never depends on the data plane.",
+        "operationId": "getLiveness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "The process is alive."
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "description": "The generated contract for this API version.",
+        "operationId": "getOpenAPI",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The OpenAPI document."
+          }
+        },
+        "summary": "OpenAPI 3.1 contract",
+        "tags": [
+          "system"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Same origin as the API",
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Health and contract discovery.",
+      "name": "system"
+    },
+    {
+      "description": "Control-plane metadata scoped to the token.",
+      "name": "metadata"
+    },
+    {
+      "description": "Telemetry queries through the Query Service.",
+      "name": "query"
+    }
+  ]
+}

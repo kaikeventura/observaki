@@ -129,7 +129,7 @@ func classifyPath(path string) string {
 	switch {
 	case path == "/healthz" || path == "/api/v1/health" || strings.HasPrefix(path, "/api/v1/health/"):
 		return classHealth
-	case path == "/metrics":
+	case path == "/metrics" || path == "/openapi.json":
 		return classInternal
 	case path == "/api/v1/query" || strings.HasPrefix(path, "/api/v1/query/"):
 		return classQuery

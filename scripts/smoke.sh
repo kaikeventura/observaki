@@ -29,6 +29,7 @@ auth_dir="$(mktemp -d -t observaki-auth.XXXXXX)"
 pid=""
 gateway_pid=""
 nats_container=""
+api_body=""
 
 cleanup() {
 	if [ -n "$pid" ]; then
@@ -42,7 +43,7 @@ cleanup() {
 	if [ -n "$nats_container" ]; then
 		docker rm -f "$nats_container" >/dev/null 2>&1 || true
 	fi
-	rm -f "$log" "$gateway_log"
+	rm -f "$log" "$gateway_log" "$api_body"
 	rm -rf "$bench_tmp" "$auth_dir" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -72,6 +73,8 @@ healthz="$(curl -fsS "http://127.0.0.1:${port}/healthz")"
 	exit 1
 }
 
+api_body="$(mktemp -t observaki-api-smoke.XXXXXX.json)"
+
 health="$(curl -fsS "http://127.0.0.1:${port}/api/v1/health")"
 case "$health" in
 *'"status":"ok"'*) ;;
@@ -80,6 +83,69 @@ case "$health" in
 	exit 1
 	;;
 esac
+
+# Story 5.5 AC1: the generated contract is served and documents the MVP routes.
+openapi="$(curl -fsS "http://127.0.0.1:${port}/openapi.json")"
+case "$openapi" in
+*'"openapi": "3.1.0"'*) ;;
+*)
+	echo "Smoke: /openapi.json is not an OpenAPI 3.1 document" >&2
+	exit 1
+	;;
+esac
+for route in '/api/v1/projects' '/api/v1/projects/{projectID}/ingest-tokens' '/api/v1/query/sample' '/api/v1/health/overview'; do
+	case "$openapi" in
+	*"\"${route}\""*) ;;
+	*)
+		echo "Smoke: /openapi.json does not document ${route}" >&2
+		exit 1
+		;;
+	esac
+done
+
+# Story 5.5 AC2: invalid/unauthorized input returns the AD-15 envelope with a
+# request id, a stable code and no stack trace.
+api_status="$(curl -s -o "$api_body" -w '%{http_code}' "http://127.0.0.1:${port}/api/v1/projects")"
+[ "$api_status" = "401" ] || {
+	echo "Smoke: unauthenticated /api/v1/projects returned ${api_status}, want 401" >&2
+	exit 1
+}
+grep -q '"code":"unauthorized"' "$api_body" || {
+	echo "Smoke: authorization error is not structured: $(cat "$api_body")" >&2
+	exit 1
+}
+grep -q '"request_id":"' "$api_body" || {
+	echo "Smoke: authorization error has no request_id: $(cat "$api_body")" >&2
+	exit 1
+}
+grep -qi 'goroutine\|panic' "$api_body" && {
+	echo "Smoke: authorization error leaks internal detail" >&2
+	exit 1
+}
+curl -s -D - -o /dev/null "http://127.0.0.1:${port}/api/v1/projects" | grep -qi '^x-request-id:' || {
+	echo "Smoke: /api/v1/projects did not set X-Request-Id" >&2
+	exit 1
+}
+
+api_status="$(curl -s -o "$api_body" -w '%{http_code}' -X DELETE "http://127.0.0.1:${port}/api/v1/projects")"
+[ "$api_status" = "405" ] || {
+	echo "Smoke: DELETE /api/v1/projects returned ${api_status}, want 405" >&2
+	exit 1
+}
+grep -q '"code":"method_not_allowed"' "$api_body" || {
+	echo "Smoke: 405 is not structured: $(cat "$api_body")" >&2
+	exit 1
+}
+
+api_status="$(curl -s -o "$api_body" -w '%{http_code}' "http://127.0.0.1:${port}/api/v1/nope")"
+[ "$api_status" = "404" ] || {
+	echo "Smoke: unknown API route returned ${api_status}, want 404" >&2
+	exit 1
+}
+grep -q '"code":"not_found"' "$api_body" || {
+	echo "Smoke: 404 is not structured: $(cat "$api_body")" >&2
+	exit 1
+}
 
 gateway_grpc_port="${SMOKE_GATEWAY_GRPC_PORT:-$(find_free_port 18121 18160)}"
 gateway_http_port="${SMOKE_GATEWAY_HTTP_PORT:-$(find_free_port 18161 18200)}"
@@ -311,4 +377,4 @@ for artifact in report.md report.json; do
 	}
 done
 
-echo "Smoke: OK (healthz, api health, gateway OTLP HTTP/gRPC, auth 401/403 + audit, quota 429, gateway metrics/SIGTERM, web build, version, loadgen payload, chloadgen, bench scenarios, benchmark report)"
+echo "Smoke: OK (healthz, api health, OpenAPI + structured 401/404/405, gateway OTLP HTTP/gRPC, auth 401/403 + audit, quota 429, gateway metrics/SIGTERM, web build, version, loadgen payload, chloadgen, bench scenarios, benchmark report)"

@@ -4,10 +4,10 @@ Este repositório é o **Observaki**, uma plataforma de observabilidade open sou
 
 ## Estado atual
 
-- **Fase 0 — em andamento.** Stories 1.1–1.4, 2.1–2.4, 3.1–3.5, 4.1–4.5, 5.1–5.4 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway, writer) tem spikes locais, a stack single-node sobe com `make compose-up`, o control plane PostgreSQL tem migrações/backup/restore e a stack tem health page e alerting interno mínimo; o baseline T1 ainda não começou.
+- **Fase 0 — em andamento.** Stories 1.1–1.4, 2.1–2.4, 3.1–3.5, 4.1–4.5, 5.1–5.5 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway, writer) tem spikes locais, a stack single-node sobe com `make compose-up`, o control plane PostgreSQL tem migrações/backup/restore, a stack tem health page e alerting interno mínimo, e a API `/api/v1` tem contrato OpenAPI gerado; o baseline T1 ainda não começou.
 - O estado corrente vive em `STATUS.md` (fonte de verdade de onde estamos).
 - O prompt de retomada pronto para novas sessões está em `PROMPT.md`.
-- O próximo trabalho é a **Story 5.5** (`_bmad-output/planning-artifacts/epics.md`): API mínima versionada e OpenAPI.
+- O próximo trabalho é a **Story 6.1** (`_bmad-output/planning-artifacts/epics.md`): shell SvelteKit, design tokens e navegação.
 - Os runbooks de operação (backup/restore, upgrade/rollback, auto-observabilidade) estão em `docs/runbooks/`.
 - O backlog da Fase 0 está em `_bmad-output/planning-artifacts/epics.md`.
 - O plano executivo está em `_bmad-output/planning-artifacts/PROGRAM-PLAN.md`.
@@ -157,3 +157,5 @@ Pare e peça decisão humana quando:
 - Decisions: `_bmad-output/planning-artifacts/DECISIONS.md`
 - Runbooks: `docs/runbooks/`
 - Story 5.4 handoff: `docs/dev/story-5.4-handoff.md`
+- Story 5.5 handoff: `docs/dev/story-5.5-handoff.md`
+- API contract: `docs/api/README.md`, `docs/api/versioning.md`, `api/openapi/`

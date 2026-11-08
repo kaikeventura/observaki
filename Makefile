@@ -18,6 +18,7 @@ VM_ADMISSION := $(BIN_DIR)/vmadmission
 WALCHECK := $(BIN_DIR)/walcheck
 WEBHOOKSINK := $(BIN_DIR)/webhooksink
 WEB_DIR := web
+API_SPEC := api/openapi/openapi.json
 AGENT_MANIFEST := agent/Cargo.toml
 ROWS ?= 1000000000
 CHUNK_ROWS ?= 50000000
@@ -40,7 +41,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -69,7 +70,13 @@ fmt: ## format Go, web and Rust code
 adr-check: ## validate ADR sections, status, review and index
 	./scripts/check-adr.sh
 
-lint: adr-check ## run golangci-lint, prettier, svelte-check, clippy and ADR checks
+api-gen: ## regenerate api/openapi/openapi.json from the Go route definitions
+	$(GO) run ./cmd/openapi-gen -o $(API_SPEC)
+
+api-check: ## fail when the checked-in OpenAPI contract is stale
+	$(GO) run ./cmd/openapi-gen -check $(API_SPEC)
+
+lint: adr-check api-check ## run golangci-lint, prettier, svelte-check, clippy and ADR/OpenAPI checks
 	$(GOLANGCI_LINT) run ./...
 	$(PNPM) --dir $(WEB_DIR) lint
 	$(PNPM) --dir $(WEB_DIR) check

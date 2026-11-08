@@ -8,6 +8,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/observaki/observaki/internal/api"
 )
 
 const (
@@ -43,10 +45,8 @@ func newStaticHandler(dir string, logger *slog.Logger) *staticHandler {
 func (h *staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
-		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{
-			Code:    "method_not_allowed",
-			Message: r.Method + " is not supported by the web UI",
-		})
+		api.WriteError(w, r, http.StatusMethodNotAllowed, "method_not_allowed",
+			r.Method+" is not supported by the web UI", map[string]any{"allow": []string{"GET", "HEAD"}})
 		return
 	}
 
@@ -110,8 +110,6 @@ func (h *staticHandler) serveFile(w http.ResponseWriter, r *http.Request, filePa
 }
 
 func (h *staticHandler) notFound(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusNotFound, errorResponse{
-		Code:    "not_found",
-		Message: "no file matches " + r.URL.Path,
-	})
+	api.WriteError(w, r, http.StatusNotFound, "not_found",
+		"no file matches "+r.URL.Path, map[string]any{"path": r.URL.Path})
 }

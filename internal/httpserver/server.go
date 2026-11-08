@@ -3,12 +3,12 @@ package httpserver
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/observaki/observaki/internal/api"
 	"github.com/observaki/observaki/internal/selfobs"
 )
 
@@ -42,6 +42,15 @@ func WithHealthOverview(provider HealthOverviewProvider) Option {
 	}
 }
 
+// WithControlPlane enables the authenticated metadata endpoints (projects and
+// ingestion tokens). Without it those routes answer 503 while health and the
+// OpenAPI contract stay available.
+func WithControlPlane(store api.ControlPlane) Option {
+	return func(s *Server) {
+		s.controlPlane = store
+	}
+}
+
 // WithRequestMetrics lets the process share the API request counters with the
 // self-observability collector (query error rate).
 func WithRequestMetrics(metrics *RequestMetrics) Option {
@@ -60,7 +69,9 @@ type Server struct {
 	logger          *slog.Logger
 	httpServer      *http.Server
 	healthOverview  HealthOverviewProvider
+	controlPlane    api.ControlPlane
 	metrics         *RequestMetrics
+	api             *api.API
 }
 
 // New builds a server listening on addr and advertising the given version.
@@ -81,16 +92,21 @@ func New(addr, ver string, logger *slog.Logger, options ...Option) *Server {
 		}
 	}
 
+	s.api = api.New(api.Config{
+		Version: ver,
+		Logger:  logger,
+		Overview: func(ctx context.Context) (selfobs.Overview, bool) {
+			if s.healthOverview == nil {
+				return selfobs.Overview{}, false
+			}
+			return s.healthOverview.Overview(ctx), true
+		},
+		ControlPlane: s.controlPlane,
+	})
+
 	mux := http.NewServeMux()
-	mux.Handle("GET /healthz", http.HandlerFunc(s.handleHealthz))
-	mux.Handle("GET /api/v1/health", http.HandlerFunc(s.handleHealth))
-	mux.Handle("GET /api/v1/health/overview", http.HandlerFunc(s.handleHealthOverview))
+	s.api.Register(mux)
 	mux.Handle("GET /metrics", s.metrics)
-	// Query Service routes arrive in Phase 1 (Story 5.5). The placeholder keeps
-	// the query error-rate metric meaningful and returns a structured error.
-	mux.HandleFunc("/api/v1/query", s.handleQueryPlaceholder)
-	mux.HandleFunc("/api/v1/query/", s.handleQueryPlaceholder)
-	mux.Handle("/api/", http.HandlerFunc(handleAPINotFound))
 	if s.webDir != "" {
 		mux.Handle("/", newStaticHandler(s.webDir, logger))
 	} else {
@@ -99,7 +115,7 @@ func New(addr, ver string, logger *slog.Logger, options ...Option) *Server {
 
 	s.httpServer = &http.Server{
 		Addr:              addr,
-		Handler:           s.metrics.middleware(mux),
+		Handler:           api.RequestID(api.Recover(logger, s.metrics.middleware(mux))),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
@@ -141,77 +157,15 @@ func (s *Server) listenAndServe() error {
 	return err
 }
 
-type healthResponse struct {
-	Status  string `json:"status"`
-	Version string `json:"version,omitempty"`
-}
-
-type errorResponse struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-}
-
-// handleHealthz reports liveness and never depends on downstream systems.
-func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
-}
-
-// handleHealth reports liveness plus the running build version.
-func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, healthResponse{Status: "ok", Version: s.version})
-}
-
-// handleHealthOverview serves the self-observability snapshot for the health
-// page (AC3). It is read-only and carries no tenant data.
-func (s *Server) handleHealthOverview(w http.ResponseWriter, r *http.Request) {
-	if s.healthOverview == nil {
-		writeJSON(w, http.StatusServiceUnavailable, errorResponse{
-			Code:    "health_overview_unavailable",
-			Message: "self-observability sources are not configured",
-		})
-		return
-	}
-	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, http.StatusOK, s.healthOverview.Overview(r.Context()))
-}
-
-// handleQueryPlaceholder keeps /api/v1/query as a structured, counted query
-// route until Story 5.5 ships the real sample query.
-func (s *Server) handleQueryPlaceholder(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusNotImplemented, errorResponse{
-		Code:    "not_implemented",
-		Message: "the query API arrives in Phase 1; use /api/v1/health/overview for system health",
-	})
-}
-
-// handleAPINotFound keeps unknown API routes JSON so a client never receives
-// the SPA shell instead of an error.
-func handleAPINotFound(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusNotFound, errorResponse{
-		Code:    "not_found",
-		Message: "no route matches " + r.URL.Path,
-	})
-}
-
 // handleNoWebUI answers every non-API route when the web build is not
 // installed, keeping method semantics for the API paths.
 func handleNoWebUI(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		w.Header().Set("Allow", "GET, HEAD")
-		writeJSON(w, http.StatusMethodNotAllowed, errorResponse{
-			Code:    "method_not_allowed",
-			Message: r.Method + " is not supported",
-		})
+		api.WriteError(w, r, http.StatusMethodNotAllowed, api.CodeMethodNotAllowed,
+			r.Method+" is not supported", map[string]any{"allow": []string{"GET", "HEAD"}})
 		return
 	}
-	writeJSON(w, http.StatusNotFound, errorResponse{
-		Code:    "ui_not_installed",
-		Message: "the web build is not installed; set OBSERVAKI_WEB_DIR or run the SvelteKit dev server",
-	})
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
+	api.WriteError(w, r, http.StatusNotFound, "ui_not_installed",
+		"the web build is not installed; set OBSERVAKI_WEB_DIR or run the SvelteKit dev server", nil)
 }

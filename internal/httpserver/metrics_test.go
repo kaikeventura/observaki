@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/observaki/observaki/internal/api"
 	"github.com/observaki/observaki/internal/selfobs"
 )
 
@@ -60,27 +61,35 @@ func TestHealthOverviewWithoutProvider(t *testing.T) {
 	}
 }
 
-func TestQueryPlaceholderAndMetrics(t *testing.T) {
+func TestQueryRoutesCountStructuredErrors(t *testing.T) {
 	metrics := NewRequestMetrics()
 	srv := New(":0", "test", slog.New(slog.DiscardHandler), WithRequestMetrics(metrics))
 
-	for _, path := range []string{"/api/v1/query", "/api/v1/query/stream"} {
+	// Without a token both query routes fail closed with the AD-15 envelope.
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/v1/query"},
+		{http.MethodGet, "/api/v1/query/sample"},
+	}
+	for _, tc := range cases {
 		rec := httptest.NewRecorder()
-		srv.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-		if rec.Code != http.StatusNotImplemented {
-			t.Fatalf("%s status = %d, want 501", path, rec.Code)
+		srv.Handler().ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, nil))
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("%s %s status = %d, want 401", tc.method, tc.path, rec.Code)
 		}
-		var body errorResponse
+		var body api.Error
 		if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
-		if body.Code != "not_implemented" || strings.Contains(body.Message, "goroutine") {
+		if body.Code != api.CodeUnauthorized || body.RequestID == "" || strings.Contains(body.Message, "goroutine") {
 			t.Fatalf("body = %+v", body)
 		}
 	}
 
 	stats := metrics.QueryStats()
-	if stats.Requests != 2 || stats.Errors != 2 {
+	if stats.Requests != 2 || stats.ClientErrors != 2 || stats.Errors != 0 {
 		t.Fatalf("query stats = %+v", stats)
 	}
 
@@ -88,9 +97,10 @@ func TestQueryPlaceholderAndMetrics(t *testing.T) {
 	srv.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
 	body := rec.Body.String()
 	for _, want := range []string{
-		`observaki_api_requests_total{class="query",code="501"} 2`,
+		`observaki_api_requests_total{class="query",code="401"} 2`,
 		"observaki_api_query_requests_total 2",
-		"observaki_api_query_errors_total 2",
+		"observaki_api_query_errors_total 0",
+		"observaki_api_query_client_errors_total 2",
 		"observaki_api_up 1",
 	} {
 		if !strings.Contains(body, want) {
@@ -105,9 +115,10 @@ func TestClassifyPath(t *testing.T) {
 		"/api/v1/health":          classHealth,
 		"/api/v1/health/overview": classHealth,
 		"/api/v1/query":           classQuery,
-		"/api/v1/query/stream":    classQuery,
+		"/api/v1/query/sample":    classQuery,
 		"/api/v1/projects":        classMetadata,
 		"/metrics":                classInternal,
+		"/openapi.json":           classInternal,
 		"/explore":                classUI,
 	}
 	for path, want := range tests {

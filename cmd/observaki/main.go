@@ -20,6 +20,7 @@ import (
 	"github.com/observaki/observaki/internal/adapters/victoriametrics"
 	"github.com/observaki/observaki/internal/adapters/walconsumer"
 	"github.com/observaki/observaki/internal/alerting"
+	"github.com/observaki/observaki/internal/api"
 	"github.com/observaki/observaki/internal/config"
 	"github.com/observaki/observaki/internal/healthcheck"
 	"github.com/observaki/observaki/internal/httpserver"
@@ -158,9 +159,20 @@ func serve() error {
 		httpserver.WithWebDir(cfg.WebDir),
 		httpserver.WithHealthOverview(collector),
 		httpserver.WithRequestMetrics(metrics),
+		httpserver.WithControlPlane(controlPlaneStore(database)),
 	)
 
 	return srv.Run(ctx)
+}
+
+// controlPlaneStore returns the API projection of the control plane, or nil
+// when the database is unavailable. The metadata endpoints then answer 503
+// while health and the OpenAPI contract keep working.
+func controlPlaneStore(database *postgres.DB) api.ControlPlane {
+	if database == nil {
+		return nil
+	}
+	return database.NewAPIStore()
 }
 
 // alertingProxy lets the collector and the alerting service reference each

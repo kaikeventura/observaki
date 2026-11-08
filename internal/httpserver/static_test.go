@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/observaki/observaki/internal/api"
 )
 
 // writeWebBuild creates a minimal SvelteKit static build in a temporary dir.
@@ -155,12 +157,12 @@ func TestAPINotFoundStaysJSON(t *testing.T) {
 	srv := newWebTestServer(t)
 
 	rec := httptest.NewRecorder()
-	srv.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/projects", nil))
+	srv.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/nope", nil))
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-	var body errorResponse
+	var body api.Error
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v (raw: %q)", err, rec.Body.String())
 	}
@@ -178,7 +180,7 @@ func TestUIMissingWebBuildIsReported(t *testing.T) {
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-	var body errorResponse
+	var body api.Error
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v (raw: %q)", err, rec.Body.String())
 	}
@@ -190,10 +192,10 @@ func TestUIMissingWebBuildIsReported(t *testing.T) {
 func TestNoWebDirKeepsAPIAvailable(t *testing.T) {
 	srv := newTestServer(t, "v0.1.0-test")
 
-	api := httptest.NewRecorder()
-	srv.Handler().ServeHTTP(api, httptest.NewRequest(http.MethodGet, "/api/v1/health", nil))
-	if api.Code != http.StatusOK {
-		t.Fatalf("api status = %d, want %d", api.Code, http.StatusOK)
+	apiRec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(apiRec, httptest.NewRequest(http.MethodGet, "/api/v1/health", nil))
+	if apiRec.Code != http.StatusOK {
+		t.Fatalf("api status = %d, want %d", apiRec.Code, http.StatusOK)
 	}
 
 	ui := httptest.NewRecorder()
@@ -201,7 +203,7 @@ func TestNoWebDirKeepsAPIAvailable(t *testing.T) {
 	if ui.Code != http.StatusNotFound {
 		t.Fatalf("ui status = %d, want %d", ui.Code, http.StatusNotFound)
 	}
-	var body errorResponse
+	var body api.Error
 	if err := json.Unmarshal(ui.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v (raw: %q)", err, ui.Body.String())
 	}

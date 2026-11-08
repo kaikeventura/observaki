@@ -8,6 +8,7 @@
 #   AC1  every service becomes healthy and the API/UI answers in < 10 minutes
 #   AC2  the sample app lands metrics, logs and traces in ClickHouse/VM
 #   AC3  down/up keeps the data and needs no manual migration
+#   Story 5.5: /openapi.json plus token-scoped projects, tokens and sample query
 #
 # Requires: docker, docker compose v2+, curl and jq.
 set -euo pipefail
@@ -130,6 +131,32 @@ ui_reachable() {
 	curl -fsS http://127.0.0.1:8082/readyz >/dev/null
 }
 
+# Story 5.5: the generated contract is served and the seeded API token works
+# against the real control plane; unauthenticated reads fail closed.
+api_contract() {
+	local status body
+	curl -fsS http://127.0.0.1:8080/openapi.json | jq -e '.openapi == "3.1.0"' >/dev/null || return 1
+	curl -fsS http://127.0.0.1:8080/openapi.json |
+		jq -e '.paths["/api/v1/projects"] and .paths["/api/v1/projects/{projectID}/ingest-tokens"] and .paths["/api/v1/query/sample"]' >/dev/null || return 1
+
+	status=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/projects)
+	[ "$status" = "401" ] || return 1
+
+	body=$(curl -fsS -H 'Authorization: Bearer observaki-local-dev-token' http://127.0.0.1:8080/api/v1/projects)
+	printf '%s' "$body" | jq -e '.projects[0].id == "00000000-0000-4000-8000-000000000002"' >/dev/null || return 1
+
+	body=$(curl -fsS -H 'Authorization: Bearer observaki-local-dev-token' \
+		http://127.0.0.1:8080/api/v1/projects/00000000-0000-4000-8000-000000000002/ingest-tokens)
+	printf '%s' "$body" | jq -e '.tokens | length >= 1' >/dev/null || return 1
+	if printf '%s' "$body" | grep -qi 'sha256'; then
+		return 1
+	fi
+
+	body=$(curl -fsS -H 'Authorization: Bearer observaki-local-dev-token' \
+		'http://127.0.0.1:8080/api/v1/query/sample?signal=metrics')
+	printf '%s' "$body" | jq -e '.sample == true and .project_id == "00000000-0000-4000-8000-000000000002"' >/dev/null || return 1
+}
+
 wait_for() {
 	local description=$1 elapsed=0
 	shift
@@ -175,7 +202,8 @@ state=$(service_state)
 require_healthy "$state"
 [ "$up_seconds" -lt "$HEALTH_LIMIT" ] || die "stack took ${up_seconds}s, limit is ${HEALTH_LIMIT}s"
 ui_reachable || die "API/UI health endpoints are not reachable"
-log "API, UI, gateway and writer are reachable"
+api_contract || die "Story 5.5 API contract check failed"
+log "API, UI, gateway and writer are reachable; OpenAPI and token auth verified"
 
 log "recording baseline row counts"
 logs_before=$(ch "SELECT count() FROM otel_logs WHERE project_id = 'project-dev'")
@@ -243,6 +271,7 @@ docker_version=$(docker version --format '{{.Server.Version}}' 2>/dev/null || ec
 	echo "- \`docker compose up -d --wait\` (build=$BUILD): **${up_seconds}s** to all-healthy (limit ${HEALTH_LIMIT}s)."
 	echo "- Healthy: clickhouse, victoriametrics, postgres, nats, observaki-api, observaki-gateway, observaki-writer; clickhouse-migrate exited 0."
 	echo "- UI \`http://127.0.0.1:8080/\` and \`/api/v1/health\` reachable; gateway \`/readyz\` and writer \`/readyz\` return 200."
+	echo "- Story 5.5: \`/openapi.json\` is OpenAPI 3.1 and documents projects, ingestion tokens and the sample query; \`/api/v1/projects\` returns 401 without a token and the seeded token reads the development project without exposing a digest."
 	echo
 	echo "## AC2 — sample telemetry"
 	echo

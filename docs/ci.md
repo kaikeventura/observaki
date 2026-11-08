@@ -23,7 +23,9 @@ make smoke   # com SMOKE_SKIP_CI=1, só valida o binário, o web/build e o loadg
 ```
 
 O `make lint` também roda `scripts/check-adr.sh` (estrutura, status, revisão e
-índice das ADRs). O `web/build` fica disponível como artefato `web-build`.
+índice das ADRs) e `make api-check` (o contrato OpenAPI gerado em
+`api/openapi/openapi.json` precisa bater com a tabela de operações do Go; AD-26).
+O `web/build` fica disponível como artefato `web-build`.
 
 ### `security`
 
