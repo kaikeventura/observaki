@@ -72,6 +72,27 @@ spec:
                 secretKeyRef:
                   name: {{ include "observaki.postgresSecretName" . }}
                   key: {{ include "observaki.postgresSecretKey" . }}
+            # Story 5.4 auto-observability and internal alerting.
+            - name: OBSERVAKI_SELF_WRITER_URL
+              value: "http://{{ include "observaki.fullname" . }}-writer:8082"
+            - name: OBSERVAKI_SELF_GATEWAY_URL
+              value: "http://{{ include "observaki.fullname" . }}-gateway:{{ .Values.gateway.service.httpPort }}"
+            - name: OBSERVAKI_SELF_NATS_MONITOR_URL
+              value: "http://{{ include "observaki.fullname" . }}-nats:8222"
+            - name: OBSERVAKI_SELF_REFRESH_INTERVAL
+              value: {{ .Values.selfObservability.refreshInterval | quote }}
+            - name: OBSERVAKI_SELF_TIMEOUT
+              value: {{ .Values.selfObservability.timeout | quote }}
+            - name: OBSERVAKI_SELF_INGEST_LAG_THRESHOLD
+              value: {{ .Values.selfObservability.ingestLagThreshold | quote }}
+            - name: OBSERVAKI_ALERTING_ENABLED
+              value: {{ .Values.alerting.enabled | quote }}
+            - name: OBSERVAKI_ALERTING_INTERVAL
+              value: {{ .Values.alerting.interval | quote }}
+            - name: OBSERVAKI_ALERTING_DELIVERY_INTERVAL
+              value: {{ .Values.alerting.deliveryInterval | quote }}
+            - name: OBSERVAKI_ALERTING_TIMEOUT
+              value: {{ .Values.alerting.timeout | quote }}
           {{- with .Values.api.extraEnv }}
             {{- toYaml . | nindent 12 }}
           {{- end }}

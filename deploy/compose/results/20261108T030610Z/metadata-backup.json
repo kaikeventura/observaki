@@ -1,0 +1,189 @@
+{
+  "format_version": 1,
+  "created_at": "2026-11-08T03:06:23.245444275Z",
+  "app_version": "dev",
+  "schema_version": "0002_alerting",
+  "tables": {
+    "alert_rule_channels": [
+      {
+        "rule_id": "00000000-0000-4000-8000-000000000006",
+        "channel_id": "00000000-0000-4000-8000-000000000005"
+      }
+    ],
+    "alert_rules": [
+      {
+        "id": "00000000-0000-4000-8000-000000000006",
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "name": "Ingestion lag high",
+        "signal": "metrics",
+        "query": "ingest_lag_p95_seconds",
+        "condition": {
+          "op": ">",
+          "threshold": 10
+        },
+        "for_seconds": 60,
+        "severity": "warning",
+        "enabled": true,
+        "created_at": "2026-11-08T02:40:29.343531+00:00"
+      }
+    ],
+    "api_tokens": [
+      {
+        "id": "00000000-0000-4000-8000-000000000009",
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "name": "Development ingest token",
+        "token_hash": "722b353212f4a61dd07acf5d613a15028a99f55517dd04893d344b0493b6c934",
+        "scopes": [
+          "ingest",
+          "query",
+          "admin"
+        ],
+        "expires_at": "2126-01-01T00:00:00+00:00",
+        "created_at": "2026-11-08T02:40:29.347889+00:00"
+      }
+    ],
+    "audit_events": [],
+    "dashboards": [
+      {
+        "id": "00000000-0000-4000-8000-000000000004",
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "title": "Development overview",
+        "definition": {
+          "panels": [
+            {
+              "type": "timeseries",
+              "query": "sum(rate(observaki_gateway_events_total[5m]))",
+              "title": "Ingest rate"
+            }
+          ],
+          "schemaVersion": 1
+        },
+        "version": 1,
+        "created_by": "00000000-0000-4000-8000-000000000003",
+        "updated_at": "2026-11-08T02:40:29.338853+00:00"
+      }
+    ],
+    "error_budgets": [
+      {
+        "slo_id": "00000000-0000-4000-8000-000000000008",
+        "consumed": 0,
+        "remaining": 1,
+        "updated_at": "2026-11-08T02:40:29.353101+00:00"
+      }
+    ],
+    "memberships": [
+      {
+        "id": "00000000-0000-4000-8000-00000000000a",
+        "user_id": "00000000-0000-4000-8000-000000000003",
+        "org_id": "00000000-0000-4000-8000-000000000001",
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "role": "admin"
+      }
+    ],
+    "notification_channels": [
+      {
+        "id": "00000000-0000-4000-8000-000000000005",
+        "org_id": "00000000-0000-4000-8000-000000000001",
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "name": "Local webhook",
+        "kind": "webhook",
+        "config": {
+          "url": "http://host.docker.internal:19090/alert",
+          "headers": {
+            "X-Observaki-Test": "1"
+          }
+        },
+        "created_at": "2026-11-08T02:40:29.341055+00:00"
+      }
+    ],
+    "organizations": [
+      {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "name": "Development",
+        "slug": "dev",
+        "created_at": "2026-11-08T02:40:29.327265+00:00"
+      }
+    ],
+    "projects": [
+      {
+        "id": "00000000-0000-4000-8000-000000000002",
+        "org_id": "00000000-0000-4000-8000-000000000001",
+        "name": "Development",
+        "slug": "dev",
+        "generation": 1,
+        "created_at": "2026-11-08T02:40:29.331419+00:00"
+      }
+    ],
+    "retention_policies": [
+      {
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "signal": "logs",
+        "retention_days": 15,
+        "storage_tier": "hot"
+      },
+      {
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "signal": "traces",
+        "retention_days": 15,
+        "storage_tier": "hot"
+      },
+      {
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "signal": "metrics",
+        "retention_days": 30,
+        "storage_tier": "hot"
+      }
+    ],
+    "silences": [
+      {
+        "id": "00000000-0000-4000-8000-000000000007",
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "matchers": {
+          "rule_name": "Maintenance"
+        },
+        "starts_at": "2026-01-01T00:00:00+00:00",
+        "ends_at": "2026-01-02T00:00:00+00:00",
+        "reason": "Example expired silence",
+        "created_by": "00000000-0000-4000-8000-000000000003"
+      }
+    ],
+    "slos": [
+      {
+        "id": "00000000-0000-4000-8000-000000000008",
+        "project_id": "00000000-0000-4000-8000-000000000002",
+        "service_name": "gateway",
+        "sli": {
+          "type": "availability"
+        },
+        "target": 0.999,
+        "window_days": 30,
+        "created_at": "2026-11-08T02:40:29.351514+00:00"
+      }
+    ],
+    "users": [
+      {
+        "id": "00000000-0000-4000-8000-000000000003",
+        "org_id": "00000000-0000-4000-8000-000000000001",
+        "email": "dev@observaki.local",
+        "display_name": "Development User",
+        "created_at": "2026-11-08T02:40:29.329113+00:00"
+      }
+    ]
+  },
+  "counts": {
+    "alert_rule_channels": 1,
+    "alert_rules": 1,
+    "api_tokens": 1,
+    "audit_events": 0,
+    "dashboards": 1,
+    "error_budgets": 1,
+    "memberships": 1,
+    "notification_channels": 1,
+    "organizations": 1,
+    "projects": 1,
+    "retention_policies": 3,
+    "silences": 1,
+    "slos": 1,
+    "users": 1
+  }
+}

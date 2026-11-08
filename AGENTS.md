@@ -4,10 +4,11 @@ Este repositório é o **Observaki**, uma plataforma de observabilidade open sou
 
 ## Estado atual
 
-- **Fase 0 — em andamento.** Stories 1.1–1.4, 2.1–2.4, 3.1–3.5, 4.1–4.5, 5.1–5.3 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway, writer) tem spikes locais e a stack single-node sobe com `make compose-up`; o baseline T1 ainda não começou.
+- **Fase 0 — em andamento.** Stories 1.1–1.4, 2.1–2.4, 3.1–3.5, 4.1–4.5, 5.1–5.4 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway, writer) tem spikes locais, a stack single-node sobe com `make compose-up`, o control plane PostgreSQL tem migrações/backup/restore e a stack tem health page e alerting interno mínimo; o baseline T1 ainda não começou.
 - O estado corrente vive em `STATUS.md` (fonte de verdade de onde estamos).
 - O prompt de retomada pronto para novas sessões está em `PROMPT.md`.
-- O próximo trabalho é a **Story 5.4** (`_bmad-output/planning-artifacts/epics.md`): backup/restore, upgrade/rollback e auto-observabilidade.
+- O próximo trabalho é a **Story 5.5** (`_bmad-output/planning-artifacts/epics.md`): API mínima versionada e OpenAPI.
+- Os runbooks de operação (backup/restore, upgrade/rollback, auto-observabilidade) estão em `docs/runbooks/`.
 - O backlog da Fase 0 está em `_bmad-output/planning-artifacts/epics.md`.
 - O plano executivo está em `_bmad-output/planning-artifacts/PROGRAM-PLAN.md`.
 - A arquitetura binding está em `_bmad-output/planning-artifacts/architecture/architecture-observaki-2026-10-31/ARCHITECTURE-SPINE.md` (AD-1..AD-35).
@@ -90,6 +91,8 @@ make build         # binário Go + build SvelteKit + agente
 make dev           # Go + SvelteKit em paralelo
 make smoke         # smoke test do binário/health
 make ci            # bootstrap + lint + test + build
+make operator-smoke # Story 5.4: backup/restore + health + alerta (Compose)
+make upgrade-drill  # Story 5.4: upgrade/rollback versionados (Compose)
 ```
 
 Enquanto o scaffold não existir, use os comandos da Story 1.1. Não crie um Makefile alternativo.
@@ -152,3 +155,5 @@ Pare e peça decisão humana quando:
 - Phase 1 backlog: `_bmad-output/planning-artifacts/epics-phase-1.md`
 - Phase 2-4: `_bmad-output/planning-artifacts/epics-phase-2-4.md`
 - Decisions: `_bmad-output/planning-artifacts/DECISIONS.md`
+- Runbooks: `docs/runbooks/`
+- Story 5.4 handoff: `docs/dev/story-5.4-handoff.md`

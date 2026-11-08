@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/observaki/observaki/internal/selfobs"
 )
 
 const (
@@ -28,6 +30,28 @@ func WithWebDir(dir string) Option {
 	}
 }
 
+// HealthOverviewProvider builds the self-observability snapshot.
+type HealthOverviewProvider interface {
+	Overview(ctx context.Context) selfobs.Overview
+}
+
+// WithHealthOverview enables GET /api/v1/health/overview.
+func WithHealthOverview(provider HealthOverviewProvider) Option {
+	return func(s *Server) {
+		s.healthOverview = provider
+	}
+}
+
+// WithRequestMetrics lets the process share the API request counters with the
+// self-observability collector (query error rate).
+func WithRequestMetrics(metrics *RequestMetrics) Option {
+	return func(s *Server) {
+		if metrics != nil {
+			s.metrics = metrics
+		}
+	}
+}
+
 // Server serves the Observaki API and UI over HTTP.
 type Server struct {
 	version         string
@@ -35,6 +59,8 @@ type Server struct {
 	shutdownTimeout time.Duration
 	logger          *slog.Logger
 	httpServer      *http.Server
+	healthOverview  HealthOverviewProvider
+	metrics         *RequestMetrics
 }
 
 // New builds a server listening on addr and advertising the given version.
@@ -47,6 +73,7 @@ func New(addr, ver string, logger *slog.Logger, options ...Option) *Server {
 		version:         ver,
 		shutdownTimeout: DefaultShutdownTimeout,
 		logger:          logger,
+		metrics:         NewRequestMetrics(),
 	}
 	for _, option := range options {
 		if option != nil {
@@ -57,6 +84,12 @@ func New(addr, ver string, logger *slog.Logger, options ...Option) *Server {
 	mux := http.NewServeMux()
 	mux.Handle("GET /healthz", http.HandlerFunc(s.handleHealthz))
 	mux.Handle("GET /api/v1/health", http.HandlerFunc(s.handleHealth))
+	mux.Handle("GET /api/v1/health/overview", http.HandlerFunc(s.handleHealthOverview))
+	mux.Handle("GET /metrics", s.metrics)
+	// Query Service routes arrive in Phase 1 (Story 5.5). The placeholder keeps
+	// the query error-rate metric meaningful and returns a structured error.
+	mux.HandleFunc("/api/v1/query", s.handleQueryPlaceholder)
+	mux.HandleFunc("/api/v1/query/", s.handleQueryPlaceholder)
 	mux.Handle("/api/", http.HandlerFunc(handleAPINotFound))
 	if s.webDir != "" {
 		mux.Handle("/", newStaticHandler(s.webDir, logger))
@@ -66,7 +99,7 @@ func New(addr, ver string, logger *slog.Logger, options ...Option) *Server {
 
 	s.httpServer = &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           s.metrics.middleware(mux),
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
@@ -126,6 +159,29 @@ func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 // handleHealth reports liveness plus the running build version.
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, healthResponse{Status: "ok", Version: s.version})
+}
+
+// handleHealthOverview serves the self-observability snapshot for the health
+// page (AC3). It is read-only and carries no tenant data.
+func (s *Server) handleHealthOverview(w http.ResponseWriter, r *http.Request) {
+	if s.healthOverview == nil {
+		writeJSON(w, http.StatusServiceUnavailable, errorResponse{
+			Code:    "health_overview_unavailable",
+			Message: "self-observability sources are not configured",
+		})
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, s.healthOverview.Overview(r.Context()))
+}
+
+// handleQueryPlaceholder keeps /api/v1/query as a structured, counted query
+// route until Story 5.5 ships the real sample query.
+func (s *Server) handleQueryPlaceholder(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusNotImplemented, errorResponse{
+		Code:    "not_implemented",
+		Message: "the query API arrives in Phase 1; use /api/v1/health/overview for system health",
+	})
 }
 
 // handleAPINotFound keeps unknown API routes JSON so a client never receives

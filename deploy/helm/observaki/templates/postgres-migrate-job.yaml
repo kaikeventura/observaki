@@ -1,0 +1,55 @@
+{{- if .Values.postgresMigrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "observaki.fullname" . }}-postgres-migrate-{{ printf "%s|%s|%s" .Chart.AppVersion .Values.postgresMigrations.seedDev .Values.environment | sha256sum | trunc 10 }}
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "postgres-migrate") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "6"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: {{ .Values.postgresMigrations.backoffLimit }}
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        {{- include "observaki.componentSelectorLabels" (dict "root" . "component" "postgres-migrate") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: {{ include "observaki.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/observaki"]
+          args:
+            - migrate
+            {{- if and .Values.postgresMigrations.seedDev (has .Values.environment (list "development" "test")) }}
+            - --seed-dev
+            {{- end }}
+          env:
+            - name: OBSERVAKI_ENV
+              value: {{ .Values.environment | quote }}
+            - name: OBSERVAKI_LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: OBSERVAKI_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "observaki.postgresSecretName" . }}
+                  key: {{ include "observaki.postgresSecretKey" . }}
+          resources:
+            {{- toYaml .Values.postgresMigrations.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+{{- end }}

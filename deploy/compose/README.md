@@ -29,6 +29,7 @@ Abra <http://localhost:8080>. A API responde em `/healthz` e
 | `clickhouse-migrate` | `clickhouse/clickhouse-server:26.8` | — | migrações (ro) | sai 0 |
 | `victoriametrics` | `victoriametrics/victoria-metrics:v1.148.0` | 8428 | `victoriametrics-data` | `/health` |
 | `postgres` | `postgres:18.6-alpine` | 5432 | `postgres-data` | `pg_isready` |
+| `postgres-migrate` | `observaki:local` | — | migrações PG (imagem) | sai 0 |
 | `nats` | `nats:2.15.2-alpine` | 4222, 8222 (monitor) | `nats-data` | `/healthz` |
 
 Todas as portas publicadas ficam presas em `127.0.0.1`: a stack não fica exposta
@@ -62,10 +63,18 @@ O VictoriaMetrics só devolve amostras mais antigas que o `-search.latencyOffset
 (30 s por padrão) em consultas instantâneas; por isso o smoke usa `query_range`
 com polling em vez de `query`.
 
-O cartão da landing page cobre a saúde da API; a tela de Explore (métricas,
-logs e traces navegáveis) chega nas Stories 6.1–6.4. O sample app com
-instruções por linguagem está em [`examples/`](../../examples/README.md) e o
-quickstart em [`docs/quickstart.md`](../../docs/quickstart.md).
+O cartão da landing page cobre a saúde da API; a página **System health**
+(`http://localhost:8080/health`) mostra ingestão, query, storage e componentes
+(Story 5.4). A tela de Explore (métricas, logs e traces navegáveis) chega nas
+Stories 6.1–6.4. O sample app com instruções por linguagem está em
+[`examples/`](../../examples/README.md) e o quickstart em
+[`docs/quickstart.md`](../../docs/quickstart.md).
+
+A página de saúde lê `GET /api/v1/health/overview`; quando uma fonte está fora,
+ela mantém o último valor conhecido com o horário de observação. O alerting
+interno roda no processo da API e usa as regras/canais do PostgreSQL. Para
+backup/restore, upgrade/rollback e o drill de alerta, veja
+[`docs/runbooks/`](../../docs/runbooks/README.md).
 
 ## Ciclo de vida e dados
 
@@ -77,6 +86,10 @@ quickstart em [`docs/quickstart.md`](../../docs/quickstart.md).
   (`internal/adapters/clickhouse/migrations`) em todo `up`. Elas são aditivas e
   idempotentes, então um volume existente não é reescrito e um volume novo já
   nasce com o schema.
+- `postgres-migrate` aplica as migrações do control plane
+  (`internal/adapters/postgres/migrations`) e, em `development`, semeia a
+  metadata de avaliação (org/projeto/usuário/dashboard/canal/regra). Também é
+  idempotente e roda antes da API.
 
 ## Verificação automática
 
@@ -85,6 +98,8 @@ make compose-smoke          # ou: ./deploy/compose/smoke.sh
 make quickstart-check       # ou: ./deploy/compose/quickstart-check.sh --fresh
 make examples-check         # sintaxe/formatação das apps de exemplo
 ./examples/check.sh --live  # roda as três apps contra a stack e valida os dados
+make operator-smoke         # Story 5.4: backup/restore + health overview + alerta
+make upgrade-drill          # Story 5.4: upgrade/rollback versionados (AC2)
 ```
 
 O smoke cobre os três ACs da Story 5.1 e grava o relatório em
@@ -117,9 +132,10 @@ staging/produção — nunca reutilize este arquivo.
   limitados; WAL de 2 GiB por sinal e 16 GB de `max_file_store` no JetStream.
 - Retenção do VictoriaMetrics de 1 mês; retenção de logs/traces vem da coluna
   `retention_days` (default 15 na `writer`).
-- PostgreSQL sobe com credenciais locais (`observaki`/`observaki-local-dev`) e
-  ainda não tem schema de control plane — ele é criado nas stories de API/control
-  plane.
+- O PostgreSQL sobe com credenciais locais (`observaki`/`observaki-local-dev`) e
+  recebe o schema do control plane no `postgres-migrate`. O `serve` degrada sem
+  panic quando o banco ainda não está pronto, mas o alerting e a metadata ficam
+  indisponíveis até a conexão voltar (reinicie a API ou o stack).
 - O build da imagem usa o `web/pnpm-lock.yaml`; rode `pnpm --dir web install`
   depois de mudar dependências para o lockfile ficar em dia.
 
@@ -138,7 +154,9 @@ staging/produção — nunca reutilize este arquivo.
 
 - Validado em Linux; a validação em macOS depende de Docker Desktop e ainda não
   foi executada (ver `docs/dev/story-5.1-handoff.md`).
-- Helm chart, backup/restore e auto-observabilidade são as Stories 5.2 e 5.4.
+- Helm chart e quickstart são as Stories 5.2 e 5.3; backup/restore,
+  upgrade/rollback e auto-observabilidade são a Story 5.4
+  ([`docs/runbooks/`](../../docs/runbooks/README.md)).
 - O quickstart de 15 minutos e as apps de exemplo (Go, Python e Node.js) são a
   Story 5.3: [`docs/quickstart.md`](../../docs/quickstart.md) e
   [`examples/`](../../examples/README.md).

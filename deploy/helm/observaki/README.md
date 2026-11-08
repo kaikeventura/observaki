@@ -128,6 +128,14 @@ Os valores mais usados:
 | `nats.persistence.size` | `20Gi` | JetStream WAL + DLQ |
 | `writer.spool.size` | `10Gi` | spool local durável |
 | `dependencies.mode` | `bundled` | `bundled` (avaliação) ou `external` (produção) |
+| `postgresMigrations.enabled` | `true` | aplica as migrações do control plane no install/upgrade |
+| `postgresMigrations.seedDev` | `true` | semeia a metadata de avaliação (ignorado fora de development/test) |
+| `selfObservability.refreshInterval` | `5s` | cache da health overview |
+| `selfObservability.timeout` | `3s` | timeout de cada probe de auto-observabilidade |
+| `selfObservability.ingestLagThreshold` | `10s` | limiar de lag que deixa a ingestão `degraded` |
+| `alerting.enabled` | `true` | avaliação das regras internas e outbox |
+| `alerting.interval` | `15s` | período de avaliação |
+| `alerting.deliveryInterval` | `5s` | dreno do outbox de notificações |
 
 ### Sizing
 
@@ -144,6 +152,7 @@ Defaults por réplica; o perfil padrão cabe em um cluster de 3 nós com
 | `postgres` | 1 | 50m / 1 | 128Mi / 512Mi | 2Gi |
 | `nats` | 1 | 50m / 1 | 128Mi / 512Mi | 20Gi |
 | `clickhouse-migrate` (Job) | 1 | 50m / 500m | 64Mi / 256Mi | — |
+| `postgres-migrate` (Job) | 1 | 50m / 500m | 64Mi / 256Mi | — |
 
 O ClickHouse tem `max_server_memory_usage` de 1,5 GiB dentro de um limite de
 2 GiB; o NATS usa `max_file_store` de 16 GB (3 streams de 2 GiB + DLQ de 8 GiB)
@@ -171,18 +180,42 @@ Contratos dos Secrets:
 - `external.clickhouse.nativeAddress`: `host:9000` usado pelo Job de migração.
   Se o operador do ClickHouse aplica o schema, use `migrations.enabled=false`.
 
-Com `external`, o chart instala apenas API, gateway, writer e o Job de
+Com `external`, o chart instala apenas API, gateway, writer e os Jobs de
 migração; ClickHouse, VM, PostgreSQL e NATS ficam por sua conta (e devem ser
 distribuídos/HA, como pede a spine).
 
 ### Migrações
 
-O Job `observaki-migrate-<checksum>` roda como hook `post-install,post-upgrade`
-e aplica as migrações versionadas e idempotentes de
-`internal/adapters/clickhouse/migrations` (copiadas para
-`observaki/files/migrations` e verificadas por `deploy/helm/check.sh`). Não há
-passo manual. Rollback não reaplica migrações: o schema é aditivo, então a
-versão anterior da aplicação continua compatível.
+Dois Jobs rodam como hooks `post-install,post-upgrade`:
+
+- `observaki-migrate-<checksum>` aplica as migrações versionadas e idempotentes
+  do ClickHouse em `internal/adapters/clickhouse/migrations` (copiadas para
+  `observaki/files/migrations` e verificadas por `deploy/helm/check.sh`).
+- `observaki-postgres-migrate-<checksum>` aplica as migrações do control plane
+  embutidas no binário (`internal/adapters/postgres/migrations`) e, em
+  `development`/`test`, semeia a metadata de avaliação
+  (`postgresMigrations.seedDev`). Use `postgresMigrations.enabled=false` quando
+  um operador externo gerencia o schema.
+
+Não há passo manual. Rollback não reaplica migrações: o schema é aditivo, então
+a versão anterior da aplicação continua compatível.
+
+## Backup/restore da metadata
+
+A imagem é distroless, então o backup é streamado pelo `kubectl exec` do pod da
+API:
+
+```bash
+./deploy/helm/backup.sh backup --namespace observaki --release observaki \
+  --file observaki-metadata.json
+./deploy/helm/backup.sh restore --namespace observaki --release observaki \
+  --file observaki-metadata.json --force
+```
+
+O arquivo contém organizações, usuários, projetos, dashboards, regras, canais,
+silences, SLOs, tokens (apenas o hash) e auditoria. O restore é transacional e
+exige `--force`. O procedimento completo e os limites estão em
+[`docs/runbooks/backup-restore.md`](../../../docs/runbooks/backup-restore.md).
 
 ## Upgrade e rollback
 
@@ -201,7 +234,18 @@ Os PVCs não são recriados no upgrade nem no rollback; ClickHouse, VM,
 PostgreSQL, NATS e o spool do writer mantêm os dados. O smoke empacota o chart
 como `0.1.0-alpha.1.1`, faz upgrade dessa versão com uma imagem nova e então
 rollback para a revisão anterior, medindo as contagens de logs e traces
-antes/depois (`2 -> 4 -> 4`) para provar que nada foi perdido.
+antes/depois (`2 -> 4 -> 4`) para provar que nada foi perdido. O runbook completo
+(pré-flight com backup, verificação e limites) está em
+[`docs/runbooks/upgrade-rollback.md`](../../../docs/runbooks/upgrade-rollback.md).
+
+## Auto-observabilidade e alertas
+
+A API serve a página `/health` e o endpoint `GET /api/v1/health/overview` com
+lag de ingestão, erro de query, uso de storage, componentes e o heartbeat do
+alerting. O `helm test` inclui um probe desse endpoint. O alerting interno usa
+as regras/canais do PostgreSQL; em `development`, o seed cria a regra
+`Ingestion lag high` e um canal webhook local. Detalhes em
+[`docs/runbooks/auto-observabilidade.md`](../../../docs/runbooks/auto-observabilidade.md).
 
 ## Verificação automática
 
@@ -227,17 +271,18 @@ contagens no ClickHouse e o resultado de cada check.
 | gateway 429 `wal_backpressure` | WAL cheio (NATS fora ou writer atrasado) | veja `kubectl logs statefulset/observaki-nats` e o lag do writer em `/stats` |
 | upgrade falha no hook de migração | Job anterior ainda presente | o hook usa `before-hook-creation`; se um Job travou, `kubectl delete job -l app.kubernetes.io/component=migrate` e repita |
 | pods reiniciam após rollback | imagem anterior não existe no registry | o smoke carrega as duas imagens; em produção mantenha N e N-1 publicadas |
+| alerting `critical` com "evaluation is stale" | API sem PostgreSQL ou processo parado | veja `kubectl logs deploy/observaki-api`; a API tenta reconectar por 30 s no start e mostra o erro na health page |
+| health overview retorna `503` | provider de self-observability não configurado (build antigo) | atualize a imagem; as variáveis `OBSERVAKI_SELF_*` são preenchidas pelo chart |
 
 ## Limitações desta versão alpha
 
 - Dependências em `bundled` são **single-replica**: não há HA, replicação de
   ClickHouse/Keeper nem cluster NATS. Para produção use `external`.
-- Não há Operator, CRDs, autoscaling nem backup automatizado (Stories 5.3/5.4 e
-  Fase 3).
-- O PostgreSQL ainda não tem schema de control plane; o API valida o DSN e as
-  tabelas chegam com as stories de API/config plane.
-- A UI ainda é a landing page com o cartão de saúde; o Explore é 6.1–6.4.
+- Não há Operator, CRDs, autoscaling nem backup **agendado** (há os comandos e
+  scripts de backup/restore; o agendamento/object storage é Fase 3).
 - O chart não instala Ingress controller, cert-manager nem política de rede.
+- A query plane é Fase 1; a taxa de erro de query na health page conta o
+  endpoint placeholder da API até o Query Service existir.
 - Validado em kind (Linux). A validação em EKS/GKE e a matriz N-1/N-2 ficam
   para as próximas stories.
 

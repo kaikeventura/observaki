@@ -302,5 +302,7 @@ docker compose logs -f clickhouse
 
 - Instrumentação completa por linguagem: [`examples/README.md`](../examples/README.md).
 - Stack single-node, portas e limites: [`deploy/compose/README.md`](../deploy/compose/README.md).
+- Saúde da stack e alerta de lag: `open http://localhost:8080/health`; detalhes em [`docs/runbooks/auto-observabilidade.md`](runbooks/auto-observabilidade.md).
+- Backup/restore e upgrade/rollback: [`docs/runbooks/`](runbooks/README.md).
 - Kubernetes/Helm: [`deploy/helm/observaki/README.md`](../deploy/helm/observaki/README.md).
 - Desenvolvimento local da API/UI: [`docs/dev/local-setup.md`](dev/local-setup.md).

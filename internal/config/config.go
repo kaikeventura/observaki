@@ -69,6 +69,18 @@ const (
 	EnvVictoriaMetricsRetries   = "OBSERVAKI_VICTORIAMETRICS_MAX_RETRIES"
 	EnvVictoriaMetricsBackoff   = "OBSERVAKI_VICTORIAMETRICS_RETRY_BACKOFF"
 	EnvVictoriaMetricsMaxSeries = "OBSERVAKI_VICTORIAMETRICS_MAX_SERIES_PER_REQUEST"
+
+	EnvSelfWriterURL      = "OBSERVAKI_SELF_WRITER_URL"
+	EnvSelfGatewayURL     = "OBSERVAKI_SELF_GATEWAY_URL"
+	EnvSelfNATSMonitorURL = "OBSERVAKI_SELF_NATS_MONITOR_URL"
+	EnvSelfRefresh        = "OBSERVAKI_SELF_REFRESH_INTERVAL"
+	EnvSelfTimeout        = "OBSERVAKI_SELF_TIMEOUT"
+	EnvSelfIngestLag      = "OBSERVAKI_SELF_INGEST_LAG_THRESHOLD"
+
+	EnvAlertingEnabled          = "OBSERVAKI_ALERTING_ENABLED"
+	EnvAlertingInterval         = "OBSERVAKI_ALERTING_INTERVAL"
+	EnvAlertingDeliveryInterval = "OBSERVAKI_ALERTING_DELIVERY_INTERVAL"
+	EnvAlertingTimeout          = "OBSERVAKI_ALERTING_TIMEOUT"
 )
 
 // Defaults applied when a variable is unset or empty.
@@ -135,6 +147,23 @@ const (
 	DefaultVictoriaMetricsRetries   = 0
 	DefaultVictoriaMetricsBackoff   = 500 * time.Millisecond
 	DefaultVictoriaMetricsMaxSeries = 5_000
+
+	// DefaultSelfRefresh bounds how often the API re-scrapes the data-plane
+	// health endpoints for the health page.
+	DefaultSelfRefresh = 5 * time.Second
+	// DefaultSelfTimeout bounds a single self-observability probe (writer
+	// /stats, gateway /metrics, storage, PostgreSQL ping).
+	DefaultSelfTimeout = 3 * time.Second
+	// DefaultSelfIngestLag is the internal alert/degraded threshold for the
+	// ingestion lag p95 (AC3/AC4).
+	DefaultSelfIngestLag = 10 * time.Second
+
+	// DefaultAlertingInterval is the rule evaluation period.
+	DefaultAlertingInterval = 15 * time.Second
+	// DefaultAlertingDeliveryInterval is the notification outbox drain period.
+	DefaultAlertingDeliveryInterval = 5 * time.Second
+	// DefaultAlertingTimeout bounds a webhook delivery.
+	DefaultAlertingTimeout = 5 * time.Second
 )
 
 // LogLevel is a validated logging level.
@@ -232,6 +261,18 @@ type Config struct {
 	VictoriaMetricsMaxRetries   int
 	VictoriaMetricsRetryBackoff time.Duration
 	VictoriaMetricsMaxSeries    int
+
+	SelfWriterURL      string
+	SelfGatewayURL     string
+	SelfNATSMonitorURL string
+	SelfRefresh        time.Duration
+	SelfTimeout        time.Duration
+	SelfIngestLag      time.Duration
+
+	AlertingEnabled          bool
+	AlertingInterval         time.Duration
+	AlertingDeliveryInterval time.Duration
+	AlertingTimeout          time.Duration
 }
 
 // Lookup returns the value of an environment variable (os.Getenv compatible).
@@ -278,6 +319,10 @@ func Load(lookup Lookup) (Config, error) {
 		ClickHousePassword:    lookup(EnvClickHousePassword),
 		ClickHouseCompression: strings.ToLower(valueOr(lookup(EnvClickHouseCompression), DefaultClickHouseCompression)),
 		VictoriaMetricsURL:    valueOr(lookup(EnvVictoriaMetricsURL), DefaultVictoriaMetricsURL),
+
+		SelfWriterURL:      strings.TrimSpace(lookup(EnvSelfWriterURL)),
+		SelfGatewayURL:     strings.TrimSpace(lookup(EnvSelfGatewayURL)),
+		SelfNATSMonitorURL: strings.TrimSpace(lookup(EnvSelfNATSMonitorURL)),
 	}
 
 	var err error
@@ -390,6 +435,34 @@ func Load(lookup Lookup) (Config, error) {
 		return Config{}, err
 	}
 	cfg.VictoriaMetricsMaxSeries, err = intValue(lookup, EnvVictoriaMetricsMaxSeries, DefaultVictoriaMetricsMaxSeries)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SelfRefresh, err = durationValue(lookup, EnvSelfRefresh, DefaultSelfRefresh)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SelfTimeout, err = durationValue(lookup, EnvSelfTimeout, DefaultSelfTimeout)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SelfIngestLag, err = durationValue(lookup, EnvSelfIngestLag, DefaultSelfIngestLag)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.AlertingEnabled, err = boolValue(lookup, EnvAlertingEnabled, false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.AlertingInterval, err = durationValue(lookup, EnvAlertingInterval, DefaultAlertingInterval)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.AlertingDeliveryInterval, err = durationValue(lookup, EnvAlertingDeliveryInterval, DefaultAlertingDeliveryInterval)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.AlertingTimeout, err = durationValue(lookup, EnvAlertingTimeout, DefaultAlertingTimeout)
 	if err != nil {
 		return Config{}, err
 	}
@@ -568,6 +641,40 @@ func (c Config) Validate() error {
 		return fmt.Errorf("invalid %s %d: must be between 1 and 1000000", EnvVictoriaMetricsMaxSeries, c.VictoriaMetricsMaxSeries)
 	}
 
+	for key, raw := range map[string]string{
+		EnvSelfWriterURL:      c.SelfWriterURL,
+		EnvSelfGatewayURL:     c.SelfGatewayURL,
+		EnvSelfNATSMonitorURL: c.SelfNATSMonitorURL,
+	} {
+		if strings.TrimSpace(raw) == "" {
+			continue
+		}
+		if err := validateHTTPURL(raw); err != nil {
+			return fmt.Errorf("invalid %s %q: %w", key, raw, err)
+		}
+	}
+	if c.SelfRefresh < time.Second || c.SelfRefresh > 5*time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 5m", EnvSelfRefresh, c.SelfRefresh)
+	}
+	if c.SelfTimeout < 500*time.Millisecond || c.SelfTimeout > 30*time.Second {
+		return fmt.Errorf("invalid %s %s: must be between 500ms and 30s", EnvSelfTimeout, c.SelfTimeout)
+	}
+	if c.SelfIngestLag < time.Second || c.SelfIngestLag > 24*time.Hour {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 24h", EnvSelfIngestLag, c.SelfIngestLag)
+	}
+	if c.AlertingInterval < time.Second || c.AlertingInterval > 15*time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 15m", EnvAlertingInterval, c.AlertingInterval)
+	}
+	if c.AlertingDeliveryInterval < time.Second || c.AlertingDeliveryInterval > 5*time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 5m", EnvAlertingDeliveryInterval, c.AlertingDeliveryInterval)
+	}
+	if c.AlertingTimeout < time.Second || c.AlertingTimeout > time.Minute {
+		return fmt.Errorf("invalid %s %s: must be between 1s and 1m", EnvAlertingTimeout, c.AlertingTimeout)
+	}
+	if c.AlertingEnabled && c.DatabaseURL == "" {
+		return fmt.Errorf("%s=true requires %s (alert state lives in PostgreSQL)", EnvAlertingEnabled, EnvDatabaseURL)
+	}
+
 	return nil
 }
 
@@ -739,4 +846,16 @@ func valueOr(value, fallback string) string {
 		return fallback
 	}
 	return strings.TrimSpace(value)
+}
+
+func boolValue(lookup Lookup, key string, fallback bool) (bool, error) {
+	raw := strings.TrimSpace(lookup(key))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("invalid %s %q: must be true or false", key, raw)
+	}
+	return value, nil
 }

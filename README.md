@@ -108,14 +108,18 @@ O harness end-to-end (gateway + WAL + writers + storage + caos) está em
 make compose-up      # build + up de API/UI, gateway, writer, CH, VM, PG e NATS
 ./deploy/compose/sample.sh   # métricas, logs e traces de exemplo
 open http://localhost:8080   # UI (saúde da API) e API
+open http://localhost:8080/health  # ingestão, query, storage e componentes
 make compose-smoke   # AC1/AC2/AC3 da Story 5.1 com relatório
 make quickstart-check # reproduz e cronometra o quickstart da Story 5.3
+make operator-smoke  # Story 5.4: backup/restore, health overview e alerta
+make upgrade-drill   # Story 5.4: upgrade/rollback versionados
 make compose-down    # para a stack e mantém os volumes
 ```
 
 Configuração, portas, token de desenvolvimento e troubleshooting estão em
 [`deploy/compose/README.md`](deploy/compose/README.md). O caminho de 15 minutos
-com as apps de exemplo está em [`docs/quickstart.md`](docs/quickstart.md).
+com as apps de exemplo está em [`docs/quickstart.md`](docs/quickstart.md) e os
+runbooks de operação em [`docs/runbooks/`](docs/runbooks/README.md).
 
 ## Kubernetes com Helm (Fase 0)
 
@@ -131,7 +135,10 @@ de avaliação — ClickHouse, VictoriaMetrics, PostgreSQL e NATS. Requer
 Kubernetes 1.35+, Helm 4.3+ e uma StorageClass default. Produção usa
 `dependencies.mode=external`. Prerequisitos, values, sizing, upgrade/rollback e
 troubleshooting estão em
-[`deploy/helm/observaki/README.md`](deploy/helm/observaki/README.md).
+[`deploy/helm/observaki/README.md`](deploy/helm/observaki/README.md). Backup e
+restore da metadata usam
+[`deploy/helm/backup.sh`](deploy/helm/backup.sh) e a página `/health` lê a
+auto-observabilidade da Story 5.4.
 
 O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
 em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em
@@ -172,6 +179,11 @@ Leia PROMPT.md e execute.
 - [`epics.md`](_bmad-output/planning-artifacts/epics.md) — Fase 0 detalhada.
 - [`DECISIONS.md`](_bmad-output/planning-artifacts/DECISIONS.md) — decisões e pendências.
 
+## Operação
+
+- [`docs/runbooks/`](docs/runbooks/README.md) — backup/restore, upgrade/rollback e auto-observabilidade/alertas.
+- [`docs/quickstart.md`](docs/quickstart.md) — stack em 15 minutos com apps Go/Python/Node.js.
+
 ## Gates
 
 - **G1:** 1M eventos/s, p95 < 1s em 1B linhas, compressão ≥ 5x, 3 design partners.
@@ -191,8 +203,13 @@ estão documentados em [`.env.example`](.env.example):
 | `OBSERVAKI_HTTP_ADDR` | `:8080` | endereço de escuta da API |
 | `OBSERVAKI_LOG_LEVEL` | `info` | `debug`, `info`, `warn` ou `error` |
 | `OBSERVAKI_ENV` | `development` | `development`, `test`, `staging` ou `production` |
-| `OBSERVAKI_DATABASE_URL` | — | PostgreSQL do control plane (opcional na Fase 0) |
+| `OBSERVAKI_DATABASE_URL` | — | PostgreSQL do control plane (necessário para metadata/alerting) |
 | `OBSERVAKI_WEB_DIR` | `web/build` | build estático servido pelo binário |
+| `OBSERVAKI_SELF_WRITER_URL` | — | writer para a health overview (`http://writer:8082`) |
+| `OBSERVAKI_SELF_GATEWAY_URL` | — | gateway para a health overview (`http://gateway:4318`) |
+| `OBSERVAKI_SELF_NATS_MONITOR_URL` | — | monitor do NATS (`http://nats:8222`) |
+| `OBSERVAKI_SELF_INGEST_LAG_THRESHOLD` | `10s` | limiar de lag que deixa a ingestão `degraded` |
+| `OBSERVAKI_ALERTING_ENABLED` | `false` | avaliação das regras internas (exige o PostgreSQL) |
 | `OBSERVAKI_OTLP_GRPC_ADDR` | `:4317` | endereço do receptor OTLP/gRPC |
 | `OBSERVAKI_OTLP_HTTP_ADDR` | `:4318` | endereço do receptor OTLP/HTTP |
 | `OBSERVAKI_INGEST_MAX_REQUEST_BYTES` | `10485760` | limite do corpo após descompressão |

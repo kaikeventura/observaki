@@ -10,7 +10,9 @@
 name: observaki
 
 x-observaki-image: &observaki-image
-  image: observaki:local
+  # OBSERVAKI_IMAGE selects a prebuilt tag for the upgrade/rollback drill;
+  # normal use builds `observaki:local`.
+  image: ${OBSERVAKI_IMAGE:-observaki:local}
   build:
     context: .
     dockerfile: deploy/compose/Dockerfile
@@ -105,6 +107,19 @@ services:
       retries: 30
       start_period: 10s
 
+  # Applies the versioned PostgreSQL control-plane migrations and seeds the
+  # development metadata on every start (Story 5.4). Idempotent.
+  postgres-migrate:
+    <<: *observaki-image
+    restart: "no"
+    command: ["migrate", "--seed-dev"]
+    environment:
+      <<: *observaki-env
+      OBSERVAKI_DATABASE_URL: postgres://${OBSERVAKI_POSTGRES_USER:-observaki}:${OBSERVAKI_POSTGRES_PASSWORD:-observaki-local-dev}@postgres:5432/${OBSERVAKI_POSTGRES_DB:-observaki}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   nats:
     image: nats:2.15.2-alpine
     restart: unless-stopped
@@ -130,9 +145,27 @@ services:
       OBSERVAKI_HTTP_ADDR: ":8080"
       OBSERVAKI_WEB_DIR: /srv/web
       OBSERVAKI_DATABASE_URL: postgres://${OBSERVAKI_POSTGRES_USER:-observaki}:${OBSERVAKI_POSTGRES_PASSWORD:-observaki-local-dev}@postgres:5432/${OBSERVAKI_POSTGRES_DB:-observaki}?sslmode=disable
+      # Self-observability sources (Story 5.4 AC3). The API scrapes the data
+      # plane's own health/metrics endpoints and never queries CH/VM (AD-3).
+      OBSERVAKI_SELF_WRITER_URL: http://observaki-writer:8082
+      OBSERVAKI_SELF_GATEWAY_URL: http://observaki-gateway:4318
+      OBSERVAKI_SELF_NATS_MONITOR_URL: http://nats:8222
+      OBSERVAKI_SELF_REFRESH_INTERVAL: 5s
+      OBSERVAKI_SELF_TIMEOUT: 3s
+      OBSERVAKI_SELF_INGEST_LAG_THRESHOLD: 10s
+      # Internal alerting (Story 5.4 AC4). The seeded rule/channel live in
+      # PostgreSQL; the drill points the webhook at the host sink.
+      OBSERVAKI_ALERTING_ENABLED: "true"
+      OBSERVAKI_ALERTING_INTERVAL: 5s
+      OBSERVAKI_ALERTING_DELIVERY_INTERVAL: 2s
+      OBSERVAKI_ALERTING_TIMEOUT: 5s
+    # The seeded webhook channel and the operator drill reach a receiver on the
+    # Docker host (Linux host-gateway).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-migrate:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:8080:8080"
     healthcheck:

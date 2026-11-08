@@ -63,3 +63,38 @@ spec:
         readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "observaki.fullname" . }}-test-overview
+  labels:
+    {{- include "observaki.componentLabels" (dict "root" . "component" "test") | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: health-overview
+      image: {{ include "observaki.image" . | quote }}
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      command:
+        - /observaki
+        - healthcheck
+        - --url
+        - http://{{ include "observaki.fullname" . }}-api:{{ .Values.api.service.port }}/api/v1/health/overview
+        - --timeout
+        - 15s
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]

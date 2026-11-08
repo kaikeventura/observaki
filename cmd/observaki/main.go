@@ -9,16 +9,22 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/observaki/observaki/internal/adapters/clickhouse/writer"
 	natsadapter "github.com/observaki/observaki/internal/adapters/nats"
+	"github.com/observaki/observaki/internal/adapters/postgres"
+	"github.com/observaki/observaki/internal/adapters/storageprobe"
 	"github.com/observaki/observaki/internal/adapters/victoriametrics"
 	"github.com/observaki/observaki/internal/adapters/walconsumer"
+	"github.com/observaki/observaki/internal/alerting"
 	"github.com/observaki/observaki/internal/config"
 	"github.com/observaki/observaki/internal/healthcheck"
 	"github.com/observaki/observaki/internal/httpserver"
 	"github.com/observaki/observaki/internal/ingest"
+	"github.com/observaki/observaki/internal/selfobs"
 	"github.com/observaki/observaki/internal/version"
 )
 
@@ -45,6 +51,12 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return gateway()
 	case "writer":
 		return writerCommand()
+	case "migrate":
+		return migrateCommand(args[1:], stdout)
+	case "backup":
+		return backupCommand(args[1:], stdout)
+	case "restore":
+		return restoreCommand(args[1:], stdout)
 	case "healthcheck":
 		return healthcheckCommand(args[1:], stdout)
 	case "help", "-h", "--help":
@@ -66,12 +78,145 @@ func serve() error {
 	}))
 	logger.Info("starting observaki", "env", cfg.Environment, "web_dir", cfg.WebDir)
 
-	srv := httpserver.New(cfg.HTTPAddr, version.Version, logger, httpserver.WithWebDir(cfg.WebDir))
-
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	var database *postgres.DB
+	if cfg.DatabaseURL != "" {
+		// The API must start even when PostgreSQL is still coming up (Helm
+		// creates the Deployment before the Service DNS is ready). Retry for a
+		// bounded window, then run degraded instead of crash-looping.
+		deadline := time.Now().Add(30 * time.Second)
+		for {
+			connectContext, cancel := context.WithTimeout(ctx, 5*time.Second)
+			database, err = postgres.Open(connectContext, cfg.DatabaseURL)
+			cancel()
+			if err == nil {
+				defer database.Close()
+				break
+			}
+			if time.Now().After(deadline) {
+				logger.Warn("control-plane database is unavailable; metadata features are degraded", "error", err)
+				database = nil
+				break
+			}
+			logger.Warn("waiting for the control-plane database", "error", err)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(2 * time.Second):
+			}
+		}
+	}
+
+	var pinger selfobs.PostgresPinger
+	if database != nil {
+		pinger = database
+	}
+
+	metrics := httpserver.NewRequestMetrics()
+	alertingSource := &alertingProxy{}
+	collector := selfobs.New(selfobs.Config{
+		WriterURL:          cfg.SelfWriterURL,
+		GatewayURL:         cfg.SelfGatewayURL,
+		NATSMonitorURL:     cfg.SelfNATSMonitorURL,
+		IngestLagThreshold: cfg.SelfIngestLag,
+		Refresh:            cfg.SelfRefresh,
+		Timeout:            cfg.SelfTimeout,
+	}, metrics, alertingSource, pinger)
+
+	if cfg.AlertingEnabled {
+		if database == nil {
+			alertingSource.set(staticAlerting{snapshot: selfobs.Alerting{
+				Status:  selfobs.StatusCritical,
+				Enabled: true,
+				Detail:  "alerting is enabled but the control-plane database is unavailable",
+			}})
+		} else {
+			store := database.NewAlertingStore()
+			notifier := alerting.NewNotifier(store, cfg.AlertingTimeout, logger)
+			service := alerting.NewService(
+				store,
+				func(ctx context.Context) alerting.Metrics {
+					return alertingMetrics(collector.Overview(ctx))
+				},
+				notifier,
+				cfg.AlertingInterval,
+				cfg.AlertingDeliveryInterval,
+				logger,
+			)
+			alertingSource.set(service)
+			go service.Run(ctx)
+			logger.Info("internal alerting enabled",
+				"interval", cfg.AlertingInterval,
+				"delivery_interval", cfg.AlertingDeliveryInterval,
+			)
+		}
+	}
+
+	srv := httpserver.New(cfg.HTTPAddr, version.Version, logger,
+		httpserver.WithWebDir(cfg.WebDir),
+		httpserver.WithHealthOverview(collector),
+		httpserver.WithRequestMetrics(metrics),
+	)
+
 	return srv.Run(ctx)
+}
+
+// alertingProxy lets the collector and the alerting service reference each
+// other: the collector needs the dead-man snapshot, the evaluator needs the
+// overview metrics.
+type alertingProxy struct {
+	mu     sync.RWMutex
+	source selfobs.AlertingSource
+}
+
+func (p *alertingProxy) set(source selfobs.AlertingSource) {
+	p.mu.Lock()
+	p.source = source
+	p.mu.Unlock()
+}
+
+func (p *alertingProxy) AlertingSnapshot() selfobs.Alerting {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if p.source == nil {
+		return selfobs.Alerting{Status: selfobs.StatusDisabled, Enabled: false, Detail: "internal alerting is disabled"}
+	}
+	return p.source.AlertingSnapshot()
+}
+
+type staticAlerting struct {
+	snapshot selfobs.Alerting
+}
+
+func (s staticAlerting) AlertingSnapshot() selfobs.Alerting { return s.snapshot }
+
+// alertingMetrics maps the health overview into the minimal evaluator inputs.
+func alertingMetrics(overview selfobs.Overview) alerting.Metrics {
+	metrics := alerting.Metrics{
+		Components: make(map[string]string, len(overview.Components)),
+	}
+	if overview.Ingestion.LagP95Seconds != nil {
+		metrics.IngestLagP95Seconds = *overview.Ingestion.LagP95Seconds
+	}
+	if overview.Ingestion.PendingMessages != nil {
+		metrics.IngestPendingMessages = float64(*overview.Ingestion.PendingMessages)
+	}
+	if overview.Ingestion.DLQMessages != nil {
+		metrics.IngestDLQMessages = float64(*overview.Ingestion.DLQMessages)
+	}
+	if overview.Ingestion.WriterConnected != nil {
+		metrics.WriterConnected = *overview.Ingestion.WriterConnected
+	}
+	if overview.Ingestion.GatewayConnected != nil {
+		metrics.GatewayConnected = *overview.Ingestion.GatewayConnected
+	}
+	metrics.QueryErrorRate = overview.Query.ErrorRate
+	for _, component := range overview.Components {
+		metrics.Components[component.Name] = component.Status
+	}
+	return metrics
 }
 
 func gateway() error {
@@ -244,7 +389,16 @@ func writerCommand() error {
 		return fmt.Errorf("otlp writer: open WAL consumer: %w", err)
 	}
 
-	server := walconsumer.NewServer(cfg.WriterAddr, consumer, logger)
+	server := walconsumer.NewServer(cfg.WriterAddr, consumer, logger,
+		walconsumer.WithHandler("/storage", storageprobe.New(storageprobe.Config{
+			ClickHouseURL:      cfg.ClickHouseURL,
+			ClickHouseDatabase: cfg.ClickHouseDatabase,
+			ClickHouseUser:     cfg.ClickHouseUser,
+			ClickHousePassword: cfg.ClickHousePassword,
+			VictoriaMetricsURL: cfg.VictoriaMetricsURL,
+			Timeout:            cfg.SelfTimeout,
+		}).Handler()),
+	)
 	serverErr := make(chan error, 1)
 	go func() {
 		serverErr <- server.Run(ctx)
@@ -275,6 +429,149 @@ func writerCommand() error {
 	return runErr
 }
 
+func migrateCommand(args []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("migrate", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	seed := flags.Bool("seed-dev", false, "insert the development metadata (development/test only)")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	db, cfg, err := openControlPlane(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	applied, err := db.Migrate(ctx)
+	if err != nil {
+		return err
+	}
+	if len(applied) == 0 {
+		_, _ = fmt.Fprintln(stdout, "schema is up to date")
+	}
+	for _, migration := range applied {
+		_, _ = fmt.Fprintf(stdout, "applied %s (%s)\n", migration.Version, migration.Checksum[:12])
+	}
+	if *seed {
+		if err := db.SeedDev(ctx, string(cfg.Environment)); err != nil {
+			return err
+		}
+		_, _ = fmt.Fprintln(stdout, "development metadata seeded")
+	}
+	schemaVersion, err := db.SchemaVersion(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(stdout, "schema version: %s\n", schemaVersion)
+	return err
+}
+
+func backupCommand(args []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("backup", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	output := flags.String("output", "-", "destination file (\"-\" writes JSON to stdout)")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	db, _, err := openControlPlane(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	snapshot, err := db.Export(ctx, version.Version)
+	if err != nil {
+		return err
+	}
+	if *output == "-" {
+		return snapshot.Encode(stdout)
+	}
+	file, err := os.OpenFile(*output, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fmt.Errorf("backup: open %s: %w", *output, err)
+	}
+	if err := snapshot.Encode(file); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("backup: close %s: %w", *output, err)
+	}
+	total := 0
+	for _, count := range snapshot.Counts {
+		total += count
+	}
+	_, err = fmt.Fprintf(stdout, "backup written to %s (%d rows, %d tables, schema %s)\n",
+		*output, total, len(snapshot.Tables), snapshot.SchemaVersion)
+	return err
+}
+
+func restoreCommand(args []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("restore", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	input := flags.String("input", "-", "backup file (\"-\" reads JSON from stdin)")
+	force := flags.Bool("force", false, "replace existing metadata")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+
+	var data []byte
+	var err error
+	if *input == "-" {
+		data, err = io.ReadAll(io.LimitReader(os.Stdin, 512<<20))
+	} else {
+		data, err = os.ReadFile(*input)
+	}
+	if err != nil {
+		return fmt.Errorf("restore: read input: %w", err)
+	}
+	snapshot, err := postgres.DecodeSnapshot(data)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	db, _, err := openControlPlane(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	result, err := db.Restore(ctx, snapshot, postgres.RestoreOptions{Force: *force})
+	if err != nil {
+		return err
+	}
+	total := int64(0)
+	for _, count := range result.Tables {
+		total += count
+	}
+	_, err = fmt.Fprintf(stdout, "restore complete: %d rows in %.3fs (format %d)\n",
+		total, result.Elapsed.Seconds(), result.FormatVersion)
+	return err
+}
+
+func openControlPlane(ctx context.Context) (*postgres.DB, config.Config, error) {
+	cfg, err := config.LoadFromEnv()
+	if err != nil {
+		return nil, config.Config{}, err
+	}
+	if cfg.DatabaseURL == "" {
+		return nil, cfg, fmt.Errorf("%s is required for the control-plane commands", config.EnvDatabaseURL)
+	}
+	db, err := postgres.Open(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return nil, cfg, err
+	}
+	return db, cfg, nil
+}
+
 func usage(w io.Writer) error {
 	_, err := fmt.Fprintf(w, `observaki — OTel-native observability platform
 
@@ -286,6 +583,9 @@ Commands:
   serve        start the HTTP API and UI (env %s, default %s)
   gateway      start the OTLP gateway (env %s/%s, default %s/%s)
   writer       consume the NATS WAL and write ClickHouse/VictoriaMetrics (env %s, default %s)
+  migrate      apply the PostgreSQL control-plane migrations (env %s)
+  backup       export the control-plane metadata as versioned JSON (env %s)
+  restore      restore the control-plane metadata from a backup (env %s)
   healthcheck  probe an HTTP health endpoint (used by container healthchecks)
   help         show this help
 `,
@@ -293,6 +593,9 @@ Commands:
 		config.EnvOTLPGRPCAddr, config.EnvOTLPHTTPAddr,
 		config.DefaultOTLPGRPCAddr, config.DefaultOTLPHTTPAddr,
 		config.EnvWriterAddr, config.DefaultWriterAddr,
+		config.EnvDatabaseURL,
+		config.EnvDatabaseURL,
+		config.EnvDatabaseURL,
 	)
 	return err
 }

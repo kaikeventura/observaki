@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-
-	type Health = {
-		status: string;
-		version?: string;
-	};
+	import { getHealth, type Health } from '#lib/api';
 
 	type State = 'loading' | 'ok' | 'error';
 
@@ -14,11 +10,7 @@
 
 	onMount(async () => {
 		try {
-			const response = await fetch('/api/v1/health');
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}`);
-			}
-			health = (await response.json()) as Health;
+			health = await getHealth();
 			status = 'ok';
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : 'unknown error';
@@ -65,5 +57,15 @@
 				</p>
 			{/if}
 		</section>
+
+		<nav aria-label="Observability">
+			<a
+				href="/health"
+				class="border-border bg-surface-1 hover:bg-surface-2 focus-visible:outline-primary flex items-center justify-between rounded-lg border px-5 py-4 text-sm focus-visible:outline-2"
+			>
+				<span class="font-medium">System health</span>
+				<span class="text-foreground-muted" aria-hidden="true">→</span>
+			</a>
+		</nav>
 	</div>
 </main>

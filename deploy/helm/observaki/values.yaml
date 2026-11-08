@@ -168,6 +168,40 @@ migrations:
       cpu: 500m
       memory: 256Mi
 
+# Applies the PostgreSQL control-plane migrations (Story 5.4) with the
+# application image. seedDev inserts the development metadata (tenant-dev,
+# project-dev, a dashboard, a webhook channel and an ingestion-lag rule) and is
+# ignored outside development/test. Disable it when an external operator owns
+# the control-plane schema.
+postgresMigrations:
+  enabled: true
+  seedDev: true
+  backoffLimit: 3
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Self-observability health page data sources (Story 5.4 AC3). The API scrapes
+# the data plane's own /readyz, /metrics, /stats and /storage endpoints; it
+# never queries ClickHouse or VictoriaMetrics (AD-3).
+selfObservability:
+  refreshInterval: 5s
+  timeout: 3s
+  ingestLagThreshold: 10s
+
+# Minimal internal alerting (Story 5.4 AC4): threshold evaluation, outbox,
+# dedupe and silences. Channels live in PostgreSQL (managed by the API/UI in
+# Phase 1); the bundled development seed points at a local webhook sink.
+alerting:
+  enabled: true
+  interval: 15s
+  deliveryInterval: 5s
+  timeout: 5s
+
 # bundled: install single-replica dependencies in this release (default).
 # external: install only the Observaki workloads and use `external.*`.
 dependencies:

@@ -33,14 +33,35 @@ type Server struct {
 	addr     string
 	consumer *Consumer
 	logger   *slog.Logger
+	extra    map[string]http.Handler
+}
+
+// ServerOption configures the writer observability server.
+type ServerOption func(*Server)
+
+// WithHandler mounts an extra handler (for example the storage probe) on the
+// writer's HTTP server.
+func WithHandler(path string, handler http.Handler) ServerOption {
+	return func(s *Server) {
+		if s.extra == nil {
+			s.extra = make(map[string]http.Handler)
+		}
+		s.extra[path] = handler
+	}
 }
 
 // NewServer returns the HTTP observability server for the writer.
-func NewServer(addr string, consumer *Consumer, logger *slog.Logger) *Server {
+func NewServer(addr string, consumer *Consumer, logger *slog.Logger, options ...ServerOption) *Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Server{addr: addr, consumer: consumer, logger: logger}
+	server := &Server{addr: addr, consumer: consumer, logger: logger}
+	for _, option := range options {
+		if option != nil {
+			option(server)
+		}
+	}
+	return server
 }
 
 // Handler builds the mux. It is separated from Run so tests can use
@@ -65,6 +86,9 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(s.consumer.Stats())
 	})
+	for path, handler := range s.extra {
+		mux.Handle(path, handler)
+	}
 	return mux
 }
 
