@@ -19,6 +19,8 @@ func writeWebBuild(t *testing.T) string {
 	dir := t.TempDir()
 	files := map[string]string{
 		"index.html":                        "<!doctype html><title>Observaki</title>",
+		"explore.html":                      "<!doctype html><title>Explore · Observaki</title>",
+		"dashboards/index.html":             "<!doctype html><title>Dashboards · Observaki</title>",
 		"favicon.svg":                       "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>",
 		"_app/immutable/assets/app.abc.css": "body{color:red}",
 	}
@@ -66,6 +68,37 @@ func TestUIServesIndex(t *testing.T) {
 			}
 			if !strings.Contains(rec.Body.String(), "Observaki") {
 				t.Fatalf("body = %q, want index.html", rec.Body.String())
+			}
+			if got := rec.Header().Get("Content-Type"); !strings.HasPrefix(got, "text/html") {
+				t.Fatalf("Content-Type = %q, want text/html", got)
+			}
+			if got := rec.Header().Get("Cache-Control"); got != revalidateCache {
+				t.Fatalf("Cache-Control = %q, want %q", got, revalidateCache)
+			}
+		})
+	}
+}
+
+func TestUIServesPrerenderedRoutes(t *testing.T) {
+	srv := newWebTestServer(t)
+
+	cases := map[string]string{
+		"/explore":      "Explore · Observaki",
+		"/explore/":     "Explore · Observaki",
+		"/dashboards":   "Dashboards · Observaki",
+		"/dashboards/":  "Dashboards · Observaki",
+		"/explore.html": "Explore · Observaki",
+	}
+	for target, want := range cases {
+		t.Run(target, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			srv.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			if !strings.Contains(rec.Body.String(), want) {
+				t.Fatalf("body = %q, want %q", rec.Body.String(), want)
 			}
 			if got := rec.Header().Get("Content-Type"); !strings.HasPrefix(got, "text/html") {
 				t.Fatalf("Content-Type = %q, want text/html", got)

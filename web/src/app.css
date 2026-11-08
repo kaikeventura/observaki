@@ -13,15 +13,24 @@
 	--color-border-strong: #50647d;
 	--color-foreground: #e6edf7;
 	--color-foreground-muted: #93a1b5;
+	--color-foreground-subtle: #8696ab;
 	--color-primary: #22d3ee;
+	--color-primary-hover: #67e8f9;
 	--color-primary-foreground: #041014;
 	--color-success: #34d399;
 	--color-warning: #f5a524;
 	--color-danger: #f87171;
 	--color-info: #60a5fa;
+	--color-focus-ring: #22d3ee;
 
-	--font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-	--font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+	--font-sans: 'Geist', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+	/* DESIGN.md shapes: controls 6px, panels 10px, floating layers 14px. */
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-lg: 10px;
+	--radius-xl: 14px;
 }
 
 @layer base {
@@ -36,5 +45,17 @@
 
 	:focus-visible {
 		@apply outline-primary outline-2 outline-offset-2;
+	}
+
+	/* Motion is never required to understand state. */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
 	}
 }

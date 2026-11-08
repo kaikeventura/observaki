@@ -17,11 +17,15 @@ beforeEach(() => {
 	vi.stubGlobal('fetch', fetchMock);
 });
 
-describe('home page', () => {
-	it('renders the product name', () => {
+describe('overview page', () => {
+	it('renders the overview heading and the four primary surfaces', () => {
 		mockHealth({ status: 'ok' });
 		render(Page);
-		expect(screen.getByRole('heading', { level: 1, name: 'Observaki' })).toBeInTheDocument();
+
+		expect(screen.getByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument();
+		for (const label of ['Explore', 'Dashboards', 'Alerts', 'Settings']) {
+			expect(screen.getByRole('link', { name: new RegExp(`^${label}`) })).toBeInTheDocument();
+		}
 	});
 
 	it('shows the API status once the health check succeeds', async () => {

@@ -65,9 +65,14 @@ func (h *staticHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
-		h.serveFile(w, r, filePath, requestedPath)
-		return
+	// Prerendered routes are emitted as "<route>.html" (SvelteKit's default
+	// build format) or "<route>/index.html" (directory format). Exact files
+	// keep priority, then the two prerender shapes, then the SPA fallback.
+	for _, candidate := range []string{filePath, filePath + ".html", filepath.Join(filePath, indexFile)} {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			h.serveFile(w, r, candidate, requestedPath)
+			return
+		}
 	}
 
 	// A path with an extension is a missing asset, not a client-side route.

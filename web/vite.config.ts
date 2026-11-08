@@ -9,8 +9,8 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit({
 			preprocess: vitePreprocess(),
-			// The Go binary serves web/build as static assets (OBSERVAKI_WEB_DIR).
-			// A SPA fallback is added once client-side routes exist.
+			// Every route is prerendered into web/build and the Go static handler
+			// serves index.html as the fallback for unknown paths (OBSERVAKI_WEB_DIR).
 			adapter: adapter()
 		})
 	],

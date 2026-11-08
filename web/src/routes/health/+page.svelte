@@ -119,7 +119,7 @@
 	/>
 </svelte:head>
 
-<main class="mx-auto max-w-6xl space-y-8 px-6 py-10">
+<div class="mx-auto max-w-6xl space-y-8 px-6 py-8">
 	<header class="space-y-3">
 		<div class="flex flex-wrap items-end justify-between gap-4">
 			<div class="space-y-1">
@@ -402,4 +402,4 @@
 			{/if}
 		</section>
 	{/if}
-</main>
+</div>
