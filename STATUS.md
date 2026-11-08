@@ -2,20 +2,20 @@
 project: Observaki
 phase: 0
 phase_name: Fundação e Benchmarks
-epic: P0-E5
-epic_name: Esqueleto de deploy, operação e API
-story: "5.5"
-story_name: API mínima versionada e OpenAPI
+epic: P0-E6
+epic_name: Spike de frontend e orçamento de performance
+story: "6.1"
+story_name: Shell SvelteKit, design tokens e navegação
 task: "AC1–AC3"
-task_name: Contrato OpenAPI gerado, erros estruturados e política de versionamento
+task_name: Navegação, estados e acessibilidade
 status: done  # not_started | in_progress | blocked | done
 updated: 2026-11-08
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "1adb422"
-next_action: "Story 6.1 — Shell SvelteKit, design tokens e navegação; depende de 1.1. P-07 continua bloqueando o baseline T1"
+last_commit: "cc587c7"
+next_action: "Story 6.2 — Componente uPlot com 100k pontos; depende de 6.1. P-07 continua bloqueando o baseline T1"
 blocked_by: []
-last_session: "Story 5.5 concluída: OpenAPI 3.1 gerado da tabela de operações, API /api/v1 com auth por digest e escopos, erros AD-15 sem stack trace, política de versionamento/depreciação e compose smoke com contrato real; evidência em docs/dev/story-5.5-handoff.md."
+last_session: "Story 6.1 concluída: shell SvelteKit com nav rail, project switcher com 2 projetos mock, 7 estados de UI com frame fixo (CLS 0,00032), foco visível em 10 tab stops e rotas prerenderizadas servidas pelo binário Go; evidência em docs/dev/story-6.1-handoff.md."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -57,16 +57,16 @@ Atalho no OpenCode: `/continue`.
 | Campo | Valor |
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
-| Epic | **P0-E5 — Esqueleto de deploy, operação e API** |
-| Story | **5.5 — API mínima versionada e OpenAPI** |
-| Task | **AC1–AC3 — Contrato, erros estruturados e versionamento** |
+| Epic | **P0-E6 — Spike de frontend e orçamento de performance** |
+| Story | **6.1 — Shell SvelteKit, design tokens e navegação** |
+| Task | **AC1–AC3 — Navegação, estados e acessibilidade** |
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
-| Último commit | `1adb422` |
-| Próxima ação | Story 6.1 — Shell SvelteKit, design tokens e navegação |
-| Bloqueios | Nenhum para a 6.1 (depende de 1.1, done). Continuam pendentes do T1 (P-07): 1M/s por 1 h, R3 do NATS e sizing do WAL/spool. AC2 da 5.1 fica parcial até o Explore (6.1–6.4); macOS não validado; Query Service real é Fase 1 (Story 8.3) |
-| Última sessão | Story 5.5 concluída: OpenAPI 3.1 gerado, API `/api/v1` com auth por digest/escopos, erros AD-15, política de versionamento e compose smoke em 31 s |
+| Último commit | `cc587c7` |
+| Próxima ação | Story 6.2 — Componente uPlot com 100k pontos |
+| Bloqueios | Nenhum para a 6.2 (6.1 done). O AC2 da 5.1 segue parcial até o Explore (6.2–6.4) e a validação em macOS; Query Service real é Fase 1 (Story 8.3); T1 continua pendente de P-07 (1M/s por 1 h, R3 do NATS e sizing do WAL/spool) |
+| Última sessão | Story 6.1 concluída: nav rail + project switcher, 7 estados em frame fixo (CLS 0,00032), 10 tab stops com foco visível e rotas prerenderizadas |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -96,13 +96,13 @@ Atalho no OpenCode: `/continue`.
 | P0-E4 | 4.3 | Batching/WAL NATS | `done` | Envelope protobuf v1 com zstd, batching por subject, 32 shards e `event_id` determinístico; WAL JetStream com ack só após publish, retry com `Nats-Msg-Id`, 429/503 e `/readyz`; streams por sinal com `DiscardNew`; `walcheck` relê sem ack; run local 100k/s por 10 s (1M eventos, **5,46x**, 32 shards, 0 duplicatas, p99 **28,9 ms**); 1M/s/1h no T1 pendente; não é G1; evidência em `docs/dev/story-4.3-handoff.md` e `bench/gateway/wal/results/2026-11-03-local-100k/` |
 | P0-E4 | 4.4 | Writers CH/VM | `done` | Três consumidores duráveis JetStream; ack só após insert/DLQ do ClickHouse ou HTTP 2xx do VM; dedupe por `event_id` + geração/epoch; token estável por eventos; retry exponencial; DLQ `OBSERVAKI_DLQ`; INSERT de 17 colunas; `/metrics` e `/stats`; run local 20k/s por 20 s (400k eventos, lag p95 **0,80 s**, contagens exatas, 0 falhas) e caos 3 s/2 s (8 retries, zero perda, lag p95 7,97 s); `make fmt/lint/test/build/smoke` e `bench-clickhouse-ingest-check` verdes; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.4-handoff.md` e `bench/pipeline/results/2026-11-03-local-20k/` |
 | P0-E4 | 4.5 | Caos + go/no-go | `done` | `bench/chaos` com ClickHouse fora 15 min (**6M confirmados, zero perda**, 625 duplicatas 0,0158%, recuperação 241 s), NATS + gateway (zero perda, 120 s) e capacidade do WAL (**1.552 respostas 429** e retomada); achado de design corrigido (retenção WorkQueue + 429); recomendação Go/Collector/Rust condicional; `make fmt/lint/test/build/smoke`, `bench-pipeline-check` e `bench-gateway-wal-check` verdes; **não é G1**; T1 pendente; evidência em `docs/dev/story-4.5-handoff.md` |
-| P0-E5 | 5.1 | Docker Compose | `done` | `compose.yaml` + `deploy/compose` (imagem multi-stage, 7 serviços com healthchecks, volumes, migrações idempotentes, sample OTLP e smoke); `observaki healthcheck` para containers distroless e API servindo `OBSERVAKI_WEB_DIR` com fallback SPA; run local a partir de host vazio: **28 s** até healthy, **2 logs + 2 spans + métrica** gravados e `down`/`up` preservando dados (4 s/18 s); `make fmt/lint/test/build/smoke` verdes; AC2 parcial (Explore 6.1–6.4, macOS pendente); não é G1; evidência em `docs/dev/story-5.1-handoff.md` e `deploy/compose/results/20261104T032219Z/report.md` |
+| P0-E5 | 5.1 | Docker Compose | `done` | `compose.yaml` + `deploy/compose` (imagem multi-stage, 7 serviços com healthchecks, volumes, migrações idempotentes, sample OTLP e smoke); `observaki healthcheck` para containers distroless e API servindo `OBSERVAKI_WEB_DIR` com fallback SPA; run local a partir de host vazio: **28 s** até healthy, **2 logs + 2 spans + métrica** gravados e `down`/`up` preservando dados (4 s/18 s); `make fmt/lint/test/build/smoke` verdes; AC2 parcial (Explore 6.2–6.4, macOS pendente); não é G1; evidência em `docs/dev/story-5.1-handoff.md` e `deploy/compose/results/20261104T032219Z/report.md` |
 | P0-E5 | 5.2 | Helm chart | `done` | Chart alpha em `deploy/helm/observaki` (API/UI, gateway, writer, Job de migração via hook, deps bundled/external, guards AD-19, PDB/Ingress/helm test, values com CPU/memória/storage) + `chart-check` no CI e `chart-smoke`; kind 3 nós (K8s 1.37, Helm 4.3.1): install **47 s**, 7 workloads Ready, 5 PVCs Bound, migração Completed, amostra 2 logs/2 traces, métrica no VM e helm test; upgrade para chart **0.1.0-alpha.1.1** + `observaki:local-v2` (**22 s**) e rollback (**17 s**) com dados **2 → 4 → 4** e chart/imagem restaurados; **27/27 checks**, `make fmt/lint/test/build/smoke` verdes; não é G1; evidência em `docs/dev/story-5.2-handoff.md` e `deploy/helm/results/20261108T012922Z/report.md` |
 | P0-E5 | 5.3 | Quickstart + sample app | `done` | `docs/quickstart.md` + `examples/` (Go, Python, Node.js) com snippets, troubleshooting e `examples/check.sh --live`; `quickstart-check --fresh` em **60 s** (29 s até healthy, limite 900 s) com amostra verificada; 401 `invalid_token` e endpoint errado exercitados; `make fmt/smoke/examples-check` verdes; **não é G1**; macOS pendente; evidência em `docs/dev/story-5.3-handoff.md` e `deploy/compose/results/20261108T020129Z/quickstart-report.md` |
 | P0-E5 | 5.4 | Backup/restore + auto-observabilidade | `done` | Schema PostgreSQL embutido (AD-7/AD-28) com `migrate`/`backup`/`restore` JSON v1 e restore transacional; seed dev idempotente; health overview (`/api/v1/health/overview`) + página `/health` com lag, query error rate, storage e componentes (AD-3/AD-24); `/metrics` da API e `/storage` do writer; alerting interno (threshold, estados, outbox idempotente, dedupe, silence, webhook/Slack, dead-man); operator smoke: backup/restore sub-segundo com contagens `1\|1\|1\|1\|1\|1\|1\|1\|1`, 8 componentes healthy, 1 notificação entregue/dedupada e 2 linhas suprimidas; upgrade/rollback do Compose em **13 s/14 s** com metadata e 22 logs preservados; chart smoke **27/27** com `helm test` da overview; `make fmt/lint/test/build/smoke` verdes; **não é G1**; evidência em `docs/dev/story-5.4-handoff.md`, `deploy/compose/results/20261108T030610Z/operator-report.md`, `deploy/compose/results/20261108T030652Z/upgrade-report.md` e `deploy/helm/results/20261108T030211Z/report.md` |
 | P0-E5 | 5.5 | API mínima + OpenAPI | `done` | Contrato OpenAPI 3.1 gerado da mesma tabela de operações e servido em `/openapi.json`; `make api-check` no CI; API `/api/v1` com auth Bearer por digest no control plane, escopos `query`/`admin`, isolamento de projeto e listagem de tokens sem digest; erros AD-15 `{code,message,details,request_id}` com `X-Request-Id` e sem stack trace; `GET /api/v1/query/sample` marcado `sample=true` (Query Service real na Fase 1); política de versionamento/depreciação em `docs/api/versioning.md` + `api/openapi/CHANGELOG.md`; `make fmt/lint/test/build` e `SMOKE_SKIP_CI=1 make smoke` verdes; compose smoke em **31 s** com contrato e token seed validados; **não é G1**; evidência em `docs/dev/story-5.5-handoff.md` e `deploy/compose/results/20261108T032956Z/report.md` |
-| P0-E6 | 6.1 | Shell SvelteKit | `todo` | Depende de 1.1 |
-| P0-E6 | 6.2 | uPlot 100k pontos | `todo` | Depende de 6.1 |
+| P0-E6 | 6.1 | Shell SvelteKit | `done` | Nav rail (Explore/Dashboards/Alerts/Settings) + project switcher com 2 projetos mock persistidos e anunciados; 7 estados em `StateMessage` com frame de **15rem** (CLS **0,00032**); `/states` para disparar cada estado; skip link, **10 tab stops** com foco 2px e sem scroll horizontal; rotas prerenderizadas + handler Go para `<route>.html`/`<route>/index.html`; `app.css` (tokens) passou a ser importado no layout raiz; `make fmt/lint/test/build/smoke` verdes (web 8 arquivos/27 testes); não é G1; evidência em `docs/dev/story-6.1-handoff.md` |
+| P0-E6 | 6.2 | uPlot 100k pontos | `todo` | Pronta (6.1 done) |
 | P0-E6 | 6.3 | Tabela virtualizada | `todo` | Depende de 6.1 |
 | P0-E6 | 6.4 | Bundle CI + Explore mock | `todo` | Depende de 6.1-6.3 |
 | P0-E7 | 7.1 | Pipeline de design partners | `todo` | Independente |
@@ -173,6 +173,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-08 | Story 5.3 | P0 / 5.3 / AC1–AC3 | `docs/quickstart.md` (15 min), apps Go/Python/Node.js em `examples/` com OTel SDK e snippets, `examples/check.sh` (static/build/live) e `deploy/compose/quickstart-check.sh`; `quickstart-check --fresh` em **60 s** (29 s até healthy; amostra 2 logs/2 spans/métrica verificada; limite 900 s); `examples/check.sh --live` com **2 logs + 2 spans + métrica** por linguagem; troubleshooting testado (401 `invalid_token`, endpoint errado); `make fmt`, `make smoke` e `make examples-check` verdes; `make examples-check` no CI; **não é G1**; macOS pendente; evidência em `docs/dev/story-5.3-handoff.md` e `deploy/compose/results/20261108T020129Z/quickstart-report.md` | `68ce210` | Story 5.4 |
 | 2026-11-08 | Story 5.4 | P0 / 5.4 / AC1–AC4 | Control plane PostgreSQL (migrações embutidas com advisory lock/checksum + seed dev), `observaki migrate/backup/restore` JSON v1 com restore transacional e `--force`, e `deploy/helm/backup.sh`; auto-observabilidade (`GET /api/v1/health/overview`, página `/health`, `/metrics` da API e `/storage` do writer) sem consultar CH/VM (AD-3/AD-24); alerting interno (threshold, estados, outbox idempotente, dedupe, silence, webhook/Slack e dead-man); compose/helm com `postgres-migrate`, envs de self-obs e `helm test` da overview; operator smoke: backup/restore sub-segundo com contagens idênticas `1\|1\|1\|1\|1\|1\|1\|1\|1`, 8 componentes healthy, 1 notificação entregue/dedupada e 2 suprimidas; upgrade/rollback do Compose em **13 s/14 s** com metadata e 22 logs preservados; chart smoke **27/27** (install 45 s); `make fmt/lint/test/build/smoke` verdes; integração PG gated pass; **não é G1**; evidência em `docs/dev/story-5.4-handoff.md`, `deploy/compose/results/20261108T030610Z/operator-report.md`, `deploy/compose/results/20261108T030652Z/upgrade-report.md` e `deploy/helm/results/20261108T030211Z/report.md` | `d2c2371` | Story 5.5 |
 | 2026-11-08 | Story 5.5 | P0 / 5.5 / AC1–AC3 | API `/api/v1` versionada com contrato OpenAPI 3.1 gerado da mesma tabela de operações (`/openapi.json`, `make api-gen`/`api-check` no CI e no teste de contrato); auth Bearer por digest SHA-256 no control plane com escopos e isolamento de projeto; `GET /api/v1/projects`, `GET /api/v1/projects/{projectID}/ingest-tokens` (sem digest) e `GET /api/v1/query/sample` (`sample=true`, Query Service na Fase 1); erros AD-15 `{code,message,details,request_id}` com `X-Request-Id` e panic recovery sem stack; política de versionamento/depreciação em `docs/api/versioning.md` + changelog; migração aditiva `0003_api_tokens_hash`; `make fmt/lint/test/build` e `SMOKE_SKIP_CI=1 make smoke` verdes; compose smoke em **31 s** com contrato e token seed contra PostgreSQL real; **não é G1**; evidência em `docs/dev/story-5.5-handoff.md` e `deploy/compose/results/20261108T032956Z/report.md` | `1adb422` | Story 6.1 |
+| 2026-11-08 | Story 6.1 | P0 / 6.1 / AC1–AC3 | Shell SvelteKit: nav rail (Explore/Dashboards/Alerts/Settings + referências), project switcher com 2 projetos mock persistidos/`aria-live`, `StateMessage` com 7 estados e frame de **15rem**, `/states`, skip link e foco 2px em **10 tab stops** (sem scroll horizontal em 1440×900); rotas prerenderizadas (`<route>.html`) com handler Go para `<route>.html`/`<route>/index.html`, `app.css` (tokens) passou a ser importado no layout raiz e restore do projeto após hidratação; `make fmt/lint/test/build/smoke` verdes (web 8 arquivos/27 testes); Chrome headless: 240 px por estado e CLS **0,00032**; não é G1; evidência em `docs/dev/story-6.1-handoff.md` | `cc587c7` | Story 6.2 |
 
 ## Regras de atualização
 
