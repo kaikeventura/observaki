@@ -42,7 +42,12 @@ na rede.
 ```
 
 O script fala OTLP/HTTP JSON com o token de desenvolvimento, então exercita o
-caminho gateway → WAL NATS → writer → ClickHouse/VictoriaMetrics. Para conferir:
+caminho gateway → WAL NATS → writer → ClickHouse/VictoriaMetrics. Para o
+caminho de 15 minutos com instrumentação em Go/Python/Node.js e troubleshooting,
+veja [`docs/quickstart.md`](../../docs/quickstart.md) e as apps em
+[`examples/`](../../examples/README.md).
+
+Para conferir:
 
 ```bash
 docker compose exec -T clickhouse clickhouse-client --database observaki \
@@ -58,8 +63,9 @@ O VictoriaMetrics só devolve amostras mais antigas que o `-search.latencyOffset
 com polling em vez de `query`.
 
 O cartão da landing page cobre a saúde da API; a tela de Explore (métricas,
-logs e traces navegáveis) chega nas Stories 6.1–6.4, e o sample app com
-instruções por linguagem é a Story 5.3.
+logs e traces navegáveis) chega nas Stories 6.1–6.4. O sample app com
+instruções por linguagem está em [`examples/`](../../examples/README.md) e o
+quickstart em [`docs/quickstart.md`](../../docs/quickstart.md).
 
 ## Ciclo de vida e dados
 
@@ -76,6 +82,9 @@ instruções por linguagem é a Story 5.3.
 
 ```bash
 make compose-smoke          # ou: ./deploy/compose/smoke.sh
+make quickstart-check       # ou: ./deploy/compose/quickstart-check.sh --fresh
+make examples-check         # sintaxe/formatação das apps de exemplo
+./examples/check.sh --live  # roda as três apps contra a stack e valida os dados
 ```
 
 O smoke cobre os três ACs da Story 5.1 e grava o relatório em
@@ -130,4 +139,6 @@ staging/produção — nunca reutilize este arquivo.
 - Validado em Linux; a validação em macOS depende de Docker Desktop e ainda não
   foi executada (ver `docs/dev/story-5.1-handoff.md`).
 - Helm chart, backup/restore e auto-observabilidade são as Stories 5.2 e 5.4.
-- Quickstart e sample app com instrumentação por linguagem são a Story 5.3.
+- O quickstart de 15 minutos e as apps de exemplo (Go, Python e Node.js) são a
+  Story 5.3: [`docs/quickstart.md`](../../docs/quickstart.md) e
+  [`examples/`](../../examples/README.md).

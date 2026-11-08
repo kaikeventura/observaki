@@ -73,6 +73,9 @@ jobs:
       - name: Bootstrap and run CI
         run: make ci
 
+      - name: Sample app checks
+        run: make examples-check
+
       - name: Smoke test
         env:
           SMOKE_SKIP_CI: "1"

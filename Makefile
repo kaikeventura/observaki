@@ -39,7 +39,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -188,3 +188,9 @@ compose-down: ## stop the single-node stack (keeps the data volumes)
 
 compose-smoke: ## run the Story 5.1 end-to-end check (AC1/AC2/AC3)
 	./deploy/compose/smoke.sh
+
+quickstart-check: ## reproduce and time the Story 5.3 quickstart (QUICKSTART_ARGS=--fresh to wipe)
+	./deploy/compose/quickstart-check.sh $(QUICKSTART_ARGS)
+
+examples-check: ## check the Story 5.3 sample apps (static; use examples/check.sh --live for e2e)
+	./examples/check.sh

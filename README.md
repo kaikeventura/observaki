@@ -15,7 +15,21 @@
 | Docker Compose | v2 | stack single-node da Story 5.1 |
 | make, curl | recente | orquestração e smoke test |
 
-## Quickstart (5 comandos)
+## Quickstart de avaliação (15 min)
+
+Quer ver métricas, logs e traces sem montar a toolchain de desenvolvimento?
+Suba a stack single-node e envie a amostra:
+
+```bash
+docker compose up -d --build --wait
+./deploy/compose/sample.sh
+```
+
+Guia completo — verificação dos dados, instrumentação em Go/Python/Node.js e
+troubleshooting — em [`docs/quickstart.md`](docs/quickstart.md). As apps de
+exemplo ficam em [`examples/`](examples/README.md).
+
+## Quickstart de desenvolvimento (5 comandos)
 
 Guia completo (portas, configuração e troubleshooting): [`docs/dev/local-setup.md`](docs/dev/local-setup.md).
 
@@ -95,11 +109,13 @@ make compose-up      # build + up de API/UI, gateway, writer, CH, VM, PG e NATS
 ./deploy/compose/sample.sh   # métricas, logs e traces de exemplo
 open http://localhost:8080   # UI (saúde da API) e API
 make compose-smoke   # AC1/AC2/AC3 da Story 5.1 com relatório
+make quickstart-check # reproduz e cronometra o quickstart da Story 5.3
 make compose-down    # para a stack e mantém os volumes
 ```
 
 Configuração, portas, token de desenvolvimento e troubleshooting estão em
-[`deploy/compose/README.md`](deploy/compose/README.md).
+[`deploy/compose/README.md`](deploy/compose/README.md). O caminho de 15 minutos
+com as apps de exemplo está em [`docs/quickstart.md`](docs/quickstart.md).
 
 ## Kubernetes com Helm (Fase 0)
 
@@ -128,6 +144,7 @@ cmd/observaki/     # binário Go
 internal/          # domínio, ports, adapters, ingest, query, alerting
 web/               # SvelteKit 3 SPA
 agent/             # agente Rust (Fase 2)
+examples/          # sample apps Go, Python e Node.js (Story 5.3)
 bench/             # harness de benchmark
 deploy/            # Compose, Helm, jobs
 docs/              # ADRs, guias

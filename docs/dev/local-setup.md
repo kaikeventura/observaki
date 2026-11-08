@@ -3,6 +3,10 @@
 Guia para sair de um clone vazio até a API e o frontend rodando em Linux,
 com a toolchain validada. Tempo esperado: **≤ 10 minutos** com rede razoável.
 
+Para ver métricas, logs e traces sem montar a toolchain, use o quickstart de
+avaliação em [`docs/quickstart.md`](../quickstart.md) (stack single-node +
+apps de exemplo).
+
 O `make dev` sobe apenas a API Go e o dev server do SvelteKit. A stack
 completa — API/UI, gateway, writer, ClickHouse, VictoriaMetrics, PostgreSQL e
 NATS — sobe com `make compose-up` (Story 5.1), documentada em
