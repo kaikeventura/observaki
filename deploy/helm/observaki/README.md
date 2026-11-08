@@ -66,7 +66,8 @@ helm install observaki ./deploy/helm/observaki \
 
 O `--wait` só retorna quando os sete workloads (API, gateway, writer e as
 quatro dependências) estão `Ready` e o Job de migração terminou com sucesso.
-O tempo medido no smoke de 3 nós está em `deploy/helm/results/`.
+No smoke de 3 nós (kind v1.37, Helm 4.3.1) o install levou **47 s**, o upgrade
+**22 s** e o rollback **17 s**; o relatório está em `deploy/helm/results/`.
 
 Para usar uma imagem construída localmente (kind):
 
@@ -197,9 +198,10 @@ helm history observaki -n observaki
 ```
 
 Os PVCs não são recriados no upgrade nem no rollback; ClickHouse, VM,
-PostgreSQL, NATS e o spool do writer mantêm os dados. O smoke mede as contagens
-de logs e traces antes/depois do upgrade e do rollback para provar que nada foi
-perdido.
+PostgreSQL, NATS e o spool do writer mantêm os dados. O smoke empacota o chart
+como `0.1.0-alpha.1.1`, faz upgrade dessa versão com uma imagem nova e então
+rollback para a revisão anterior, medindo as contagens de logs e traces
+antes/depois (`2 -> 4 -> 4`) para provar que nada foi perdido.
 
 ## Verificação automática
 

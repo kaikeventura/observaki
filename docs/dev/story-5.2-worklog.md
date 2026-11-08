@@ -1,8 +1,9 @@
 # Story 5.2 — Helm chart alpha (worklog)
 
-**Status:** em andamento — implementação pronta e validada parcialmente; falta
-fechar AC2 (rollback) com o relatório do smoke.
-**Data:** 2026-11-04 (UTC).
+**Status:** concluída em 2026-11-08 — este arquivo registra o ponto de pausa de
+2026-11-04 e os gotchas encontrados; a evidência final está em
+[`story-5.2-handoff.md`](story-5.2-handoff.md).
+**Data:** 2026-11-04 (início) / 2026-11-08 (fechamento).
 **Epic:** P0-E5 — Esqueleto de deploy, operação e API.
 **ADs:** AD-4 (control/data plane), AD-6 (mesmas imagens/config em Compose e
 Kubernetes), AD-18 (durabilidade/ack), AD-19 (snapshot de auth assinado),

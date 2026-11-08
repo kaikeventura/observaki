@@ -43,6 +43,7 @@ PASS=0
 FAIL=0
 declare -a RESULTS=()
 PF_PIDS=()
+WORK_DIR=$(mktemp -d -t observaki-helm-smoke.XXXXXX)
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 
@@ -51,11 +52,12 @@ cleanup() {
 		kill "$pid" >/dev/null 2>&1 || true
 	done
 }
-trap cleanup EXIT
+trap 'cleanup; rm -rf "$WORK_DIR"' EXIT
 
 die() {
 	log "FAIL: $*"
-	record FAIL "$*"
+	RESULTS+=("FAIL|$*")
+	FAIL=$((FAIL + 1))
 	write_report
 	exit 1
 }
@@ -143,7 +145,7 @@ write_report() {
 		echo
 		echo "| Metric | Value |"
 		echo "|---|---|"
-		echo "| Install/upgrade wall clock | ${INSTALL_SECONDS:-n/a} s |"
+		echo "| Install wall clock | ${INSTALL_SECONDS:-n/a} s |"
 		echo "| Healthy limit | ${HEALTH_LIMIT} s |"
 		echo "| API reachable | ${API_STATUS:-n/a} |"
 		echo "| Gateway ready | ${GATEWAY_STATUS:-n/a} |"
@@ -170,14 +172,15 @@ write_report() {
 		echo
 		echo "## AC2 - Upgrade and rollback"
 		echo
-		echo "| Step | Revision | Image tags | Logs | Traces |"
-		echo "|---|---|---|---|---|"
-		echo "| Installed | ${REV_INSTALL:-n/a} | ${IMAGES_INSTALL:-n/a} | ${LOGS_INSTALL:-n/a} | ${TRACES_INSTALL:-n/a} |"
-		echo "| Upgraded | ${REV_UPGRADE:-n/a} | ${IMAGES_UPGRADE:-n/a} | ${LOGS_UPGRADE:-n/a} | ${TRACES_UPGRADE:-n/a} |"
-		echo "| Rolled back | ${REV_ROLLBACK:-n/a} | ${IMAGES_ROLLBACK:-n/a} | ${LOGS_ROLLBACK:-n/a} | ${TRACES_ROLLBACK:-n/a} |"
+		echo "| Step | Revision | Chart | Image tags | Logs | Traces |"
+		echo "|---|---|---|---|---|---|"
+		echo "| Installed | ${REV_INSTALL:-n/a} | ${CHART_INSTALL:-n/a} | ${IMAGES_INSTALL:-n/a} | ${LOGS_INSTALL:-n/a} | ${TRACES_INSTALL:-n/a} |"
+		echo "| Upgraded | ${REV_UPGRADE:-n/a} | ${CHART_UPGRADE:-n/a} | ${IMAGES_UPGRADE:-n/a} | ${LOGS_UPGRADE:-n/a} | ${TRACES_UPGRADE:-n/a} |"
+		echo "| Rolled back | ${REV_ROLLBACK:-n/a} | ${CHART_ROLLBACK:-n/a} | ${IMAGES_ROLLBACK:-n/a} | ${LOGS_ROLLBACK:-n/a} | ${TRACES_ROLLBACK:-n/a} |"
 		echo
 		echo "- Upgrade wall clock: ${UPGRADE_SECONDS:-n/a} s"
 		echo "- Rollback wall clock: ${ROLLBACK_SECONDS:-n/a} s"
+		echo "- Chart version bumped and restored: ${AC2_CHART:-n/a}"
 		echo "- Data preserved across upgrade and rollback: ${AC2_DATA:-n/a}"
 		echo "- Rollback restored the previous image: ${AC2_IMAGE:-n/a}"
 		echo
@@ -202,6 +205,10 @@ write_report() {
 
 helm_revision() {
 	helm list -n "$NAMESPACE" -o json | jq -r --arg r "$RELEASE" '.[] | select(.name == $r) | .revision'
+}
+
+helm_chart_version() {
+	helm list -n "$NAMESPACE" -o json | jq -r --arg r "$RELEASE" '.[] | select(.name == $r) | .chart'
 }
 
 pod_images() {
@@ -260,6 +267,27 @@ send_sample() {
 		"$ROOT/deploy/compose/sample.sh" >/dev/null
 }
 
+# A port-forward is pinned to the pod it connected to; a rollout replaces that
+# pod and kills the tunnel. Restart the forwards after every install/upgrade/
+# rollback before sending traffic again.
+stop_port_forwards() {
+	for pid in "${PF_PIDS[@]:-}"; do
+		kill "$pid" >/dev/null 2>&1 || true
+		wait "$pid" 2>/dev/null || true
+	done
+	PF_PIDS=()
+}
+
+start_port_forwards() {
+	stop_port_forwards
+	kubectl port-forward -n "$NAMESPACE" "svc/${RELEASE}-api" "${API_PORT}:80" >"$REPORT_DIR/port-forward-api.log" 2>&1 &
+	PF_PIDS+=($!)
+	kubectl port-forward -n "$NAMESPACE" "svc/${RELEASE}-gateway" "${GATEWAY_PORT}:4318" >"$REPORT_DIR/port-forward-gateway.log" 2>&1 &
+	PF_PIDS+=($!)
+	kubectl port-forward -n "$NAMESPACE" "svc/${RELEASE}-victoriametrics" "${VM_PORT}:8428" >"$REPORT_DIR/port-forward-vm.log" 2>&1 &
+	PF_PIDS+=($!)
+}
+
 # --- build and cluster -------------------------------------------------------
 
 if [ "$BUILD" = 1 ]; then
@@ -312,6 +340,7 @@ else
 fi
 REV_INSTALL=$(helm_revision)
 IMAGES_INSTALL=$(pod_images)
+CHART_INSTALL=$(helm_chart_version)
 
 # Every deployment and statefulset must report its desired replicas ready, and
 # the four bundled dependencies must be ready.
@@ -346,12 +375,7 @@ else
 fi
 
 # Port-forwards for the API, the OTLP gateway and VictoriaMetrics.
-kubectl port-forward -n "$NAMESPACE" "svc/${RELEASE}-api" "${API_PORT}:80" >"$REPORT_DIR/port-forward-api.log" 2>&1 &
-PF_PIDS+=($!)
-kubectl port-forward -n "$NAMESPACE" "svc/${RELEASE}-gateway" "${GATEWAY_PORT}:4318" >"$REPORT_DIR/port-forward-gateway.log" 2>&1 &
-PF_PIDS+=($!)
-kubectl port-forward -n "$NAMESPACE" "svc/${RELEASE}-victoriametrics" "${VM_PORT}:8428" >"$REPORT_DIR/port-forward-vm.log" 2>&1 &
-PF_PIDS+=($!)
+start_port_forwards
 
 if wait_http "http://127.0.0.1:${API_PORT}/healthz" 120; then
 	API_STATUS=$(curl -fsS "http://127.0.0.1:${API_PORT}/healthz")
@@ -416,9 +440,16 @@ fi
 
 # --- AC2: upgrade and rollback ----------------------------------------------
 
-log "upgrading the release to the v2 image"
+CHART_VERSION=$(helm show chart "$CHART" | awk '/^version:/ {print $2}')
+UPGRADE_VERSION="${CHART_VERSION}.1"
+log "packaging chart ${UPGRADE_VERSION} for the upgrade"
+helm package "$CHART" --version "$UPGRADE_VERSION" --destination "$WORK_DIR" >/dev/null
+UPGRADE_CHART="$WORK_DIR/observaki-${UPGRADE_VERSION}.tgz"
+[ -f "$UPGRADE_CHART" ] || die "packaged chart not found at $UPGRADE_CHART"
+
+log "upgrading the release to chart ${UPGRADE_VERSION} and the v2 image"
 upgrade_start=$(date +%s)
-if ! helm upgrade "$RELEASE" "$CHART" \
+if ! helm upgrade "$RELEASE" "$UPGRADE_CHART" \
 	--namespace "$NAMESPACE" \
 	--wait --timeout "$TIMEOUT" \
 	--set image.repository=observaki \
@@ -431,16 +462,32 @@ fi
 UPGRADE_SECONDS=$(( $(date +%s) - upgrade_start ))
 REV_UPGRADE=$(helm_revision)
 IMAGES_UPGRADE=$(pod_images)
+CHART_UPGRADE=$(helm_chart_version)
 if printf '%s' "$IMAGES_UPGRADE" | grep -q 'observaki:local-v2'; then
 	record PASS "upgrade rolled the pods to observaki:local-v2"
 else
 	record FAIL "upgrade did not roll the pods to observaki:local-v2 (${IMAGES_UPGRADE})"
 fi
 
+# The rollout replaced the gateway/API pods and killed the tunnels.
+start_port_forwards
+if ! wait_http "http://127.0.0.1:${API_PORT}/healthz" 120 ||
+	! wait_http "http://127.0.0.1:${GATEWAY_PORT}/readyz" 120; then
+	die "API/gateway not reachable after the upgrade"
+fi
+record PASS "API and gateway reachable after the upgrade"
+
 send_sample || die "sample after upgrade failed"
-counts=$(wait_for_counts 120 "$LOGS_INSTALL" "$TRACES_INSTALL") || true
-LOGS_UPGRADE=$(printf '%s' "$counts" | awk '{print $1}')
-TRACES_UPGRADE=$(printf '%s' "$counts" | awk '{print $2}')
+# Prove the upgraded pods write too: the sample adds 2 logs and 2 spans.
+if counts=$(wait_for_counts 120 "$((LOGS_INSTALL + 2))" "$((TRACES_INSTALL + 2))"); then
+	LOGS_UPGRADE=$(printf '%s' "$counts" | awk '{print $1}')
+	TRACES_UPGRADE=$(printf '%s' "$counts" | awk '{print $2}')
+	record PASS "telemetry after the upgrade (${LOGS_UPGRADE} logs / ${TRACES_UPGRADE} traces)"
+else
+	LOGS_UPGRADE=$(printf '%s' "$counts" | awk '{print $1}')
+	TRACES_UPGRADE=$(printf '%s' "$counts" | awk '{print $2}')
+	record FAIL "telemetry after the upgrade did not increase (${LOGS_UPGRADE} logs / ${TRACES_UPGRADE} traces)"
+fi
 
 log "rolling back the release"
 rollback_start=$(date +%s)
@@ -451,6 +498,15 @@ fi
 ROLLBACK_SECONDS=$(( $(date +%s) - rollback_start ))
 REV_ROLLBACK=$(helm_revision)
 IMAGES_ROLLBACK=$(pod_images)
+CHART_ROLLBACK=$(helm_chart_version)
+
+if [ "$CHART_UPGRADE" = "observaki-${UPGRADE_VERSION}" ] && [ "$CHART_ROLLBACK" = "observaki-${CHART_VERSION}" ]; then
+	AC2_CHART=pass
+	record PASS "chart version moved to ${UPGRADE_VERSION} and rolled back to ${CHART_VERSION}"
+else
+	AC2_CHART=failed
+	record FAIL "chart versions unexpected (upgrade=${CHART_UPGRADE}, rollback=${CHART_ROLLBACK})"
+fi
 
 if printf '%s' "$IMAGES_ROLLBACK" | grep -q 'observaki:local' &&
 	! printf '%s' "$IMAGES_ROLLBACK" | grep -q 'observaki:local-v2'; then
@@ -461,13 +517,22 @@ else
 	record FAIL "rollback did not restore the previous image (${IMAGES_ROLLBACK})"
 fi
 
+# The rollback replaced the pods again; re-open the tunnels before the final
+# readiness check.
+start_port_forwards
+if ! wait_http "http://127.0.0.1:${API_PORT}/healthz" 120 ||
+	! wait_http "http://127.0.0.1:${GATEWAY_PORT}/readyz" 120; then
+	die "API/gateway not reachable after the rollback"
+fi
+record PASS "API and gateway reachable after the rollback"
+
 counts=$(wait_for_counts 60 "$LOGS_UPGRADE" "$TRACES_UPGRADE") || true
 LOGS_ROLLBACK=$(printf '%s' "$counts" | awk '{print $1}')
 TRACES_ROLLBACK=$(printf '%s' "$counts" | awk '{print $2}')
 if [ "$LOGS_ROLLBACK" -ge "$LOGS_UPGRADE" ] && [ "$TRACES_ROLLBACK" -ge "$TRACES_UPGRADE" ] &&
 	[ "$LOGS_ROLLBACK" -ge "$LOGS_INSTALL" ] && [ "$TRACES_ROLLBACK" -ge "$TRACES_INSTALL" ]; then
 	AC2_DATA=pass
-	record PASS "data survived the upgrade and rollback (${AC2_COUNTS:-${LOGS_ROLLBACK} logs / ${TRACES_ROLLBACK} traces})"
+	record PASS "data survived the upgrade and rollback (${LOGS_ROLLBACK} logs / ${TRACES_ROLLBACK} traces)"
 else
 	AC2_DATA=failed
 	record FAIL "data was lost across upgrade/rollback (${LOGS_INSTALL}/${LOGS_UPGRADE}/${LOGS_ROLLBACK} logs)"
@@ -503,7 +568,7 @@ write_report
 
 echo
 echo "AC1 install: ${AC1_READY}, sample ${AC1_SAMPLE}, ${AC1_COUNTS}"
-echo "AC2 upgrade/rollback: image ${AC2_IMAGE}, data ${AC2_DATA} (${REV_INSTALL} -> ${REV_UPGRADE} -> ${REV_ROLLBACK})"
+echo "AC2 upgrade/rollback: chart ${AC2_CHART}, image ${AC2_IMAGE}, data ${AC2_DATA} (${REV_INSTALL} -> ${REV_UPGRADE} -> ${REV_ROLLBACK})"
 echo "AC3 documentation: ${AC3_README}"
 echo "Checks: ${PASS} passed, ${FAIL} failed"
 echo "Report: ${REPORT}"

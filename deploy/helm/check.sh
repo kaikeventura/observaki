@@ -70,6 +70,14 @@ render() {
 
 if render bundled >"$TMP/bundled.yaml" 2>"$TMP/bundled.err"; then
 	ok "renders the default (bundled dependencies) profile"
+	if grep -Eq '[0-9]e\+[0-9]' "$TMP/bundled.yaml"; then
+		# The YAML parser turns large integers into float64 and renders them as
+		# 1.048576e+07, which the gateway/ClickHouse reject at runtime.
+		fail "rendered manifests contain scientific notation (quote large values in values.yaml)"
+		grep -nE '[0-9]e\+[0-9]' "$TMP/bundled.yaml" || true
+	else
+		ok "no scientific notation in the rendered manifests"
+	fi
 else
 	fail "default profile does not render"
 	cat "$TMP/bundled.err"

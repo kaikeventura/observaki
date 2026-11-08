@@ -101,6 +101,22 @@ make compose-down    # para a stack e mantém os volumes
 Configuração, portas, token de desenvolvimento e troubleshooting estão em
 [`deploy/compose/README.md`](deploy/compose/README.md).
 
+## Kubernetes com Helm (Fase 0)
+
+```bash
+helm install observaki ./deploy/helm/observaki -n observaki --create-namespace \
+  --wait --timeout 10m
+make chart-check     # lint/render do chart sem cluster
+make chart-smoke     # kind 3 nós: install, amostra, upgrade e rollback
+```
+
+O chart alpha da Story 5.2 sobe API/UI, gateway, writer, migrações e — no perfil
+de avaliação — ClickHouse, VictoriaMetrics, PostgreSQL e NATS. Requer
+Kubernetes 1.35+, Helm 4.3+ e uma StorageClass default. Produção usa
+`dependencies.mode=external`. Prerequisitos, values, sizing, upgrade/rollback e
+troubleshooting estão em
+[`deploy/helm/observaki/README.md`](deploy/helm/observaki/README.md).
+
 O spike local de armazenamento de logs (Story 3.1) deixa um container e ~78 GiB
 em `/tmp/opencode/observaki-ch31`. A limpeza do container e dos dados está em
 [`bench/clickhouse/README.md`](bench/clickhouse/README.md#limpeza-importante).
