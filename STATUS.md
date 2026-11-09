@@ -4,18 +4,18 @@ phase: 0
 phase_name: Fundação e Benchmarks
 epic: P0-E6
 epic_name: Spike de frontend e orçamento de performance
-story: "6.3"
-story_name: Tabela virtualizada de 10k linhas
+story: "6.4"
+story_name: Orçamento de bundle no CI e Explore mock
 task: "AC1–AC3"
-task_name: Render, colunas/seleção e estados
+task_name: Budget, Lighthouse e mock Explore
 status: done  # not_started | in_progress | blocked | done
-updated: 2026-11-08
+updated: 2026-11-09
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
 last_commit: "1b6dabd"
-next_action: "Story 6.4 — Orçamento de bundle no CI e Explore mock; depende de 6.1–6.3. P-07 continua bloqueando o baseline T1"
+next_action: "Story 7.1 — Pipeline de recrutamento de design partners. P-07 continua bloqueando o baseline T1"
 blocked_by: []
-last_session: "Story 6.3 concluída: tabela virtualizada com 10k linhas, 19–25 linhas no DOM, scroll a 60,5 fps, sort/resize/seleção e estados vazio/erro com retry; evidência em docs/dev/story-6.3-handoff.md e bench/frontend/results/20261109T004040Z-local-10k/."
+last_session: "Story 6.4 concluída: bundle inicial 41,5 KB gzip e dashboards 74,4 KB no gate do build, Lighthouse no /explore com LCP 390 ms e INP 81 ms, e mock Explore com abas persistentes e autocomplete; evidência em docs/dev/story-6.4-handoff.md e bench/frontend/results/20261109T005535Z-local-explore/."
 ---
 
 # Observaki — Status de Desenvolvimento
@@ -58,15 +58,15 @@ Atalho no OpenCode: `/continue`.
 |---|---|
 | Fase | **0 — Fundação e Benchmarks** |
 | Epic | **P0-E6 — Spike de frontend e orçamento de performance** |
-| Story | **6.3 — Tabela virtualizada de 10k linhas** |
-| Task | **AC1–AC3 — Render, colunas/seleção e estados** |
+| Story | **6.4 — Orçamento de bundle no CI e Explore mock** |
+| Task | **AC1–AC3 — Budget, Lighthouse e mock Explore** |
 | Status | `done` |
 | Branch | `main` |
 | Remoto | `https://github.com/kaikeventura/observaki.git` |
 | Último commit | `1b6dabd` |
-| Próxima ação | Story 6.4 — Orçamento de bundle no CI e Explore mock |
-| Bloqueios | Nenhum para a 6.4 (6.1–6.3 done). O AC2 da 5.1 segue parcial até o Explore completo (6.4) e a validação em macOS; Query Service real é Fase 1 (Story 8.3); T1 continua pendente de P-07 (1M/s por 1 h, R3 do NATS e sizing do WAL/spool) |
-| Última sessão | Story 6.3 concluída: 10k linhas com 19–25 no DOM, scroll a 60,5 fps, sort/resize/seleção com painel e estados vazio/erro com retry |
+| Próxima ação | Story 7.1 — Pipeline de recrutamento de design partners |
+| Bloqueios | Nenhum para a 7.1. O AC2 da 5.1 segue parcial até a validação em macOS; Query Service real é Fase 1 (Story 8.3); T1 continua pendente de P-07 (1M/s por 1 h, R3 do NATS e sizing do WAL/spool) |
+| Última sessão | Story 6.4 concluída: gate de bundle no build (41,5 KB inicial / 74,4 KB dashboards), Lighthouse no /explore (LCP 390 ms, INP 81 ms) e mock Explore com filtros sticky e autocomplete |
 
 **Ambiente local:** Node 26.13.0 instalado via `nvm` (alias `default` atualizado); pnpm 12.16.1 via `corepack` com shim em `~/.local/bin`; golangci-lint v2.15.0 em `~/go/bin` **compilado com `GOTOOLCHAIN=go1.27.2`** (a build padrão saiu com go1.26 e recusava o módulo). Rust 1.93 estável. `make bootstrap/lint/test/build/dev/smoke/clean` verificados nesta máquina. Em shells não interativos, rode `source ~/.nvm/nvm.sh && nvm use 26` antes de `make ci`.
 
@@ -104,7 +104,7 @@ Atalho no OpenCode: `/continue`.
 | P0-E6 | 6.1 | Shell SvelteKit | `done` | Nav rail (Explore/Dashboards/Alerts/Settings) + project switcher com 2 projetos mock persistidos e anunciados; 7 estados em `StateMessage` com frame de **15rem** (CLS **0,00032**); `/states` para disparar cada estado; skip link, **10 tab stops** com foco 2px e sem scroll horizontal; rotas prerenderizadas + handler Go para `<route>.html`/`<route>/index.html`; `app.css` (tokens) passou a ser importado no layout raiz; `make fmt/lint/test/build/smoke` verdes (web 8 arquivos/27 testes); não é G1; evidência em `docs/dev/story-6.1-handoff.md` |
 | P0-E6 | 6.2 | uPlot 100k pontos | `done` | `TimeSeriesChart` com uPlot 1.6.32 sob demanda (43,3 KB/16,8 KB gzip): **100k pontos** no primeiro frame em **11,4 ms** (limite 100 ms), **60,1 fps** de mediana em 9 rodadas de hover/zoom/pan (58,7–60,7), tooltip conferido contra os dados, zoom por arraste/wheel/teclado e pan por shift+wheel/setas/botões; live 1 Hz com `instances=1`, mesmo `<canvas>` e heap 7–18 MiB em **10 min** (40 amostras); decimação min/max (~1 ponto/pixel) e tabela acessível de 12 buckets; bench CDP sem Puppeteer em `web/scripts/chart-bench.mjs` e `make chart-bench`; `make fmt/lint/test/build/smoke` verdes (web 12 arquivos/72 testes); não é G1; evidência em `docs/dev/story-6.2-handoff.md` e `bench/frontend/results/20261109T000523Z-local-100k/` |
 | P0-E6 | 6.3 | Tabela virtualizada | `done` | `VirtualLogTable` com 10k linhas e **19 no DOM** no topo (**máx. 25** no scroll); scroll com wheel real a **60,2–60,7 fps** (mediana **60,5**, pior frame 16,8 ms); sort explícito (duração asc/desc conferida), resize da coluna Service por teclado (**150→182 px**) e arraste (**182→230 px**) preservado após seleção; seleção com painel de detalhe (`log-000759`), `Esc` mantém, `j` move e `Enter` reabre; estados vazio/erro no mesmo frame com retry para 10k; CLS de carga **0**; bench CDP em `web/scripts/table-bench.mjs` e `make table-bench`; `make fmt/lint/test/build/smoke` verdes (web 14 arquivos/94 testes); não é G1; evidência em `docs/dev/story-6.3-handoff.md` e `bench/frontend/results/20261109T004040Z-local-10k/` |
-| P0-E6 | 6.4 | Bundle CI + Explore mock | `todo` | Depende de 6.1-6.3 |
+| P0-E6 | 6.4 | Bundle CI + Explore mock | `done` | Gate de bundle no fim de `make build` (e step no CI): **41,5 KB** gzip inicial (< 180 KB) e **74,4 KB** em dashboards (< 250 KB); gate negativo com budget de 10 KB saiu 1; Lighthouse no `/explore` (desktop 50 Mbps/40 ms, 1x CPU): **LCP 390 ms** e **INP 81 ms** (< 1,5 s / < 200 ms), CLS 0,00007; mock Explore com abas Metrics/Logs/Traces que preservam time range + serviço, query mantida/descartada com anúncio e autocomplete (campos, valores, métricas, MetricsQL) com URL reproduzível; `make fmt/lint/test/build/smoke` verdes (web 17 arquivos/116 testes); não é G1; evidência em `docs/dev/story-6.4-handoff.md` e `bench/frontend/results/20261109T005535Z-local-explore/` |
 | P0-E7 | 7.1 | Pipeline de design partners | `todo` | Independente |
 | P0-E7 | 7.2 | Critérios/acordo | `todo` | Depende de 7.1 |
 | P0-E7 | 7.3 | Onboarding | `todo` | Depende de 7.2/5.3 |
@@ -120,10 +120,10 @@ Atalho no OpenCode: `/continue`.
 - [x] Métricas: 1M séries a 1M/s por 1h e 20 consultas p95 <1s em 24h (local: 999.738/s, p95 799,5ms; T1 pendente)
 - [ ] Retenção/row policies/quotas validadas (3.5: TTL 7/15/30 e row policies locais pass, epoch AD-20 pass; 4.2: quota de ingestão local pass com 429/`Retry-After`, isolamento p95 <10% e quotas de consulta pendentes no T1; 4.3: `DiscardNew`/MaxAge/MaxBytes do WAL e 429 `wal_backpressure` locais pass; **4.4: linhas com `project_generation`/`authz_epoch` e dedupe escopado por epoch**; **4.5: WAL em WorkQueue libera espaço após o ack, 429 no stream cheio e retomada após o dreno**) 
 - [ ] Compose single-node < 15 min; Helm em 3 nós; upgrade/rollback (**5.1: Compose a partir de host vazio em 28 s, com dados de exemplo e persistência validadas em Linux; 5.2: chart alpha em kind de 3 nós com install em 47 s, amostra + helm test, upgrade/rollback de chart e imagem em 22 s/17 s com dados preservados; 5.3: quickstart fresh em 60 s com amostra verificada e apps Go/Python/Node validadas; **5.4: chart smoke 27/27 com install em 45 s e `helm test` da health overview; upgrade/rollback do Compose versionado em 13 s/14 s com metadata e 22 logs preservados; **5.5: `/openapi.json` e auth por token validados no compose smoke em 31 s; macOS e EKS/GKE pendentes**)
-- [ ] 100k pontos < 100ms; bundle inicial < 180 KB gzip (**6.2: primeiro frame em 11,4 ms com 100k pontos, 60,1 fps de mediana em hover/zoom/pan e live 1 Hz reusando o plot; **6.3: 10k linhas com 19–25 no DOM e scroll a 60,5 fps, CLS de carga 0**; orçamento de bundle/Lighthouse fica na 6.4**)
+- [x] 100k pontos < 100ms; bundle inicial < 180 KB gzip (**6.2: primeiro frame em 11,4 ms com 100k pontos, 60,1 fps de mediana em hover/zoom/pan e live 1 Hz reusando o plot; **6.3: 10k linhas com 19–25 no DOM e scroll a 60,5 fps, CLS de carga 0**; **6.4: bundle inicial 41,5 KB gzip (< 180 KB) e rota de dashboards 74,4 KB (< 250 KB) com gate no build; Lighthouse no `/explore` LCP 390 ms e INP 81 ms**)
 - [ ] 3 design partners com dados reais
 - [x] ADRs aprovadas (storage, gateway, fila, frontend, tenancy, benchmark)
-- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; 3.4: go local; 3.5: go local; 4.2: go funcional local, isolamento p95 inconclusivo; 4.3: go funcional local, AC1/T1 pendente; 4.4: go funcional local, retry/caos curto pass, AC1/T1 pendente; **4.5: go funcional local com zero perda nos três cenários; recomendação Go no MVP, Collector na borda e fallback Rust/Rotel condicionado ao T1**; **5.4: go funcional local para backup/restore, health overview e alerting (dedupe/silence), com chart 27/27; T1 pendente**; T1 pendente)
+- [ ] Go/no-go registrado para cada spike (3.1: go local; 3.2: go local; 3.3: go local; 3.4: go local; 3.5: go local; 4.2: go funcional local, isolamento p95 inconclusivo; 4.3: go funcional local, AC1/T1 pendente; 4.4: go funcional local, retry/caos curto pass, AC1/T1 pendente; **4.5: go funcional local com zero perda nos três cenários; recomendação Go no MVP, Collector na borda e fallback Rust/Rotel condicionado ao T1**; 5.4: go funcional local para backup/restore, health overview e alerting (dedupe/silence), com chart 27/27; 6.4: go local para o budget e o Lighthouse de frontend, com gates no CI; T1 pendente)
 - [ ] `BENCHMARKS.md` publicado (spikes 3.1/3.2/3.3/3.4/3.5 e harness 4.2/4.3/4.4/4.5 locais publicados; baseline T1 pendente de P-07)
 
 **Só depois de todos os itens:** atualizar `phase: 1` e começar o detalhamento da Fase 1.
@@ -176,6 +176,7 @@ Atalho no OpenCode: `/continue`.
 | 2026-11-08 | Story 6.1 | P0 / 6.1 / AC1–AC3 | Shell SvelteKit: nav rail (Explore/Dashboards/Alerts/Settings + referências), project switcher com 2 projetos mock persistidos/`aria-live`, `StateMessage` com 7 estados e frame de **15rem**, `/states`, skip link e foco 2px em **10 tab stops** (sem scroll horizontal em 1440×900); rotas prerenderizadas (`<route>.html`) com handler Go para `<route>.html`/`<route>/index.html`, `app.css` (tokens) passou a ser importado no layout raiz e restore do projeto após hidratação; `make fmt/lint/test/build/smoke` verdes (web 8 arquivos/27 testes); Chrome headless: 240 px por estado e CLS **0,00032**; não é G1; evidência em `docs/dev/story-6.1-handoff.md` | `cc587c7` | Story 6.2 |
 | 2026-11-08 | Story 6.2 | P0 / 6.2 / AC1–AC3 | `TimeSeriesChart` (uPlot 1.6.32 por `import()` dinâmico, 43,3 KB/16,8 KB gzip) com **100k pontos**: primeiro frame **11,4 ms** (plot 2,0 ms) e **60,1 fps** de mediana em 9 rodadas de hover/zoom/pan (58,7–60,7); tooltip conferido contra os dados; zoom por arraste/wheel/teclado e pan por shift+wheel/setas/botões, com reset exato; live 1 Hz com `instances=1`, mesmo nó `<canvas>` e heap 7–18 MiB em **10 min** (40 amostras); decimação min/max (~1 ponto/pixel, span exato da janela), tabela acessível de 12 buckets, CLS 0,0096 e medições expostas em `data-chart-*`; bench CDP sem Puppeteer (`web/scripts/chart-bench.mjs`, `make chart-bench`) e resultados em `bench/frontend/`; `make fmt/lint/test/build/smoke` verdes (web 12 arquivos/72 testes); não é G1; evidência em `docs/dev/story-6.2-handoff.md` e `bench/frontend/results/20261109T000523Z-local-100k/` | `77202e7` | Story 6.3 |
 | 2026-11-08 | Story 6.3 | P0 / 6.3 / AC1–AC3 | `VirtualLogTable` com **10k linhas** e só **19 no DOM** no topo (**máx. 25** no scroll): janela visível + 6 de overscan, alturas fixas de 40 px, cabeçalho sticky e linhas espaçadoras; scroll com **wheel real** a **60,2–60,7 fps** (mediana 60,5, pior frame 16,8 ms); sort explícito por coluna (`duration:asc/desc` conferido nos dados), resize da coluna Service por teclado (**150→182 px**) e arraste (**182→230 px**) com `aria-valuenow`, preservado após sort/seleção; seleção com painel de detalhe (`log-000759`), `Esc` mantém a seleção, `j` move e `Enter` reabre; estados vazio/erro no mesmo frame com **Retry query** voltando às 10k linhas e request id; 10k logs determinísticos com trace/span IDs, linha de 40 px e nada só por cor; CLS de carga **0**; bench CDP sem Puppeteer (`web/scripts/table-bench.mjs`, `make table-bench`) e resultados em `bench/frontend/`; `make fmt/lint/test/build/smoke` verdes (web 14 arquivos/94 testes); não é G1; evidência em `docs/dev/story-6.3-handoff.md` e `bench/frontend/results/20261109T004040Z-local-10k/` | `1b6dabd` | Story 6.4 |
+| 2026-11-09 | Story 6.4 | P0 / 6.4 / AC1–AC3 | Gate de bundle no fim de `make build` e no CI: **41,5 KB gzip inicial** (< 180 KB) e **74,4 KB** em dashboards (< 250 KB), com fecho de chunks (inclusive `uPlot` dinâmico) e gzip nível 9; gate negativo com budget de 10 KB saiu **1**; Lighthouse (`make lighthouse`) no `/explore` com desktop 50 Mbps/40 ms/1x CPU: **LCP 390 ms** e **INP 81 ms** (timespan com interações reais), CLS **0,00007** e TBT 0; mock Explore com abas Metrics/Logs/Traces que preservam time range e serviço, query mantida/descartada com anúncio `aria-live`, autocomplete de campos/valores/métricas/MetricsQL em combobox e URL reproduzível (signal/range/service/q); `lighthouse@13.6.0` + `puppeteer-core@25.16.0` como devDependencies (nada no bundle); `make fmt/lint/test/build/smoke` verdes (web 17 arquivos/116 testes); não é G1; evidência em `docs/dev/story-6.4-handoff.md` e `bench/frontend/results/20261109T005535Z-local-explore/` | `pending` | Story 7.1 |
 
 ## Regras de atualização
 

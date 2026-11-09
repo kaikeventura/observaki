@@ -196,6 +196,23 @@ troca de linhas durante o scroll da lista virtualizada; o Lighthouse da rota
 entra na 6.4. **Pendências:** Query Service real (Fase 1), painel empilhado em
 telas <1024 px e orçamento de bundle/Lighthouse na 6.4.
 
+**Story 6.4 (2026-11-09):** o orçamento de frontend passou a ser um gate de
+build: `web/scripts/bundle-budget.mjs` roda no fim de `make build` e falha com
+exit 1 quando o JS gzip passa de **180 KB na entrada** (`index.html`: runtime +
+layout raiz + rota de entrada) ou de **250 KB na rota de dashboards** (closure
+de todos os chunks alcançáveis, incluindo o `uPlot` importado dinamicamente).
+Medição local: **41,5 KB** na entrada e **74,4 KB** em dashboards. O Lighthouse
+(`web/scripts/lighthouse-check.mjs`, `make lighthouse`) mede a rota `/explore`
+com perfil desktop de 50 Mbps / 40 ms RTT e 1x CPU: LCP vem de uma navigation
+run simulada e INP de uma **timespan run** (o INP só é coletado em fluxo sem
+simulação), dirigindo troca de abas, autocomplete e filtros de verdade.
+Medição local: **LCP 390 ms** (< 1.500 ms) e **INP 81 ms** (< 200 ms).
+`lighthouse@13.6.0` e `puppeteer-core@25.16.0` entram só como
+`devDependencies` (ferramenta de CI, nada disso vai para o bundle); o critério
+de reversão é o Lighthouse ficar instável no runner, quando o bench CDP próprio
+(como em 6.2/6.3) passa a medir os mesmos dois números. **Pendências:** dados
+de campo/CrUX, Query Service real e waterfall de traces (Fase 1).
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.
