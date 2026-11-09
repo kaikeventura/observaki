@@ -27,6 +27,7 @@ VM_SERIES ?= 1000000
 VM_RATE ?= 1000000
 VM_DURATION ?= 1h
 VM_RUNS ?= 5
+CHART_BENCH_MINUTES ?= 10
 
 VERSION ?= $(shell $(GIT) describe --tags --always --dirty 2>/dev/null || echo dev)
 COMMIT ?= $(shell $(GIT) rev-parse --short HEAD 2>/dev/null || echo none)
@@ -41,7 +42,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check chart-bench
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -177,6 +178,9 @@ bench-chaos: ## run the chaos suite (15m ClickHouse outage, NATS/gateway failure
 
 bench-chaos-check: ## run the short chaos smoke (all failures, seconds-long windows)
 	./bench/chaos/run.sh --smoke
+
+chart-bench: build ## measure the 100k-point chart in headless Chrome (Story 6.2)
+	node $(WEB_DIR)/scripts/chart-bench.mjs --minutes $(CHART_BENCH_MINUTES)
 
 ci: bootstrap lint test build ## run the full local CI suite
 

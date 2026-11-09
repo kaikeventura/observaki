@@ -165,6 +165,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      uplot:
+        specifier: 1.6.32
+        version: 1.6.32
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^4.0.1
@@ -1158,6 +1162,9 @@ packages:
     resolution: {integrity: sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw==}
     engines: {node: '>=22.19.0'}
 
+  uplot@1.6.32:
+    resolution: {integrity: sha512-KIMVnG68zvu5XXUbC4LQEPnhwOxBuLyW1AHtpm6IKTXImkbLgkMy+jabjLgSLMasNuGGzQm/ep3tOkyTxpiQIw==}
+
   vite@8.3.5:
     resolution: {integrity: sha512-z1YpjieJ9g0ebTmQpLBv/oq9E3F9EIlOe+7LahW8SrE3LTiG3udBRUXQOlYXP9b+IC2q2phHeVxj9xGlw34OEQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1992,6 +1999,8 @@ snapshots:
   undici-types@8.9.0: {}
 
   undici@8.12.3: {}
+
+  uplot@1.6.32: {}
 
   vite@8.3.5(@types/node@26.6.6)(jiti@2.7.0):
     dependencies:

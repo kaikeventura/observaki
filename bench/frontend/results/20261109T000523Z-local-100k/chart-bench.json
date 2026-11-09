@@ -1,0 +1,439 @@
+{
+  "generatedAt": "2026-11-09T00:15:47.662Z",
+  "url": "http://127.0.0.1:8099/dashboards",
+  "chrome": "google-chrome",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "soakMinutes": 10,
+  "load": {
+    "durationMs": 105.7,
+    "domContentLoadedMs": 105.5,
+    "transferSize": 10547,
+    "heapUsed": 4377572
+  },
+  "chart": {
+    "renderMs": 2,
+    "paintMs": 11.4,
+    "instances": 1,
+    "updates": 0,
+    "drawn": 1078,
+    "rangeMin": 1794082726,
+    "rangeMax": 1794182725,
+    "dataMin": 1794082726,
+    "dataMax": 1794182725,
+    "zoomed": false,
+    "canvases": 1,
+    "cls": 0.00955087325734911
+  },
+  "tooltip": {
+    "left": {
+      "time": 1794112688,
+      "value": 914.71,
+      "text": "2026-11-08 01:38:08  914.71 req/s"
+    },
+    "right": {
+      "time": 1794152694,
+      "value": 1096.55,
+      "text": "2026-11-08 12:44:54  1,096.55 req/s"
+    }
+  },
+  "singleEvent": {
+    "avgMs": 0.67,
+    "maxMs": 1.1
+  },
+  "idleFps": {
+    "frames": 61,
+    "ms": 1008,
+    "fps": 60.5
+  },
+  "interaction": {
+    "hover": [
+      {
+        "frames": 91,
+        "durationMs": 1514,
+        "fps": 60.1,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.23
+      },
+      {
+        "frames": 91,
+        "durationMs": 1515,
+        "fps": 60.1,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.21
+      },
+      {
+        "frames": 91,
+        "durationMs": 1515,
+        "fps": 60.1,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.21
+      }
+    ],
+    "zoom": [
+      {
+        "frames": 91,
+        "durationMs": 1515,
+        "fps": 60.1,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.09
+      },
+      {
+        "frames": 89,
+        "durationMs": 1515,
+        "fps": 58.7,
+        "worstFrameMs": 33.4,
+        "avgWorkMs": 0.06
+      },
+      {
+        "frames": 92,
+        "durationMs": 1516,
+        "fps": 60.7,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.05
+      }
+    ],
+    "pan": [
+      {
+        "frames": 91,
+        "durationMs": 1502,
+        "fps": 60.6,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.04
+      },
+      {
+        "frames": 91,
+        "durationMs": 1516,
+        "fps": 60,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.04
+      },
+      {
+        "frames": 91,
+        "durationMs": 1515,
+        "fps": 60.1,
+        "worstFrameMs": 16.8,
+        "avgWorkMs": 0.03
+      }
+    ]
+  },
+  "medianFps": 60.1,
+  "minFps": 58.7,
+  "rasterProbe": {
+    "frames": 91,
+    "durationMs": 1515,
+    "fps": 60.1,
+    "worstFrameMs": 16.8,
+    "avgWorkMs": 0.04
+  },
+  "dragZoom": {
+    "before": {
+      "min": 1794129140.2434497,
+      "max": 1794129239.2776625
+    },
+    "after": {
+      "min": 1794129169.9537134,
+      "max": 1794129205.547198
+    }
+  },
+  "keyboard": {
+    "before": {
+      "min": 1794082742,
+      "max": 1794182741,
+      "dataMin": 1794082742,
+      "dataMax": 1794182741,
+      "zoomed": false
+    },
+    "afterZoom": {
+      "min": 1794102741.8,
+      "max": 1794162741.2,
+      "dataMin": 1794082742,
+      "dataMax": 1794182741,
+      "zoomed": true
+    },
+    "afterPan": {
+      "min": 1794117741.65,
+      "max": 1794177741.0500002,
+      "dataMin": 1794082742,
+      "dataMax": 1794182741,
+      "zoomed": true
+    },
+    "afterReset": {
+      "min": 1794082743,
+      "max": 1794182742,
+      "dataMin": 1794082743,
+      "dataMax": 1794182742,
+      "zoomed": false
+    }
+  },
+  "live": {
+    "before": 17,
+    "after": 22,
+    "instances": 1,
+    "canvasReused": true
+  },
+  "memory": {
+    "samples": [
+      {
+        "atMs": 1,
+        "heap": 9096720,
+        "updates": 22,
+        "instances": 1
+      },
+      {
+        "atMs": 15024,
+        "heap": 6983784,
+        "updates": 37,
+        "instances": 1
+      },
+      {
+        "atMs": 30057,
+        "heap": 8912382,
+        "updates": 52,
+        "instances": 1
+      },
+      {
+        "atMs": 45083,
+        "heap": 7182816,
+        "updates": 67,
+        "instances": 1
+      },
+      {
+        "atMs": 60103,
+        "heap": 9372262,
+        "updates": 82,
+        "instances": 1
+      },
+      {
+        "atMs": 75109,
+        "heap": 7684504,
+        "updates": 97,
+        "instances": 1
+      },
+      {
+        "atMs": 90117,
+        "heap": 9873138,
+        "updates": 112,
+        "instances": 1
+      },
+      {
+        "atMs": 105120,
+        "heap": 8126845,
+        "updates": 127,
+        "instances": 1
+      },
+      {
+        "atMs": 120121,
+        "heap": 10389024,
+        "updates": 142,
+        "instances": 1
+      },
+      {
+        "atMs": 135148,
+        "heap": 8643539,
+        "updates": 157,
+        "instances": 1
+      },
+      {
+        "atMs": 150171,
+        "heap": 14891450,
+        "updates": 172,
+        "instances": 1
+      },
+      {
+        "atMs": 165189,
+        "heap": 9051625,
+        "updates": 187,
+        "instances": 1
+      },
+      {
+        "atMs": 180201,
+        "heap": 10911376,
+        "updates": 202,
+        "instances": 1
+      },
+      {
+        "atMs": 195207,
+        "heap": 13349647,
+        "updates": 217,
+        "instances": 1
+      },
+      {
+        "atMs": 210237,
+        "heap": 15701050,
+        "updates": 232,
+        "instances": 1
+      },
+      {
+        "atMs": 225270,
+        "heap": 9824845,
+        "updates": 247,
+        "instances": 1
+      },
+      {
+        "atMs": 240297,
+        "heap": 11743428,
+        "updates": 262,
+        "instances": 1
+      },
+      {
+        "atMs": 255316,
+        "heap": 14105555,
+        "updates": 277,
+        "instances": 1
+      },
+      {
+        "atMs": 270322,
+        "heap": 16484742,
+        "updates": 292,
+        "instances": 1
+      },
+      {
+        "atMs": 285325,
+        "heap": 10692553,
+        "updates": 307,
+        "instances": 1
+      },
+      {
+        "atMs": 300329,
+        "heap": 12623444,
+        "updates": 322,
+        "instances": 1
+      },
+      {
+        "atMs": 315360,
+        "heap": 14893379,
+        "updates": 337,
+        "instances": 1
+      },
+      {
+        "atMs": 330361,
+        "heap": 17380242,
+        "updates": 352,
+        "instances": 1
+      },
+      {
+        "atMs": 345386,
+        "heap": 11522217,
+        "updates": 367,
+        "instances": 1
+      },
+      {
+        "atMs": 360395,
+        "heap": 13223780,
+        "updates": 382,
+        "instances": 1
+      },
+      {
+        "atMs": 375407,
+        "heap": 15651347,
+        "updates": 397,
+        "instances": 1
+      },
+      {
+        "atMs": 390414,
+        "heap": 18169946,
+        "updates": 412,
+        "instances": 1
+      },
+      {
+        "atMs": 405441,
+        "heap": 12327329,
+        "updates": 427,
+        "instances": 1
+      },
+      {
+        "atMs": 420471,
+        "heap": 14043164,
+        "updates": 442,
+        "instances": 1
+      },
+      {
+        "atMs": 435500,
+        "heap": 16501067,
+        "updates": 457,
+        "instances": 1
+      },
+      {
+        "atMs": 450521,
+        "heap": 12925830,
+        "updates": 472,
+        "instances": 1
+      },
+      {
+        "atMs": 465536,
+        "heap": 13139801,
+        "updates": 487,
+        "instances": 1
+      },
+      {
+        "atMs": 480545,
+        "heap": 13322988,
+        "updates": 502,
+        "instances": 1
+      },
+      {
+        "atMs": 495549,
+        "heap": 13577007,
+        "updates": 517,
+        "instances": 1
+      },
+      {
+        "atMs": 510587,
+        "heap": 13792262,
+        "updates": 532,
+        "instances": 1
+      },
+      {
+        "atMs": 525619,
+        "heap": 13993149,
+        "updates": 547,
+        "instances": 1
+      },
+      {
+        "atMs": 540645,
+        "heap": 14161708,
+        "updates": 562,
+        "instances": 1
+      },
+      {
+        "atMs": 555665,
+        "heap": 14364879,
+        "updates": 577,
+        "instances": 1
+      },
+      {
+        "atMs": 570677,
+        "heap": 14598810,
+        "updates": 592,
+        "instances": 1
+      },
+      {
+        "atMs": 585685,
+        "heap": 14767181,
+        "updates": 607,
+        "instances": 1
+      }
+    ],
+    "heapStart": 8912382,
+    "heapEnd": 14767181,
+    "heapMin": 6983784,
+    "heapMax": 18169946,
+    "growthBytes": 5854799,
+    "rangeBytes": 11186162
+  },
+  "pass": {
+    "firstPaintUnder100ms": true,
+    "interactionNear60fps": true,
+    "tooltipCorrect": true,
+    "keyboardZoom": true,
+    "dragZoom": true,
+    "keyboardPan": true,
+    "keyboardReset": true,
+    "liveReusesPlot": true,
+    "memoryStable": true,
+    "all": true
+  }
+}
