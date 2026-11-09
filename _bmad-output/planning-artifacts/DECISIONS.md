@@ -178,6 +178,24 @@ em 10 min; bench em `web/scripts/chart-bench.mjs` e resultados em
 `bench/frontend/`. **Pendências:** medição com GPU, Query Service real (Fase 1)
 e orçamento de bundle/Lighthouse na 6.4.
 
+**Story 6.3 (2026-11-08):** a tabela do Explore (`VirtualLogTable`) usa
+virtualização por altura fixa (40 px, janela visível + 6 de overscan) e mantém
+**19 linhas no DOM** no topo (máximo 25 durante o scroll) para 10.000 linhas,
+com cabeçalho sticky e linhas espaçadoras preservando a altura total. A tabela
+continua nativa (`table`/`thead`/`tbody`), com `aria-sort`, `aria-current`,
+`caption` e uma região `aria-live`; scroll, sort, resize, seleção e estados são
+mediados pelo bench CDP (`web/scripts/table-bench.mjs`, `make table-bench`).
+**Evidência local (Linux, Chrome 155 headless):** **10.000 linhas**, 19 no DOM
+no topo e no máximo 25 no scroll; scroll com wheel real a **60,2–60,7 fps**
+(mediana 60,5, pior frame 16,8 ms); sort `duration:asc/desc` conferido nos
+dados; resize da coluna Service por teclado (150→182 px) e arraste (182→230 px)
+preservado após seleção; painel de detalhe com `Esc` mantendo a seleção, `j`
+movendo e `Enter` reabrindo; vazio/erro com retry voltando às 10k linhas; CLS
+de carga **0**. O CLS acumulado da sessão sintética (0,216) vem quase todo da
+troca de linhas durante o scroll da lista virtualizada; o Lighthouse da rota
+entra na 6.4. **Pendências:** Query Service real (Fase 1), painel empilhado em
+telas <1024 px e orçamento de bundle/Lighthouse na 6.4.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.
