@@ -1,6 +1,6 @@
 # Tratamento de dados no piloto (resumo para o outreach)
 
-Este é o resumo que aparece no primeiro contato (Story 7.1, AC2). O acordo assinado é a Story 7.2 e precisa refletir exatamente o que está aqui — se divergir, o acordo vence e este documento é corrigido antes do próximo convite.
+Este é o resumo que aparece no primeiro contato (Story 7.1, AC2). O acordo assinado está em [`agreement.md`](agreement.md) (Story 7.2, AC2) e precisa refletir exatamente o que está aqui — se divergir, o acordo vence e este documento é corrigido antes do próximo convite. O teste `TestAgreementMatchesTheOutreachSummary` falha quando os dois deixam de concordar sobre retenção, duração ou cadência.
 
 ## Princípios
 

@@ -1,1 +1,1 @@
-id,company,segment,website,contact_name,contact_role,contact_email,contact_channel,stack,uses_otel,uses_kubernetes,volume_events_per_second,source,status,first_contact_at,last_contact_at,reply_at,call_at,decision_at,signed_at,next_action,next_action_due,notes
+id,company,segment,website,contact_name,contact_role,contact_email,contact_channel,stack,uses_otel,uses_kubernetes,volume_events_per_second,can_share_data,can_weekly_feedback,source,status,first_contact_at,last_contact_at,reply_at,call_at,decision_at,signed_at,next_action,next_action_due,notes

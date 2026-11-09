@@ -7,12 +7,23 @@ import (
 	"time"
 )
 
-const header = "id,company,segment,website,contact_name,contact_role,contact_email,contact_channel,stack,uses_otel,uses_kubernetes,volume_events_per_second,source,status,first_contact_at,last_contact_at,reply_at,call_at,decision_at,signed_at,next_action,next_action_due,notes\n"
+// header mirrors partners/pipeline.template.csv. The two Story 7.2 columns are
+// appended at the end because the parser accepts any column order; parseRow
+// fills them with "yes" unless the test overrides them.
+const header = "id,company,segment,website,contact_name,contact_role,contact_email,contact_channel,stack,uses_otel,uses_kubernetes,volume_events_per_second,source,status,first_contact_at,last_contact_at,reply_at,call_at,decision_at,signed_at,next_action,next_action_due,notes,can_share_data,can_weekly_feedback\n"
 
-// parse builds a pipeline from a header plus one data row.
+// parse builds a pipeline from a header plus one data row that passes the
+// data-sharing criteria.
 func parseRow(t *testing.T, row string) (*Pipeline, []string) {
 	t.Helper()
-	pipeline, err := Parse("test.csv", strings.NewReader(header+row+"\n"))
+	return parseCriteriaRow(t, row, "yes", "yes")
+}
+
+// parseCriteriaRow builds a pipeline from one row with explicit Story 7.2
+// answers for data sharing and weekly feedback.
+func parseCriteriaRow(t *testing.T, row, shareData, weeklyFeedback string) (*Pipeline, []string) {
+	t.Helper()
+	pipeline, err := Parse("test.csv", strings.NewReader(header+row+","+shareData+","+weeklyFeedback+"\n"))
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
@@ -84,60 +95,60 @@ func TestValidateRow(t *testing.T) {
 	}{
 		{
 			name: "minimal sourced row is valid",
-			row:  "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,,",
+			row:  "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,",
 		},
 		{
 			name:    "missing contact",
-			row:     "dp-100,Acme,startup,,,CTO,,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,,CTO,,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,",
 			wantErr: "contact_name is empty",
 		},
 		{
 			name:    "invalid email without another channel",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana-at-acme,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana-at-acme,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,",
 			wantErr: "no usable contact",
 		},
 		{
 			name: "invalid email but linkedin channel is enough",
-			row:  "dp-100,Acme,startup,,Ana,CTO,ana-at-acme,linkedin,\"Go, K8s\",yes,yes,12000,linkedin,sourced,,,,,,,Enviar contato,2026-11-10,,",
+			row:  "dp-100,Acme,startup,,Ana,CTO,ana-at-acme,linkedin,\"Go, K8s\",yes,yes,12000,linkedin,sourced,,,,,,,Enviar contato,2026-11-10,",
 		},
 		{
 			name:    "unknown status",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,interested,,,,,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,interested,,,,,,,Enviar contato,2026-11-10,",
 			wantErr: "is not a funnel stage",
 		},
 		{
 			name:    "replied without reply_at",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,replied,2026-11-01,2026-11-02,,,,,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,replied,2026-11-01,2026-11-02,,,,,,,Enviar contato,2026-11-10,",
 			wantErr: "requires reply_at",
 		},
 		{
 			name:    "signed without signed_at",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,signed,2026-11-01,2026-11-02,2026-11-02,2026-11-05,2026-11-06,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,signed,2026-11-01,2026-11-02,2026-11-02,2026-11-05,2026-11-06,,Enviar contato,2026-11-10,",
 			wantErr: "requires reply_at, call_at, decision_at and signed_at",
 		},
 		{
 			name:    "sourced row with a reply is inconsistent",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,2026-11-02,,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,2026-11-02,,,,Enviar contato,2026-11-10,",
 			wantErr: "status \"sourced\" must not set reply_at",
 		},
 		{
 			name:    "call before reply",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,call_done,2026-11-01,2026-11-05,2026-11-05,2026-11-03,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,call_done,2026-11-01,2026-11-05,2026-11-05,2026-11-03,,,Enviar contato,2026-11-10,",
 			wantErr: "call_at (2026-11-03) is before reply_at",
 		},
 		{
 			name:    "bad volume",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,muitos,slack,sourced,,,,,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,muitos,slack,sourced,,,,,,,Enviar contato,2026-11-10,",
 			wantErr: "is not a non-negative integer",
 		},
 		{
 			name:    "bad date",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,10/11/2026,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,10/11/2026,",
 			wantErr: "is not YYYY-MM-DD",
 		},
 		{
 			name:    "no_response without last contact",
-			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,no_response,2026-11-01,,,,,,Enviar contato,2026-11-10,,",
+			row:     "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,no_response,2026-11-01,,,,,,Enviar contato,2026-11-10,",
 			wantErr: "requires last_contact_at",
 		},
 	}
@@ -160,8 +171,8 @@ func TestValidateRow(t *testing.T) {
 }
 
 func TestDuplicateIDsAreRejected(t *testing.T) {
-	rows := "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,,\n" +
-		"dp-100,Outra,startup,,Bia,CTO,bia@outra.example,email,\"Go, K8s\",yes,yes,9000,slack,sourced,,,,,,,Enviar contato,2026-11-10,,\n"
+	rows := "dp-100,Acme,startup,,Ana,CTO,ana@acme.example,email,\"Go, K8s\",yes,yes,12000,slack,sourced,,,,,,,Enviar contato,2026-11-10,,yes,yes\n" +
+		"dp-100,Outra,startup,,Bia,CTO,bia@outra.example,email,\"Go, K8s\",yes,yes,9000,slack,sourced,,,,,,,Enviar contato,2026-11-10,,yes,yes\n"
 	pipeline, err := Parse("test.csv", strings.NewReader(header+rows))
 	if err != nil {
 		t.Fatalf("parse: %v", err)
@@ -274,7 +285,8 @@ func TestReportLeaksNoContacts(t *testing.T) {
 		NextActionDue:         "2026-10-20",
 	}
 	pipeline := &Pipeline{Path: "partners/pipeline.csv", Candidates: []Candidate{candidate}}
-	report := Report(pipeline, Summarize(pipeline.Candidates), time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC))
+	stats := Summarize(pipeline.Candidates)
+	report := Report(pipeline, stats, Screened(pipeline.Candidates, DefaultCriteria()), time.Date(2026, 11, 8, 12, 0, 0, 0, time.UTC))
 
 	for _, forbidden := range []string{"Aurora", "Ana", "ana@", "@aurora", "Kickoff"} {
 		if strings.Contains(report, forbidden) {

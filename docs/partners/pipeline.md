@@ -29,12 +29,13 @@ Datas em `YYYY-MM-DD` e em ordem: `first_contact_at` → `reply_at` → `call_at
 | `contact_channel` | `email`, `linkedin`, `slack`, `community`, `referral`, `other` |
 | `stack` | Sinais e ferramentas atuais (`Go, EKS, OTel Collector, Datadog`) |
 | `uses_otel` / `uses_kubernetes` | `yes`, `no`, `planned`, `unknown` |
-| `volume_events_per_second` | Inteiro ≥ 0 ou `unknown` (a 7.2 filtra ≥ 10k/s) |
+| `volume_events_per_second` | Inteiro ≥ 0 ou `unknown` (a triagem da 7.2 exige ≥ 10000) |
+| `can_share_data` / `can_weekly_feedback` | `yes`, `no`, `unknown` (Story 7.2; só `yes` passa na triagem) |
 | `status` | Estágio do funil acima |
 | `next_action` / `next_action_due` | Próximo passo e data (sempre preenchidos) |
 | `notes` | Contexto curto; sem dado pessoal sensível |
 
-Um candidato é **qualificado** (AC1) quando tem contato usável, stack, volume declarado, `uses_otel` em `yes`/`planned` e `uses_kubernetes` em `yes`/`planned`. A triagem completa de cinco critérios é a Story 7.2.
+Um candidato é **qualificado** (AC1 da 7.1) quando tem contato usável, stack, volume declarado, `uses_otel` em `yes`/`planned` e `uses_kubernetes` em `yes`/`planned`. A **triagem completa** (AC1 da 7.2) olha os cinco critérios e só deixa assinar quem tem `uses_otel=yes`, `uses_kubernetes=yes`, volume ≥ 10000, `can_share_data=yes` e `can_weekly_feedback=yes` — ver [`selection.md`](selection.md).
 
 ## Cadência
 
@@ -59,9 +60,12 @@ Saída de `make partners-gate` (relatório redigido):
 
 | AC | Como é satisfeito | Evidência |
 |---|---|---|
-| AC1 — lista | `partners/pipeline.csv` com ≥ 20 qualificados, validado pelo `partnerscheck` | `make partners-gate` (relatório redigido) |
-| AC2 — outreach | Templates em [`outreach.md`](outreach.md) com valor, compromisso e tratamento de dados; datas de resposta/call/decisão no tracker | Exemplo versionado + relatório |
-| AC3 — meta | 5 calls e 3 assinados | `make partners-gate` |
+| AC1 — lista (7.1) | `partners/pipeline.csv` com ≥ 20 qualificados, validado pelo `partnerscheck` | `make partners-gate` (relatório redigido) |
+| AC2 — outreach (7.1) | Templates em [`outreach.md`](outreach.md) com valor, compromisso e tratamento de dados; datas de resposta/call/decisão no tracker | Exemplo versionado + relatório |
+| AC3 — meta (7.1) | 5 calls e 3 assinados | `make partners-gate` |
+| AC1 — critérios (7.2) | cinco critérios em [`selection.md`](selection.md); `signed` sem triagem falha o validador | linha `screen:` do gate + seção *Selection screen* no relatório |
+| AC2 — acordo (7.2) | [`agreement.md`](agreement.md) espelhando [`data-handling.md`](data-handling.md) | teste `TestAgreementMatchesTheOutreachSummary` |
+| AC3 — baseline (7.2) | [`baseline.md`](baseline.md) + [`partners/baseline.template.md`](../../partners/baseline.template.md) | teste `TestBaselineTemplateCoversAC3` |
 
 ## Comandos
 
@@ -69,5 +73,7 @@ Saída de `make partners-gate` (relatório redigido):
 make partners-init                                   # cria a lista local
 make partners-check                                  # template + exemplo fictício (CI)
 make partners-gate                                   # AC1/AC3 na lista real + relatório
+make partners-baseline ID=dp-001                     # cria partners/baselines/dp-001.md (local)
 go run ./cmd/partnerscheck -file partners/pipeline.csv -min-candidates 20 -min-calls 5 -min-signed 3
+go run ./cmd/partnerscheck -file partners/pipeline.csv -min-volume 50000   # cenário mais exigente
 ```

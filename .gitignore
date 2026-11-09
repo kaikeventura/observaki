@@ -52,6 +52,8 @@ tmp/
 # Design partner pipeline (real contacts are PII; commit only the redacted report)
 partners/pipeline.csv
 partners/pipeline.local.csv
+partners/baselines/
+partners/agreements/
 
 # Bench artifacts
 bench/results/

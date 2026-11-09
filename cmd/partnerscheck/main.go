@@ -29,8 +29,12 @@ func run() error {
 	minQualified := flag.Int("min-candidates", partners.DefaultTargets().MinQualified, "AC1: minimum qualified candidates")
 	minCalls := flag.Int("min-calls", partners.DefaultTargets().MinCalls, "AC3: minimum calls that happened")
 	minSigned := flag.Int("min-signed", partners.DefaultTargets().MinSigned, "AC3: minimum signed partners")
+	minVolume := flag.Int("min-volume", partners.DefaultMinVolume, "Story 7.2: minimum events/s for a signed partner")
 	allowEmpty := flag.Bool("allow-empty", false, "accept a header-only file (template check, skips targets)")
 	flag.Parse()
+
+	criteria := partners.DefaultCriteria()
+	criteria.MinVolume = *minVolume
 
 	f, err := os.Open(*file)
 	if err != nil {
@@ -47,7 +51,7 @@ func run() error {
 		return err
 	}
 
-	problems := pipeline.Validate()
+	problems := pipeline.ValidateWith(criteria)
 	if len(problems) > 0 {
 		for _, problem := range problems {
 			fmt.Fprintf(os.Stderr, "%s\n", problem)
@@ -56,6 +60,7 @@ func run() error {
 	}
 
 	stats := partners.Summarize(pipeline.Candidates)
+	screen := partners.Screened(pipeline.Candidates, criteria)
 	fmt.Printf("Partners pipeline: %s\n", *file)
 	fmt.Printf("rows: %d | qualified: %d | signed: %d | declined: %d | no_response: %d\n",
 		stats.Total, stats.Qualified, stats.Signed, stats.Declined, stats.NoResponse)
@@ -65,9 +70,10 @@ func run() error {
 		stats.ByStatus["declined"], stats.ByStatus["no_response"])
 	fmt.Printf("rates: reply %.0f%% | call %.0f%% | sign %.0f%%\n",
 		stats.ReplyRate*100, stats.CallRate*100, stats.SignRate*100)
+	fmt.Println(partners.ScreenSummary(screen))
 
 	if *reportPath != "" {
-		report := partners.Report(pipeline, stats, time.Now())
+		report := partners.Report(pipeline, stats, screen, time.Now())
 		if err := os.WriteFile(*reportPath, []byte(report), 0o644); err != nil {
 			return fmt.Errorf("write report %s: %w", *reportPath, err)
 		}

@@ -1,7 +1,8 @@
 // Package partners validates the design-partner recruitment pipeline
-// (Story 7.1). The pipeline lives in a CSV file so the founder can edit it in
-// any spreadsheet; the validator enforces the AC1/AC3 contract and produces a
-// redacted funnel report that is safe to commit (no contacts, no e-mails).
+// (Story 7.1) and the five-criteria selection screen (Story 7.2). The pipeline
+// lives in a CSV file so the founder can edit it in any spreadsheet; the
+// validator enforces the AC1/AC3 contract and produces a redacted funnel report
+// that is safe to commit (no contacts, no e-mails).
 package partners
 
 import (
@@ -16,6 +17,8 @@ import (
 )
 
 // RequiredColumns are the CSV columns the validator needs, in any order.
+// can_share_data and can_weekly_feedback were added by Story 7.2; an existing
+// local pipeline.csv needs both columns (yes, no or unknown).
 var RequiredColumns = []string{
 	"id",
 	"company",
@@ -27,6 +30,8 @@ var RequiredColumns = []string{
 	"uses_otel",
 	"uses_kubernetes",
 	"volume_events_per_second",
+	"can_share_data",
+	"can_weekly_feedback",
 	"status",
 	"first_contact_at",
 	"last_contact_at",
@@ -85,6 +90,11 @@ var (
 		"planned": true,
 		"unknown": true,
 	}
+	validYesNoUnknown = map[string]bool{
+		"yes":     true,
+		"no":      true,
+		"unknown": true,
+	}
 	emailPattern = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 	dateLayout   = "2006-01-02"
 )
@@ -102,6 +112,8 @@ type Candidate struct {
 	UsesOTel              string
 	UsesKubernetes        string
 	VolumeEventsPerSecond string
+	CanShareData          string
+	CanWeeklyFeedback     string
 	Status                Status
 	FirstContactAt        string
 	LastContactAt         string
@@ -167,6 +179,8 @@ func Parse(path string, r io.Reader) (*Pipeline, error) {
 			UsesOTel:              field("uses_otel"),
 			UsesKubernetes:        field("uses_kubernetes"),
 			VolumeEventsPerSecond: field("volume_events_per_second"),
+			CanShareData:          field("can_share_data"),
+			CanWeeklyFeedback:     field("can_weekly_feedback"),
 			Status:                Status(field("status")),
 			FirstContactAt:        field("first_contact_at"),
 			LastContactAt:         field("last_contact_at"),
@@ -196,10 +210,10 @@ func (c Candidate) HasContact() bool {
 	return false
 }
 
-// Qualified applies the ICP filter available before a call: the team runs
-// OpenTelemetry (or has it planned) and Kubernetes (or has it planned), and the
-// row records a volume estimate. The full five-criteria screen belongs to
-// Story 7.2.
+// Qualified applies the ICP filter available before a call (Story 7.1 AC1):
+// the team runs OpenTelemetry (or has it planned) and Kubernetes (or has it
+// planned), and the row records a volume estimate. The five-criteria screen
+// (Story 7.2) is what decides who can actually be signed.
 func (c Candidate) Qualified() bool {
 	if !c.HasContact() || c.Stack == "" {
 		return false
@@ -215,6 +229,12 @@ func (c Candidate) Qualified() bool {
 
 // Validates reports structural problems for one row.
 func (c Candidate) Validate() []string {
+	return c.ValidateWith(DefaultCriteria())
+}
+
+// ValidateWith reports structural problems for one row, using the Story 7.2
+// selection thresholds for the signed-partner rule.
+func (c Candidate) ValidateWith(criteria Criteria) []string {
 	var problems []string
 	add := func(format string, args ...any) {
 		problems = append(problems, fmt.Sprintf(format, args...))
@@ -243,6 +263,12 @@ func (c Candidate) Validate() []string {
 	}
 	if !validTriState[c.UsesKubernetes] {
 		add("uses_kubernetes %q is not one of yes, no, planned, unknown", c.UsesKubernetes)
+	}
+	if !validYesNoUnknown[c.CanShareData] {
+		add("can_share_data %q is not one of yes, no, unknown", c.CanShareData)
+	}
+	if !validYesNoUnknown[c.CanWeeklyFeedback] {
+		add("can_weekly_feedback %q is not one of yes, no, unknown", c.CanWeeklyFeedback)
 	}
 	if c.VolumeEventsPerSecond == "" {
 		add("volume_events_per_second is empty (AC1 requires the volume; use a number or \"unknown\")")
@@ -326,6 +352,11 @@ func (c Candidate) Validate() []string {
 
 	if c.SignedAt != "" && c.Status != StatusSigned {
 		add("signed_at is set but status is %q; move to \"signed\"", c.Status)
+	}
+	if c.Status == StatusSigned {
+		if failed := c.Screen(criteria).Failed(); len(failed) > 0 {
+			add("status \"signed\" requires the five Story 7.2 criteria; missing: %s", strings.Join(failed, ", "))
+		}
 	}
 	if c.CallAt != "" && c.Status == StatusReplied {
 		add("call_at is set but status is \"replied\"; move to \"call_scheduled\" or \"call_done\"")
@@ -475,10 +506,16 @@ func Evaluate(stats Stats, targets Targets) []Check {
 
 // Validate applies row validation and rejects duplicate ids.
 func (p *Pipeline) Validate() []string {
+	return p.ValidateWith(DefaultCriteria())
+}
+
+// ValidateWith applies row validation with explicit selection thresholds and
+// rejects duplicate ids.
+func (p *Pipeline) ValidateWith(criteria Criteria) []string {
 	var problems []string
 	seen := map[string]int{}
 	for _, c := range p.Candidates {
-		for _, problem := range c.Validate() {
+		for _, problem := range c.ValidateWith(criteria) {
 			problems = append(problems, fmt.Sprintf("%s:%d: %s: %s", p.Path, c.Line, c.ID, problem))
 		}
 		if c.ID == "" {
@@ -494,7 +531,7 @@ func (p *Pipeline) Validate() []string {
 }
 
 // Report renders the redacted funnel report (markdown, no PII).
-func Report(p *Pipeline, stats Stats, generated time.Time) string {
+func Report(p *Pipeline, stats Stats, screen ScreenStats, generated time.Time) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Design partner pipeline — report\n\n")
 	fmt.Fprintf(&b, "- Generated: %s\n", generated.UTC().Format(time.RFC3339))
@@ -505,6 +542,7 @@ func Report(p *Pipeline, stats Stats, generated time.Time) string {
 	for _, status := range order {
 		fmt.Fprintf(&b, "| %s | %d |\n", status, stats.ByStatus[string(status)])
 	}
+	screenReport(&b, screen)
 	fmt.Fprintf(&b, "\n## Rates\n\n")
 	fmt.Fprintf(&b, "- Contacted: %d\n- Replied: %d (reply rate %.0f%%)\n- Calls done: %d (call rate %.0f%%)\n- Calls scheduled: %d\n- Signed: %d (sign rate over calls %.0f%%)\n- Declined: %d\n- No response: %d\n",
 		stats.Contacted, stats.Replied, stats.ReplyRate*100, stats.CallsDone, stats.CallRate*100, stats.CallsPending, stats.Signed, stats.SignRate*100, stats.Declined, stats.NoResponse)

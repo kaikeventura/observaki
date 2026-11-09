@@ -62,7 +62,7 @@ Regras: ≤ 150 palavras, um pedido claro, sem anexo e sem promessa de feature. 
 | 5–10 | Dor: custo, MTTR, ferramentas espalhadas, o que já tentaram |
 | 10–20 | Demo honesta: stack single-node, ingestão OTLP e a tela de Explore (mock na Fase 0) |
 | 20–25 | Compromisso: 8 semanas, 30 min/semana, dados não críticos, retenção, saída |
-| 25–30 | Próximo passo: acordo (Story 7.2) e onboarding (Story 7.3), com data |
+| 25–30 | Próximo passo: acordo ([`agreement.md`](agreement.md)) e onboarding (Story 7.3), com data |
 
 **Perguntas de descoberta:** qual o volume de eventos/s? Qual a retenção atual? Quanto custa hoje? Qual o MTTR de um incidente típico? Quem usa a ferramenta no dia a dia? O que faria você trocar?
 

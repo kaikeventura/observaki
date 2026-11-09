@@ -45,7 +45,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check partners-check partners-init partners-gate chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check bundle-budget lighthouse chart-bench table-bench
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check partners-check partners-init partners-gate partners-baseline chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check bundle-budget lighthouse chart-bench table-bench
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -90,6 +90,14 @@ partners-init: ## create the untracked partners/pipeline.csv (real contacts stay
 
 partners-gate: ## enforce AC1/AC3 on the live pipeline and write the redacted report
 	$(GO) run ./cmd/partnerscheck -file partners/pipeline.csv -report partners/pipeline-report.md
+
+partners-baseline: ## scaffold partners/baselines/<ID>.md from the Story 7.2 baseline template (local only)
+	@test -n "$(ID)" || { echo "usage: make partners-baseline ID=dp-001"; exit 1; }
+	@echo "$(ID)" | grep -Eq '^dp-[0-9]{3,}$$' || { echo "ID must look like dp-001"; exit 1; }
+	@test ! -e "partners/baselines/$(ID).md" || { echo "partners/baselines/$(ID).md already exists"; exit 1; }
+	@mkdir -p partners/baselines
+	@cp partners/baseline.template.md "partners/baselines/$(ID).md"
+	@echo "partners/baselines/$(ID).md ready (untracked; fill it in at onboarding start)"
 
 lint: adr-check api-check partners-check ## run golangci-lint, prettier, svelte-check, clippy and ADR/OpenAPI/partners checks
 	$(GOLANGCI_LINT) run ./...

@@ -38,7 +38,7 @@ Responda com o que já é público ou com uma pergunta de uma linha:
 4. Pode enviar telemetria de um ambiente não crítico?
 5. Quem participa de uma call de 30 min por semana durante 8 semanas?
 
-Marque `uses_otel`, `uses_kubernetes` e `volume_events_per_second` no tracker mesmo quando a resposta for `unknown` — o campo vazio é o que o validador rejeita.
+As perguntas 1–3 vão para `uses_otel`, `uses_kubernetes` e `volume_events_per_second`; 4 e 5 vão para `can_share_data` e `can_weekly_feedback`. Marque o campo mesmo quando a resposta for `unknown` — o campo vazio é o que o validador rejeita. A decisão de quem entra no piloto está em [`selection.md`](selection.md).
 
 ## Desqualificação rápida
 
