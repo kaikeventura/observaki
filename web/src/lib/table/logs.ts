@@ -70,7 +70,8 @@ const SEVERITY_RANK: Record<LogSeverity, number> = {
 	ERROR: 3
 };
 
-const SERVICES = [
+/** Mock services shared by the log fixtures and the Explore service filter. */
+export const LOG_SERVICES = [
 	'checkout',
 	'payments',
 	'cart',
@@ -167,7 +168,7 @@ export function generateLogs(options: { rows?: number; endSeconds?: number } = {
 
 	for (let i = 0; i < total; i += 1) {
 		const severity = pick(LEVEL_WEIGHTS, i * 3 + 1);
-		const service = pick(SERVICES, i * 5 + 2);
+		const service = pick(LOG_SERVICES, i * 5 + 2);
 		const jitter = hash01(i * 23 + 7);
 		const baseDuration = severity === 'ERROR' ? 1_500 : severity === 'WARN' ? 700 : 120;
 		const traceId = [

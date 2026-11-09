@@ -133,3 +133,56 @@ critério de `pass` falhar.
   Lighthouse.
 - O painel de detalhe aparece ao lado da tabela em ≥1024 px; em telas menores
   ele empilha abaixo, ainda dentro do mesmo frame.
+
+## Orçamento de bundle e Lighthouse (Story 6.4)
+
+Este diretório também publica o gate de frontend da Fase 0. O build de produção
+é medido de duas formas independentes:
+
+| Gate | Script | Critério |
+|---|---|---|
+| Bundle | `web/scripts/bundle-budget.mjs` (`make bundle-budget`) | JS inicial < **180 KB gzip** e rota de dashboards < **250 KB gzip**; falha o build |
+| Lighthouse | `web/scripts/lighthouse-check.mjs` (`make lighthouse`) | `/explore` com 50 Mbps / 40 ms RTT, desktop 1x CPU: **LCP < 1,5 s** e **INP < 200 ms** |
+
+### O que roda
+
+| Etapa | O que faz |
+|---|---|
+| Build | `pnpm --dir web build` gera `web/build` com PRerender estático; `make build` chama o budget no fim |
+| Budget | Lê o `<link rel="modulepreload">`/`<script>` de `index.html` (entrada) e de `dashboards.html`, percorre os imports de cada chunk (inclusive `import()` dinâmico) e soma o gzip nível 9 |
+| Servidor | `bin/observaki serve` com `OBSERVAKI_WEB_DIR=web/build` em `127.0.0.1:8099` |
+| Navegador | Google Chrome headless via `puppeteer-core` (devDependency) |
+| LCP | Lighthouse **navigation** run (`throttlingMethod=simulate`, lantern) |
+| INP | Lighthouse **timespan** run (`throttlingMethod=provided`), porque o INP só é coletado sem simulação; o script dirige troca de abas, autocomplete, filtro de serviço e time range |
+| Relatório | `bundle-budget.json` + `lighthouse.json` em `results/<timestamp>-local-explore/` |
+
+```bash
+# gate local (roda dentro de `make build` e no CI)
+make bundle-budget
+
+# Lighthouse contra o build atual (sobe e derruba servidor e Chrome)
+make lighthouse
+
+# publicando o relatório
+make bundle-budget BUNDLE_BUDGET_OUT=bench/frontend/results/<ts>-local-explore/bundle-budget.json
+make lighthouse LIGHTHOUSE_OUT=bench/frontend/results/<ts>-local-explore/lighthouse.json
+```
+
+### Critérios
+
+| Check | Regra |
+|---|---|
+| `results[].pass` (initial, dashboards) | JS gzip dentro do budget; o script sai 1 e imprime qual rota estourou |
+| `checks.lcpUnderBudget` | LCP da navigation run < 1.500 ms |
+| `checks.inpUnderBudget` | INP da timespan run < 200 ms (e observado; senão falha) |
+
+### Limitações
+
+- Não é evidência do G1: máquina local, dados sintéticos e Lighthouse de
+  laboratório (o LCP é simulado e o INP é de uma sessão de interações, não de
+  28 dias de campo).
+- O perfil é fixo no script (50 Mbps, 40 ms RTT, 1x CPU, 1440×900) para o
+  número ser comparável entre runs; mudar o perfil exige atualizar o budget e
+  registrar a decisão.
+- `lighthouse` e `puppeteer-core` são dependências de desenvolvimento; nenhuma
+  delas entra no bundle.

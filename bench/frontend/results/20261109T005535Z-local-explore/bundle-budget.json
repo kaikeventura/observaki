@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-11-09T00:55:36.253Z",
+  "budgets": {
+    "initial": 180,
+    "dashboards": 250
+  },
+  "results": [
+    {
+      "route": "initial",
+      "html": "index.html",
+      "budgetKiB": 180,
+      "jsFiles": 15,
+      "jsRawBytes": 109084,
+      "jsGzipBytes": 42526,
+      "cssGzipBytes": 5852,
+      "pass": true
+    },
+    {
+      "route": "dashboards",
+      "html": "dashboards.html",
+      "budgetKiB": 250,
+      "jsFiles": 25,
+      "jsRawBytes": 198556,
+      "jsGzipBytes": 76181,
+      "cssGzipBytes": 6542,
+      "pass": true
+    },
+    {
+      "route": "explore",
+      "html": "explore.html",
+      "budgetKiB": null,
+      "jsFiles": 25,
+      "jsRawBytes": 198556,
+      "jsGzipBytes": 76181,
+      "cssGzipBytes": 6542,
+      "pass": true
+    }
+  ]
+}

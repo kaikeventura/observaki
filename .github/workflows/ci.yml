@@ -76,6 +76,9 @@ jobs:
       - name: Bootstrap and run CI
         run: make ci
 
+      - name: Frontend bundle budget
+        run: make bundle-budget
+
       - name: Sample app checks
         run: make examples-check
 
@@ -83,6 +86,9 @@ jobs:
         env:
           SMOKE_SKIP_CI: "1"
         run: make smoke
+
+      - name: Lighthouse (Explore LCP < 1.5s, INP < 200ms)
+        run: make lighthouse
 
       - name: Upload web build
         uses: actions/upload-artifact@v4

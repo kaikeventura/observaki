@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-11-09T00:55:47.027Z",
+  "url": "http://127.0.0.1:8099/explore",
+  "chrome": "Chrome/155.0.8059.39",
+  "profile": {
+    "formFactor": "desktop",
+    "screenEmulation": {
+      "mobile": false,
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 1
+    },
+    "rttMs": 40,
+    "throughputKbps": 50000,
+    "cpuSlowdownMultiplier": 1
+  },
+  "budgets": {
+    "lcpMs": 1500,
+    "inpMs": 200
+  },
+  "metrics": {
+    "lcpMs": 390.44100000000003,
+    "fcpMs": 390.44100000000003,
+    "cls": 0.0000693758573388203,
+    "tbtMs": 0,
+    "transferBytes": 221528,
+    "interactiveMs": 390.44100000000003,
+    "inpMs": 81.013,
+    "inpDisplay": "80 ms",
+    "interactions": null
+  },
+  "checks": {
+    "lcpUnderBudget": true,
+    "inpUnderBudget": true
+  },
+  "pass": true
+}

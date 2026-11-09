@@ -28,6 +28,8 @@ VM_RATE ?= 1000000
 VM_DURATION ?= 1h
 VM_RUNS ?= 5
 CHART_BENCH_MINUTES ?= 10
+BUNDLE_BUDGET_OUT ?=
+LIGHTHOUSE_OUT ?=
 TABLE_BENCH_OUT ?=
 
 VERSION ?= $(shell $(GIT) describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -43,7 +45,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check chart-bench table-bench
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check bundle-budget lighthouse chart-bench table-bench
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -102,6 +104,7 @@ build: ## build the Go binary, the load generator, the web app and the agent
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(WALCHECK) ./bench/cmd/walcheck
 	$(GO) build -trimpath -ldflags "$(BENCH_LDFLAGS)" -o $(WEBHOOKSINK) ./bench/cmd/webhooksink
 	$(PNPM) --dir $(WEB_DIR) build
+	$(MAKE) bundle-budget
 	$(CARGO) build --release --manifest-path $(AGENT_MANIFEST)
 
 dev: ## run the Go API (:8080) and the SvelteKit dev server (:5173)
@@ -179,6 +182,12 @@ bench-chaos: ## run the chaos suite (15m ClickHouse outage, NATS/gateway failure
 
 bench-chaos-check: ## run the short chaos smoke (all failures, seconds-long windows)
 	./bench/chaos/run.sh --smoke
+
+bundle-budget: ## enforce the Story 6.4 web bundle budget (initial < 180 KB, dashboard < 250 KB gzip)
+	node $(WEB_DIR)/scripts/bundle-budget.mjs $(if $(BUNDLE_BUDGET_OUT),--json $(BUNDLE_BUDGET_OUT),)
+
+lighthouse: ## measure LCP/INP on /explore with Lighthouse and 50 Mbps throttling (Story 6.4)
+	node $(WEB_DIR)/scripts/lighthouse-check.mjs $(if $(LIGHTHOUSE_OUT),--out $(LIGHTHOUSE_OUT),)
 
 chart-bench: build ## measure the 100k-point chart in headless Chrome (Story 6.2)
 	node $(WEB_DIR)/scripts/chart-bench.mjs --minutes $(CHART_BENCH_MINUTES)
