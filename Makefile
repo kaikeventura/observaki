@@ -45,7 +45,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check bundle-budget lighthouse chart-bench table-bench
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check partners-check partners-init partners-gate chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check bundle-budget lighthouse chart-bench table-bench
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -80,7 +80,18 @@ api-gen: ## regenerate api/openapi/openapi.json from the Go route definitions
 api-check: ## fail when the checked-in OpenAPI contract is stale
 	$(GO) run ./cmd/openapi-gen -check $(API_SPEC)
 
-lint: adr-check api-check ## run golangci-lint, prettier, svelte-check, clippy and ADR/OpenAPI checks
+partners-check: ## validate the Story 7.1 partner pipeline contract (template + fictional example)
+	$(GO) run ./cmd/partnerscheck -file partners/pipeline.template.csv -allow-empty
+	$(GO) run ./cmd/partnerscheck -file partners/examples/pipeline-example.csv
+
+partners-init: ## create the untracked partners/pipeline.csv (real contacts stay out of git)
+	@test -f partners/pipeline.csv || cp partners/pipeline.template.csv partners/pipeline.csv
+	@echo "partners/pipeline.csv ready (untracked; fill it in and run make partners-gate)"
+
+partners-gate: ## enforce AC1/AC3 on the live pipeline and write the redacted report
+	$(GO) run ./cmd/partnerscheck -file partners/pipeline.csv -report partners/pipeline-report.md
+
+lint: adr-check api-check partners-check ## run golangci-lint, prettier, svelte-check, clippy and ADR/OpenAPI/partners checks
 	$(GOLANGCI_LINT) run ./...
 	$(PNPM) --dir $(WEB_DIR) lint
 	$(PNPM) --dir $(WEB_DIR) check

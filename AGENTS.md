@@ -4,10 +4,10 @@ Este repositório é o **Observaki**, uma plataforma de observabilidade open sou
 
 ## Estado atual
 
-- **Fase 0 — em andamento.** Stories 1.1–1.4, 2.1–2.4, 3.1–3.5, 4.1–4.5, 5.1–5.5, 6.1–6.4 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway, writer) tem spikes locais, a stack single-node sobe com `make compose-up`, o control plane PostgreSQL tem migrações/backup/restore, a stack tem health page e alerting interno mínimo, a API `/api/v1` tem contrato OpenAPI gerado, o shell SvelteKit tem navegação, project switcher e estados acessíveis, o painel de gráfico renderiza 100k pontos a 60 fps, a tabela do Explore virtualiza 10k linhas a 60 fps e o frontend tem orçamento de bundle e Lighthouse no CI; o baseline T1 ainda não começou.
+- **Fase 0 — em andamento.** Stories 1.1–1.4, 2.1–2.4, 3.1–3.5, 4.1–4.5, 5.1–5.5, 6.1–6.4 concluídas; o data plane (ClickHouse, VictoriaMetrics, NATS, gateway, writer) tem spikes locais, a stack single-node sobe com `make compose-up`, o control plane PostgreSQL tem migrações/backup/restore, a stack tem health page e alerting interno mínimo, a API `/api/v1` tem contrato OpenAPI gerado, o shell SvelteKit tem navegação, project switcher e estados acessíveis, o painel de gráfico renderiza 100k pontos a 60 fps, a tabela do Explore virtualiza 10k linhas a 60 fps e o frontend tem orçamento de bundle e Lighthouse no CI; a Story 7.1 entregou o pipeline de design partners (tracker com contrato executável, validador e gates) e aguarda a lista real; o baseline T1 ainda não começou.
 - O estado corrente vive em `STATUS.md` (fonte de verdade de onde estamos).
 - O prompt de retomada pronto para novas sessões está em `PROMPT.md`.
-- O próximo trabalho é a **Story 7.1** (`_bmad-output/planning-artifacts/epics.md`): pipeline de recrutamento de design partners.
+- A **Story 7.1** (`_bmad-output/planning-artifacts/epics.md`) está em andamento: a infraestrutura do pipeline existe, mas AC1 (20 candidatos reais) e AC3 (5 calls, 3 assinados) dependem de sourcing/outreach humano (P-01). O próximo trabalho de código é a **Story 7.2**: critérios de seleção, acordo e tratamento de dados.
 - Os runbooks de operação (backup/restore, upgrade/rollback, auto-observabilidade) estão em `docs/runbooks/`.
 - O backlog da Fase 0 está em `_bmad-output/planning-artifacts/epics.md`.
 - O plano executivo está em `_bmad-output/planning-artifacts/PROGRAM-PLAN.md`.
@@ -92,6 +92,8 @@ make dev           # Go + SvelteKit em paralelo
 make smoke         # smoke test do binário/health
 make ci            # bootstrap + lint + test + build
 make operator-smoke # Story 5.4: backup/restore + health + alerta (Compose)
+make partners-check # Story 7.1: valida template + exemplo do pipeline de design partners
+make partners-gate  # Story 7.1: exige AC1/AC3 na lista real e grava relatório redigido
 make upgrade-drill  # Story 5.4: upgrade/rollback versionados (Compose)
 ```
 
@@ -162,4 +164,5 @@ Pare e peça decisão humana quando:
 - Story 6.2 handoff: `docs/dev/story-6.2-handoff.md`
 - Story 6.3 handoff: `docs/dev/story-6.3-handoff.md`
 - Story 6.4 handoff: `docs/dev/story-6.4-handoff.md`
+- Story 7.1 handoff e programa de design partners: `docs/dev/story-7.1-handoff.md`, `docs/partners/`
 - API contract: `docs/api/README.md`, `docs/api/versioning.md`, `api/openapi/`
