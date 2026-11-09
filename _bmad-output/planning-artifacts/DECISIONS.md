@@ -27,6 +27,18 @@
 
 **ADRs relacionadas:** P-02 é detalhada em [ADR-0005](../../docs/adr/0005-tenancy-e-retencao.md) (mecanismo aprovado; o default 7/15/30 continua pendente); P-04 em [ADR-0004](../../docs/adr/0004-frontend-sveltekit-uplot.md) (SvelteKit é o default; o fallback React 19 permanece como critério de reversão se o time contratado for React-heavy); P-03 em [`docs/governance/open-core.md`](../../docs/governance/open-core.md) (fronteira ainda pendente); P-07 em [ADR-0006](../../docs/adr/0006-metodologia-de-benchmark.md) (perfil T1 e mecanismo de custo entregues pela Story 2.4; a aprovação de gasto continua humana).
 
+**P-01 (2026-11-08):** o dono declarou que **não há pessoas disponíveis para
+testar** nesta fase, então o critério de reversão de P-01 passa a valer: o
+programa de design partners roda com **dados sintéticos** e o gate de produto do
+G1 ("3 design partners com dados reais") fica **adiado**, sem ser marcado como
+cumprido. A resposta de engenharia é o harness [`partners-simulate`](../../docs/partners/simulation.md)
+(`cmd/partnerssim`), que gera um funil determinístico, roda o validador, a
+triagem e o gate reais e grava tudo em `partners/simulation/` (fora do git).
+`partnerscheck` **recusa linhas simuladas** sem `-simulation`, de modo que uma
+coorte sintética não pode ser commitada como evidência de AC1/AC3. A meta real
+(20 candidatos, 5 calls e 3 assinaturas) continua aberta até existir sourcing
+humano.
+
 **Story 2.4 (2026-11-01):** o perfil T1 está em `bench/env/t1.json` e a
 estimativa de custo em `bench/internal/envprofile` + `bench/env/prices.*.json`.
 `BENCHMARKS.md` publica a pré-baseline local e mantém o baseline T1 pendente. O

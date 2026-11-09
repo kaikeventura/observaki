@@ -74,6 +74,9 @@ make partners-init                                   # cria a lista local
 make partners-check                                  # template + exemplo fictício (CI)
 make partners-gate                                   # AC1/AC3 na lista real + relatório
 make partners-baseline ID=dp-001                     # cria partners/baselines/dp-001.md (local)
+make partners-simulate                               # ensaio com dados fictícios (não é evidência)
 go run ./cmd/partnerscheck -file partners/pipeline.csv -min-candidates 20 -min-calls 5 -min-signed 3
-go run ./cmd/partnerscheck -file partners/pipeline.csv -min-volume 50000   # cenário mais exigente
+go run ./cmd/partnerscheck -file partners/pipeline.csv -min-volume 50000  	# cenário mais exigente
 ```
+
+Linhas simuladas (`dp-sim-*`, domínios `.example.*`/`.invalid`, "fictício" no texto) são recusadas pelo gate real; só passam com `-simulation`, e o relatório sai com banner de simulação — ver [`simulation.md`](simulation.md).

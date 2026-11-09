@@ -45,7 +45,7 @@ BENCH_LDFLAGS := -X github.com/observaki/observaki/bench/internal/benchversion.V
 # golangci-lint may be installed outside PATH (e.g. $(go env GOPATH)/bin).
 GOLANGCI_LINT ?= $(shell command -v golangci-lint 2>/dev/null || printf '%s/bin/golangci-lint' "$$(go env GOPATH)")
 
-.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check partners-check partners-init partners-gate partners-baseline chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check bundle-budget lighthouse chart-bench table-bench
+.PHONY: help bootstrap check-toolchain tools fmt lint test build dev smoke clean ci adr-check api-gen api-check partners-check partners-init partners-gate partners-baseline partners-simulate chart-check chart-smoke compose-check compose-up compose-down compose-smoke quickstart-check examples-check operator-smoke upgrade-drill bench-env-check bench-clickhouse bench-clickhouse-check bench-clickhouse-traces bench-clickhouse-traces-check bench-clickhouse-ingest bench-clickhouse-ingest-check bench-clickhouse-query bench-clickhouse-query-check bench-victoriametrics bench-victoriametrics-check bench-gateway-quota bench-gateway-quota-check bench-gateway-wal bench-gateway-wal-check bench-pipeline bench-pipeline-check bench-chaos bench-chaos-check bundle-budget lighthouse chart-bench table-bench
 
 help: ## show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -80,9 +80,12 @@ api-gen: ## regenerate api/openapi/openapi.json from the Go route definitions
 api-check: ## fail when the checked-in OpenAPI contract is stale
 	$(GO) run ./cmd/openapi-gen -check $(API_SPEC)
 
-partners-check: ## validate the Story 7.1 partner pipeline contract (template + fictional example)
+partners-check: ## validate the partner pipeline contract (Story 7.1/7.2: template + fictional example)
 	$(GO) run ./cmd/partnerscheck -file partners/pipeline.template.csv -allow-empty
-	$(GO) run ./cmd/partnerscheck -file partners/examples/pipeline-example.csv
+	$(GO) run ./cmd/partnerscheck -file partners/examples/pipeline-example.csv -simulation
+
+partners-simulate: ## rehearse the whole funnel with synthetic candidates (never AC evidence)
+	$(GO) run ./cmd/partnerssim -seed $(or $(SEED),7) -candidates $(or $(CANDIDATES),20)
 
 partners-init: ## create the untracked partners/pipeline.csv (real contacts stay out of git)
 	@test -f partners/pipeline.csv || cp partners/pipeline.template.csv partners/pipeline.csv

@@ -80,13 +80,35 @@ make partners-init   # se o arquivo ainda não existir
 
 As colunas podem ficar em qualquer ordem (o parser usa o cabeçalho), mas precisam existir e estar preenchidas com `yes`, `no` ou `unknown`.
 
+## Simulação com dados fictícios (2026-11-08)
+
+O dono declarou que não há pessoas disponíveis para testar, então vale o critério
+de reversão do P-01: dados sintéticos e gate de produto adiado. Foi entregue um
+harness para ensaiar o funil inteiro **sem** transformar ficção em evidência:
+
+```text
+$ make partners-simulate
+SIMULATION — fake candidates, not AC evidence
+funnel: sourced=2 contacted=3 replied=4 call_scheduled=2 call_done=3 signed=3 declined=2 no_response=1
+screen: evaluated=20 eligible=8 blocked=12 | failing: uses_otel=0 uses_kubernetes=2 volume=7 dados=11 feedback=11
+SIMULATION AC1 qualified candidates: PASS (20/20)
+SIMULATION AC3 calls happened: PASS (8/5)
+SIMULATION AC3 partners signed: PASS (3/3)
+
+$ go run ./cmd/partnerscheck -file partners/simulation/pipeline.csv
+partnerscheck: 20 simulated row(s) ... synthetic data is not AC evidence ...     # exit 1
+```
+
+- `cmd/partnerssim` gera uma coorte determinística (`dp-sim-NNN`, `.example.invalid`), escreve `partners/simulation/{pipeline.csv,report.md,README.md}` (fora do git) e roda o parser, o validador, a triagem e o gate reais.
+- `partners.IsSimulated` + a flag `-simulation` do `partnerscheck` impedem que linhas simuladas passem no gate real; o exemplo versionado do CI roda em modo simulação e a saída fica prefixada com `SIMULATION`.
+- Documentação em [`docs/partners/simulation.md`](../partners/simulation.md); decisão registrada em `DECISIONS.md` (P-01).
+
 ## O que falta para fechar a story
 
 1. **AC2:** apresentar [`agreement.md`](../partners/agreement.md) aos candidatos que passarem na triagem, coletar assinatura/aceite e guardar a cópia em `partners/agreements/` (fora do git).
 2. **AC1 real:** preencher `can_share_data` e `can_weekly_feedback` dos candidatos reais e conferir a linha `screen:` do `make partners-gate`.
 3. **AC3:** na primeira call de onboarding, rodar `make partners-baseline ID=dp-00N` e preencher ferramentas, volume, custo e as 3 dores (Story 7.3 consome esse arquivo).
 4. **P-01** em `DECISIONS.md` só fecha com os 3 acordos assinados.
-
 ## Riscos
 
 - **Triagem tardia.** Se os campos só forem preenchidos depois da call, o parceiro pode ser recusado por algo que a pré-triagem pegaria de graça; a [`sourcing.md`](../partners/sourcing.md) já pede as cinco respostas antes de gastar a call.

@@ -105,7 +105,9 @@ type Candidate struct {
 	ID                    string
 	Company               string
 	Segment               string
+	Website               string
 	ContactName           string
+	ContactRole           string
 	ContactEmail          string
 	ContactChannel        string
 	Stack                 string
@@ -114,6 +116,7 @@ type Candidate struct {
 	VolumeEventsPerSecond string
 	CanShareData          string
 	CanWeeklyFeedback     string
+	Source                string
 	Status                Status
 	FirstContactAt        string
 	LastContactAt         string
@@ -123,6 +126,7 @@ type Candidate struct {
 	SignedAt              string
 	NextAction            string
 	NextActionDue         string
+	Notes                 string
 }
 
 // Pipeline is a parsed CSV file.
@@ -172,7 +176,9 @@ func Parse(path string, r io.Reader) (*Pipeline, error) {
 			ID:                    field("id"),
 			Company:               field("company"),
 			Segment:               field("segment"),
+			Website:               field("website"),
 			ContactName:           field("contact_name"),
+			ContactRole:           field("contact_role"),
 			ContactEmail:          field("contact_email"),
 			ContactChannel:        field("contact_channel"),
 			Stack:                 field("stack"),
@@ -181,6 +187,7 @@ func Parse(path string, r io.Reader) (*Pipeline, error) {
 			VolumeEventsPerSecond: field("volume_events_per_second"),
 			CanShareData:          field("can_share_data"),
 			CanWeeklyFeedback:     field("can_weekly_feedback"),
+			Source:                field("source"),
 			Status:                Status(field("status")),
 			FirstContactAt:        field("first_contact_at"),
 			LastContactAt:         field("last_contact_at"),
@@ -190,6 +197,7 @@ func Parse(path string, r io.Reader) (*Pipeline, error) {
 			SignedAt:              field("signed_at"),
 			NextAction:            field("next_action"),
 			NextActionDue:         field("next_action_due"),
+			Notes:                 field("notes"),
 		})
 	}
 	return pipeline, nil

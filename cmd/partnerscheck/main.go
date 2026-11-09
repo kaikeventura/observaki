@@ -31,6 +31,7 @@ func run() error {
 	minSigned := flag.Int("min-signed", partners.DefaultTargets().MinSigned, "AC3: minimum signed partners")
 	minVolume := flag.Int("min-volume", partners.DefaultMinVolume, "Story 7.2: minimum events/s for a signed partner")
 	allowEmpty := flag.Bool("allow-empty", false, "accept a header-only file (template check, skips targets)")
+	simulation := flag.Bool("simulation", false, "accept synthetic rows produced by cmd/partnerssim (never counts as evidence)")
 	flag.Parse()
 
 	criteria := partners.DefaultCriteria()
@@ -59,6 +60,16 @@ func run() error {
 		return fmt.Errorf("%d validation problem(s) in %s", len(problems), *file)
 	}
 
+	// A simulated funnel can never stand in for the real goal: refuse it on
+	// the real gate so a synthetic cohort cannot be committed as evidence.
+	if simulated := partners.SimulatedRows(pipeline.Candidates); len(simulated) > 0 && !*simulation {
+		return fmt.Errorf("%d simulated row(s) in %s (first: %s); synthetic data is not AC evidence — run the simulation with cmd/partnerssim or pass -simulation explicitly",
+			len(simulated), *file, simulated[0])
+	}
+	if *simulation {
+		fmt.Println("SIMULATION MODE — synthetic rows; the checks below prove the tooling, not AC1/AC3")
+	}
+
 	stats := partners.Summarize(pipeline.Candidates)
 	screen := partners.Screened(pipeline.Candidates, criteria)
 	fmt.Printf("Partners pipeline: %s\n", *file)
@@ -74,6 +85,9 @@ func run() error {
 
 	if *reportPath != "" {
 		report := partners.Report(pipeline, stats, screen, time.Now())
+		if *simulation {
+			report = partners.SimulationBanner + "\n" + report
+		}
 		if err := os.WriteFile(*reportPath, []byte(report), 0o644); err != nil {
 			return fmt.Errorf("write report %s: %w", *reportPath, err)
 		}
@@ -91,7 +105,11 @@ func run() error {
 	targets := partners.Targets{MinQualified: *minQualified, MinCalls: *minCalls, MinSigned: *minSigned}
 	failed := 0
 	for _, check := range partners.Evaluate(stats, targets) {
-		fmt.Println(check)
+		if *simulation {
+			fmt.Printf("SIMULATION %s\n", check)
+		} else {
+			fmt.Println(check)
+		}
 		if !check.Passed {
 			failed++
 		}

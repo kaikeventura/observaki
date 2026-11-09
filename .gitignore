@@ -54,6 +54,7 @@ partners/pipeline.csv
 partners/pipeline.local.csv
 partners/baselines/
 partners/agreements/
+partners/simulation/
 
 # Bench artifacts
 bench/results/

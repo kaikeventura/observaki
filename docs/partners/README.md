@@ -2,7 +2,7 @@
 
 **Objetivo (Epic P0-E7):** terminar a Fase 0 com **3 design partners comprometidos**, com dados reais e um ciclo de feedback semanal — não apenas conversas interessadas.
 
-**Estado:** infraestrutura do pipeline (7.1) e os artefatos de seleção, acordo e baseline (7.2) estão prontos. A lista real de candidatos, as calls, as assinaturas e a captura de baseline dependem de execução humana (P-01 do `DECISIONS.md`); a meta de 5 calls e 3 assinaturas ainda não foi atingida.
+**Estado:** infraestrutura do pipeline (7.1) e os artefatos de seleção, acordo e baseline (7.2) estão prontos. A lista real de candidatos, as calls, as assinaturas e a captura de baseline dependem de execução humana (P-01 do `DECISIONS.md`); a meta de 5 calls e 3 assinaturas ainda não foi atingida. Enquanto não houver pessoas para testar, o funil roda com dados sintéticos via `make partners-simulate` — que **não** conta como evidência de AC1/AC3.
 
 ## O que existe
 
@@ -15,6 +15,7 @@
 | [`data-handling.md`](data-handling.md) | Resumo de tratamento de dados usado no outreach |
 | [`agreement.md`](agreement.md) | Acordo do piloto: escopo, retenção, anonimização, cadência e saída |
 | [`baseline.md`](baseline.md) | Como capturar ferramentas, volume, custo e as 3 dores do ambiente |
+| [`simulation.md`](simulation.md) | Simulação com dados fictícios (`make partners-simulate`) e a guarda que impede confundi-la com evidência |
 | [`partners/pipeline.template.csv`](../../partners/pipeline.template.csv) | Cabeçalho do tracker (versionado) |
 | [`partners/baseline.template.md`](../../partners/baseline.template.md) | Formulário de baseline (versionado; a cópia preenchida fica local) |
 | [`partners/examples/pipeline-example.csv`](../../partners/examples/pipeline-example.csv) | 20 linhas **fictícias** que exercitam o validador |
@@ -28,6 +29,7 @@ make partners-init                 # cria partners/pipeline.csv a partir do temp
 make partners-check                # valida template + exemplo fictício (roda no make lint/CI)
 make partners-gate                 # exige 20 qualificados, 5 calls e 3 assinados na lista real
 make partners-baseline ID=dp-001   # cria partners/baselines/dp-001.md a partir do template
+make partners-simulate             # ensaia o funil com dados fictícios (nunca é evidência)
 ```
 
 `make partners-gate` grava `partners/pipeline-report.md` — contagens de funil e da triagem, sem contato, e-mail ou nota. É o único artefato do pipeline que pode ser commitado quando os dados forem reais.
