@@ -162,6 +162,22 @@ spans e a métrica de amostra gravados; `down`/`up` preservou as linhas e o
 `deploy/compose/results/`). **Pendências:** validação em macOS, Helm 3 nós
 (5.2), sample app/quickstart (5.3) e Explore na UI (6.1–6.4); não é G1.
 
+**Story 6.2 (2026-11-08):** o painel de série temporal (`TimeSeriesChart`)
+usa uPlot 1.6.32 carregado por `import()` dinâmico (fora do bundle inicial) e
+desenha com **decimação min/max** por bucket de pixel (~1 ponto por pixel CSS),
+mantendo os 100k pontos em memória e o path sempre cobrindo o início e o fim da
+janela visível. O dataset sintético é determinístico e a janela é fixa
+(`copyWithin`), então o live a 1 Hz não realoca os arrays. A tabela acessível e
+o anúncio em `aria-live` são adiados 120 ms depois do gesto para não roubar
+frames da interação. O preenchimento de área saiu do spike porque, sem GPU, o
+fill translúcido custava ~6 ms por frame e derrubava o zoom para ~49 fps; a
+linha mantém 60 fps. **Evidência local (Linux, Chrome 155 headless):** primeiro
+frame com 100k pontos em 11,4 ms, mediana de 60,1 fps em 9 rodadas de
+hover/zoom/pan, live com uma instância e o mesmo `<canvas>`, heap de 7–18 MiB
+em 10 min; bench em `web/scripts/chart-bench.mjs` e resultados em
+`bench/frontend/`. **Pendências:** medição com GPU, Query Service real (Fase 1)
+e orçamento de bundle/Lighthouse na 6.4.
+
 ## ADRs da Fase 0
 
 As seis ADRs obrigatórias (AR-12) estão em [`docs/adr/`](../../docs/adr/README.md). Foram **aprovadas em 2026-10-31** (AC3); a evidência dos spikes continua sendo exigida nos demais itens do Gate G1.
