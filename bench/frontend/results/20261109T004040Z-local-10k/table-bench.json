@@ -1,0 +1,401 @@
+{
+  "generatedAt": "2026-11-09T00:40:54.229Z",
+  "url": "http://127.0.0.1:8099/explore",
+  "chrome": "google-chrome",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "load": {
+    "durationMs": 94.5,
+    "domContentLoadedMs": 94.5,
+    "transferSize": 12027,
+    "heapUsed": 14445982
+  },
+  "initial": {
+    "total": 10000,
+    "rendered": 19,
+    "start": 0,
+    "end": 19,
+    "scrollTop": 0,
+    "sort": "timestamp:desc",
+    "selected": "",
+    "selectedIndex": -1,
+    "detail": false,
+    "resizes": 0,
+    "rowHeight": 40,
+    "viewport": 544,
+    "scrollHeight": 400041,
+    "domRows": 19,
+    "durations": [
+      213,
+      333,
+      313,
+      253,
+      137,
+      146,
+      2415,
+      1454,
+      143,
+      1752,
+      152,
+      947,
+      281,
+      259,
+      304,
+      2177,
+      295,
+      3232,
+      3440
+    ],
+    "firstIndex": 0,
+    "widths": {
+      "timestamp": 116,
+      "severity": 96,
+      "service": 150,
+      "message": 480,
+      "duration": 100,
+      "trace": 150
+    },
+    "cls": 0
+  },
+  "cls": {
+    "atLoad": {
+      "value": 0,
+      "shifts": []
+    },
+    "stages": {
+      "afterScroll": 0.20992864789759008,
+      "afterResize": 0.21610377580736165,
+      "afterSort": 0.21610377580736165,
+      "afterSelect": 0.21610377580736165
+    },
+    "session": {
+      "value": 0.21623701171726709,
+      "shifts": [
+        {
+          "value": 0.10496432394879504,
+          "hadRecentInput": false,
+          "sources": [
+            {
+              "node": "TR",
+              "id": "",
+              "className": "",
+              "previous": {},
+              "current": {}
+            }
+          ]
+        },
+        {
+          "value": 0.10496432394879504,
+          "hadRecentInput": false,
+          "sources": [
+            {
+              "node": "TR",
+              "id": "",
+              "className": "",
+              "previous": {},
+              "current": {}
+            }
+          ]
+        },
+        {
+          "value": 0.006175127909771575,
+          "hadRecentInput": false,
+          "sources": [
+            {
+              "node": "TD",
+              "id": "",
+              "className": "overflow-hidden px-2 py-0 text-xs",
+              "previous": {},
+              "current": {}
+            },
+            {
+              "node": "TH",
+              "id": "",
+              "className": "bg-surface-2 border-border relative border-b p-0",
+              "previous": {},
+              "current": {}
+            },
+            {
+              "node": "TD",
+              "id": "",
+              "className": "overflow-hidden px-2 py-0 text-xs",
+              "previous": {},
+              "current": {}
+            },
+            {
+              "node": "TD",
+              "id": "",
+              "className": "overflow-hidden px-2 py-0 text-xs",
+              "previous": {},
+              "current": {}
+            },
+            {
+              "node": "TD",
+              "id": "",
+              "className": "overflow-hidden px-2 py-0 text-xs",
+              "previous": {},
+              "current": {}
+            }
+          ]
+        },
+        {
+          "value": 0.00003330897747634883,
+          "hadRecentInput": false,
+          "sources": [
+            {
+              "node": "SPAN",
+              "id": "",
+              "className": "text-foreground-subtle font-mono text-[11px]",
+              "previous": {},
+              "current": {}
+            }
+          ]
+        },
+        {
+          "value": 0.00003330897747634883,
+          "hadRecentInput": false,
+          "sources": [
+            {
+              "node": "SPAN",
+              "id": "",
+              "className": "text-foreground-subtle font-mono text-[11px]",
+              "previous": {},
+              "current": {}
+            }
+          ]
+        },
+        {
+          "value": 0.00003330897747634883,
+          "hadRecentInput": false,
+          "sources": [
+            {
+              "node": "SPAN",
+              "id": "",
+              "className": "text-foreground-subtle font-mono text-[11px]",
+              "previous": {},
+              "current": {}
+            }
+          ]
+        },
+        {
+          "value": 0.00003330897747634883,
+          "hadRecentInput": false,
+          "sources": [
+            {
+              "node": "SPAN",
+              "id": "",
+              "className": "text-foreground-subtle font-mono text-[11px]",
+              "previous": {},
+              "current": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "scroll": {
+    "runs": [
+      {
+        "frames": 92,
+        "durationMs": 1516,
+        "fps": 60.7,
+        "worstFrameMs": 16.8,
+        "maxDom": 25,
+        "endScrollTop": 31800
+      },
+      {
+        "frames": 91,
+        "durationMs": 1512,
+        "fps": 60.2,
+        "worstFrameMs": 16.8,
+        "maxDom": 25,
+        "endScrollTop": 28800
+      },
+      {
+        "frames": 91,
+        "durationMs": 1504,
+        "fps": 60.5,
+        "worstFrameMs": 16.8,
+        "maxDom": 25,
+        "endScrollTop": 31200
+      }
+    ],
+    "minFps": 60.2,
+    "medianFps": 60.5,
+    "maxDom": 25
+  },
+  "idleFps": {
+    "frames": 61,
+    "fps": 60.7
+  },
+  "resize": {
+    "ariaDispatched": true,
+    "beforeWidth": 150,
+    "afterWidth": 182,
+    "ariaValueNow": 182,
+    "afterPointerWidth": 230,
+    "widthAfterSort": 230,
+    "widthAfterSelect": 230,
+    "resizes": 8
+  },
+  "sort": {
+    "asc": {
+      "sort": "duration:asc",
+      "durations": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        120,
+        121,
+        121,
+        121,
+        121,
+        121,
+        121,
+        121,
+        121,
+        121
+      ]
+    },
+    "desc": {
+      "sort": "duration:desc",
+      "durations": [
+        4500,
+        4500,
+        4493,
+        4491,
+        4486,
+        4484,
+        4483,
+        4480,
+        4474,
+        4470,
+        4464,
+        4458,
+        4456,
+        4451,
+        4445,
+        4444,
+        4443,
+        4441,
+        4440
+      ]
+    }
+  },
+  "selection": {
+    "afterSelect": {
+      "id": "log-000759",
+      "index": 0,
+      "detail": true
+    },
+    "detailId": "log-000759",
+    "detailText": "Log detail Close TIME 2026-11-08 21:13:28.463 LEVEL ■ ERROR SERVICE search DURATION 4.50 s MESSAGE failed to write search batch: connection reset by peer TRACE ID e32fa5b5cebf7746ae71008a8d3e7d39 Copy SPAN ID 16be8860000002f7 ROW ID log-000759",
+    "afterEscape": {
+      "id": "log-000759",
+      "detail": false
+    },
+    "beforeJ": {
+      "id": "log-000759",
+      "index": 0
+    },
+    "afterJ": {
+      "id": "log-007726",
+      "index": 1
+    },
+    "afterEnter": {
+      "id": "log-007726",
+      "detail": true
+    }
+  },
+  "states": {
+    "empty": {
+      "text": "No logs match this filter. Adjust the filters or widen the time range, then retry. The query is kept. Retry query",
+      "retry": true
+    },
+    "afterEmptyRetry": {
+      "total": 10000,
+      "sort": "duration:desc"
+    },
+    "error": {
+      "text": "The query failed. The request could not be completed. Retry, or share the request ID with your administrator. Request ID req_01J8Z3K4 Retry query",
+      "alert": "The query failed. The request could not be completed. Retry, or share the request ID with your administrator. Request ID req_01J8Z3K4 Retry query",
+      "retry": true
+    },
+    "afterErrorRetry": {
+      "total": 10000
+    }
+  },
+  "final": {
+    "total": 10000,
+    "rendered": 19,
+    "start": 0,
+    "end": 19,
+    "scrollTop": 0,
+    "sort": "duration:desc",
+    "selected": "log-007726",
+    "selectedIndex": 1,
+    "detail": false,
+    "resizes": 8,
+    "rowHeight": 40,
+    "viewport": 544,
+    "scrollHeight": 400041,
+    "domRows": 19,
+    "durations": [
+      4500,
+      4500,
+      4493,
+      4491,
+      4486,
+      4484,
+      4483,
+      4480,
+      4474,
+      4470,
+      4464,
+      4458,
+      4456,
+      4451,
+      4445,
+      4444,
+      4443,
+      4441,
+      4440
+    ],
+    "firstIndex": 0,
+    "widths": {
+      "timestamp": 116,
+      "severity": 96,
+      "service": 230,
+      "message": 480,
+      "duration": 100,
+      "trace": 150
+    },
+    "cls": 0.21623701171726709
+  },
+  "pass": {
+    "virtualized": true,
+    "scrollNear60fps": true,
+    "domStaysBounded": true,
+    "sortWorks": true,
+    "resizeByKeyboard": true,
+    "resizeByPointer": true,
+    "resizePreserved": true,
+    "sortPreserved": true,
+    "selectionOpensDetail": true,
+    "escapeKeepsSelection": true,
+    "keyboardMovesSelection": true,
+    "enterOpensDetail": true,
+    "emptyStateRetries": true,
+    "errorStateRetries": true,
+    "widthsUnchangedBySortAndSelection": true,
+    "all": true
+  }
+}
