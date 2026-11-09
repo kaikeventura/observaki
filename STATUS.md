@@ -12,7 +12,7 @@ status: done  # not_started | in_progress | blocked | done
 updated: 2026-11-09
 branch: main
 remote: "git@github.com:kaikeventura/observaki.git"
-last_commit: "1b6dabd"
+last_commit: "6cf8599"
 next_action: "Story 7.1 — Pipeline de recrutamento de design partners. P-07 continua bloqueando o baseline T1"
 blocked_by: []
 last_session: "Story 6.4 concluída: bundle inicial 41,5 KB gzip e dashboards 74,4 KB no gate do build, Lighthouse no /explore com LCP 390 ms e INP 81 ms, e mock Explore com abas persistentes e autocomplete; evidência em docs/dev/story-6.4-handoff.md e bench/frontend/results/20261109T005535Z-local-explore/."
